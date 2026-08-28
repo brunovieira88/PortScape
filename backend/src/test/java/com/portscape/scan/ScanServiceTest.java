@@ -2,6 +2,7 @@ package com.portscape.scan;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
@@ -26,10 +27,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import com.portscape.baseline.BaselineResolver;
 import com.portscape.config.NmapProperties;
 import com.portscape.domain.Host;
 import com.portscape.domain.Port;
 import com.portscape.domain.ScanStatus;
+import com.portscape.risk.RiskScorer;
+import com.portscape.risk.nvd.CveLookupResult;
+import com.portscape.risk.nvd.CveLookupService;
 import com.portscape.scan.exception.InvalidTargetException;
 import com.portscape.scan.exception.NmapExecutionException;
 import com.portscape.scan.exception.NmapPrivilegeException;
@@ -46,6 +51,10 @@ class ScanServiceTest {
     private NmapXmlParser parser;
     @Mock
     private LocalNetworkDetector localNetworkDetector;
+    @Mock
+    private CveLookupService cveLookupService;
+    @Mock
+    private BaselineResolver baselineResolver;
 
     private ScanJobStore store;
     private ScanService service;
@@ -59,7 +68,10 @@ class ScanServiceTest {
         // Por defeito, como se a maquina do teste nao tivesse rota por defeito:
         // os testes que nao mencionam deteccao caem sempre no default-target.
         when(localNetworkDetector.detectLocalSubnet()).thenReturn(Optional.empty());
-        store = new ScanJobStore();
+        // O scoring e o baseline sao testados a parte; aqui interessa a orquestracao.
+        when(cveLookupService.lookup(anyList())).thenReturn(CveLookupResult.empty());
+        when(baselineResolver.resolveFor(any())).thenReturn(Optional.empty());
+        store = new InMemoryScanJobStore();
         service = new ScanService(
                 new TargetValidator(),
                 new NmapCommandBuilder(properties),
@@ -68,6 +80,9 @@ class ScanServiceTest {
                 store,
                 properties,
                 localNetworkDetector,
+                cveLookupService,
+                new RiskScorer(List.of()),
+                baselineResolver,
                 directExecutor,
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
@@ -83,7 +98,10 @@ class ScanServiceTest {
         ScanJob finished = store.find(started.id()).orElseThrow();
 
         assertThat(finished.status()).isEqualTo(ScanStatus.DONE);
-        assertThat(finished.hosts()).isEqualTo(hosts);
+        // O scan enriquece os hosts com o risco, por isso compara-se o que veio do parser.
+        assertThat(finished.hosts()).extracting(Host::ip, Host::ports)
+                .containsExactly(tuple(hosts.get(0).ip(), hosts.get(0).ports()));
+        assertThat(finished.hosts().get(0).risk()).isNotNull();
         assertThat(finished.startedAt()).isEqualTo(NOW);
         assertThat(finished.finishedAt()).isEqualTo(NOW);
         assertThat(finished.errorCode()).isNull();
@@ -218,7 +236,8 @@ class ScanServiceTest {
         ScanJob finished = store.find(started.id()).orElseThrow();
 
         assertThat(finished.status()).isEqualTo(ScanStatus.DONE);
-        assertThat(finished.hosts()).containsExactly(discovered);
+        assertThat(finished.hosts()).extracting(Host::ip, Host::ports)
+                .containsExactly(tuple(discovered.ip(), discovered.ports()));
     }
 
     @Test

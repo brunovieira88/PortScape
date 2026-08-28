@@ -15,8 +15,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import org.springframework.http.HttpStatus;
 
+import com.portscape.api.dto.ScanDiffResponse;
 import com.portscape.api.dto.ScanResponse;
 import com.portscape.api.dto.StartScanRequest;
+import com.portscape.baseline.BaselineService;
 import com.portscape.scan.ScanJob;
 import com.portscape.scan.ScanService;
 
@@ -29,9 +31,11 @@ import com.portscape.scan.ScanService;
 public class ScanController {
 
     private final ScanService scanService;
+    private final BaselineService baselineService;
 
-    public ScanController(ScanService scanService) {
+    public ScanController(ScanService scanService, BaselineService baselineService) {
         this.scanService = scanService;
+        this.baselineService = baselineService;
     }
 
     @PostMapping
@@ -46,7 +50,18 @@ public class ScanController {
     @GetMapping("/{id}")
     public ScanResponse getScan(@PathVariable UUID id) {
         return scanService.findScan(id)
-                .map(ScanResponse::from)
+                .map(job -> ScanResponse.from(job, baselineService.diffFor(job)))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Scan nao encontrado: " + id));
+    }
+
+    /**
+     * Comparacao completa com o baseline, incluindo os hosts que desapareceram -- que
+     * nao cabem na resposta do scan porque nao existem nele.
+     */
+    @GetMapping("/{id}/diff")
+    public ScanDiffResponse getDiff(@PathVariable UUID id) {
+        return baselineService.diffFor(id)
+                .map(diff -> ScanDiffResponse.from(id.toString(), diff))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Scan nao encontrado: " + id));
     }
 

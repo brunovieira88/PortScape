@@ -1,5 +1,7 @@
 package com.portscape.api.dto;
 
+import java.util.List;
+
 import com.portscape.domain.Port;
 
 public record PortDto(
@@ -8,10 +10,11 @@ public record PortDto(
         String state,
         String service,
         String product,
-        String version
+        String version,
+        List<String> cpes
 ) {
     public static PortDto from(Port port) {
         return new PortDto(port.number(), port.protocol(), port.state(),
-                port.service(), port.product(), port.version());
+                port.service(), port.product(), port.version(), port.cpes());
     }
 }

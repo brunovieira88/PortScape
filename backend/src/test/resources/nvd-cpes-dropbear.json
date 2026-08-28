@@ -1,0 +1,20 @@
+{
+  "resultsPerPage": 2,
+  "totalResults": 2,
+  "products": [
+    {
+      "cpe": {
+        "deprecated": true,
+        "cpeName": "cpe:2.3:a:dropbear_project:dropbear:2017.75:*:*:*:*:*:*:*",
+        "cpeNameId": "0d1c4b0a-0000-0000-0000-000000000001"
+      }
+    },
+    {
+      "cpe": {
+        "deprecated": false,
+        "cpeName": "cpe:2.3:a:dropbear_ssh_project:dropbear_ssh:2017.75:*:*:*:*:*:*:*",
+        "cpeNameId": "0d1c4b0a-0000-0000-0000-000000000002"
+      }
+    }
+  ]
+}

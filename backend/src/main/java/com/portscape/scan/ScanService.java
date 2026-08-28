@@ -2,6 +2,7 @@ package com.portscape.scan;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executor;
@@ -11,10 +12,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import com.portscape.baseline.BaselineResolver;
 import com.portscape.config.AsyncConfig;
 import com.portscape.config.NmapProperties;
 import com.portscape.domain.Host;
 import com.portscape.domain.Port;
+import com.portscape.risk.RiskScore;
+import com.portscape.risk.RiskScorer;
+import com.portscape.risk.nvd.CveLookupResult;
+import com.portscape.risk.nvd.CveLookupService;
 import com.portscape.scan.exception.ScanException;
 
 /**
@@ -36,6 +42,9 @@ public class ScanService {
     private final ScanJobStore store;
     private final NmapProperties properties;
     private final LocalNetworkDetector localNetworkDetector;
+    private final CveLookupService cveLookupService;
+    private final RiskScorer riskScorer;
+    private final BaselineResolver baselineResolver;
     private final Executor scanExecutor;
     private final Clock clock;
 
@@ -46,6 +55,9 @@ public class ScanService {
                        ScanJobStore store,
                        NmapProperties properties,
                        LocalNetworkDetector localNetworkDetector,
+                       CveLookupService cveLookupService,
+                       RiskScorer riskScorer,
+                       BaselineResolver baselineResolver,
                        @Qualifier(AsyncConfig.SCAN_EXECUTOR) Executor scanExecutor,
                        Clock clock) {
         this.targetValidator = targetValidator;
@@ -55,6 +67,9 @@ public class ScanService {
         this.store = store;
         this.properties = properties;
         this.localNetworkDetector = localNetworkDetector;
+        this.cveLookupService = cveLookupService;
+        this.riskScorer = riskScorer;
+        this.baselineResolver = baselineResolver;
         this.scanExecutor = scanExecutor;
         this.clock = clock;
     }
@@ -122,9 +137,9 @@ public class ScanService {
 
         try {
             List<Host> discovered = parser.parse(executor.execute(commandBuilder.buildDiscovery(job.target())));
-            List<Host> hosts = withServiceVersions(id, discovered);
-            store.save(job.done(hosts, clock.instant()));
-            log.info("Scan {} concluido: {} host(s)", id, hosts.size());
+            ScoredHosts scored = withRiskScores(job.target(), withServiceVersions(id, discovered));
+            store.save(job.done(scored.hosts(), clock.instant(), scored.cveLookupDegraded()));
+            log.info("Scan {} concluido: {} host(s)", id, scored.hosts().size());
         } catch (ScanException e) {
             log.warn("Scan {} falhou [{}]: {}", id, e.code(), e.getMessage());
             store.save(job.failed(e.code(), e.getMessage(), clock.instant()));
@@ -132,6 +147,33 @@ public class ScanService {
             log.error("Scan {} falhou de forma inesperada", id, e);
             store.save(job.failed("UNEXPECTED_ERROR", e.toString(), clock.instant()));
         }
+    }
+
+    /**
+     * Calcula o risco de cada host.
+     *
+     * <p>Corre aqui, antes de gravar, e o resultado fica persistido: o score depende
+     * dos CVEs que o NVD conhecia neste momento e do baseline que existia agora.
+     * Recalcular semanas depois daria outro numero e o historico deixava de ser
+     * comparavel consigo proprio.
+     */
+    private ScoredHosts withRiskScores(String target, List<Host> hosts) {
+        if (hosts.isEmpty()) {
+            return new ScoredHosts(hosts, false);
+        }
+        CveLookupResult cves = cveLookupService.lookup(hosts);
+        List<Host> baseline = baselineResolver.resolveFor(target)
+                .map(ScanJob::hosts)
+                .orElse(null);
+
+        Map<String, RiskScore> scores = riskScorer.score(hosts, cves, baseline);
+        return new ScoredHosts(hosts.stream()
+                .map(host -> host.withRisk(scores.getOrDefault(host.ip(), RiskScore.none())))
+                .toList(), cves.degraded());
+    }
+
+    /** Hosts pontuados, com a nota de se a consulta de CVEs ficou incompleta. */
+    private record ScoredHosts(List<Host> hosts, boolean cveLookupDegraded) {
     }
 
     private List<Host> withServiceVersions(UUID scanId, List<Host> discovered) {

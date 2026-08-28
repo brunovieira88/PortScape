@@ -7,6 +7,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.portscape.baseline.BaselineNotAllowedException;
 import com.portscape.scan.exception.InvalidTargetException;
 import com.portscape.scan.exception.ScanException;
 
@@ -32,6 +33,14 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleScanFailure(ScanException e) {
         log.warn("Falha de scan a chegar ao handler HTTP [{}]", e.code(), e);
         return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Falha no scan", e);
+    }
+
+    @ExceptionHandler(BaselineNotAllowedException.class)
+    public ProblemDetail handleBaselineNotAllowed(BaselineNotAllowedException e) {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+        detail.setTitle("Baseline invalido");
+        detail.setProperty("code", "BASELINE_NOT_ALLOWED");
+        return detail;
     }
 
     private static ProblemDetail problem(HttpStatus status, String title, ScanException e) {

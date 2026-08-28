@@ -1,0 +1,20 @@
+{
+  "resultsPerPage": 2,
+  "totalResults": 2,
+  "products": [
+    {
+      "cpe": {
+        "deprecated": false,
+        "cpeName": "cpe:2.3:a:f5:nginx_open_source:1.27.5:*:*:*:*:*:*:*",
+        "cpeNameId": "0d1c4b0a-0000-0000-0000-000000000003"
+      }
+    },
+    {
+      "cpe": {
+        "deprecated": false,
+        "cpeName": "cpe:2.3:a:f5:nginx:1.27.5:*:*:*:*:*:*:*",
+        "cpeNameId": "0d1c4b0a-0000-0000-0000-000000000004"
+      }
+    }
+  ]
+}

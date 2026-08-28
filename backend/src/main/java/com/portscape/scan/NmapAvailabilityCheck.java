@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import com.portscape.config.NmapProperties;
@@ -17,8 +18,12 @@ import com.portscape.scan.exception.ScanException;
  *
  * <p>Avisa, nao rebenta: a aplicacao continua util (a API responde, os erros ficam
  * registados nos jobs) e num container o nmap pode ainda nao estar montado.
+ *
+ * <p>Desligado no perfil "test": um teste de integracao nao tem nada que invocar o
+ * nmap real (nem pedir sudo) so por levantar o contexto.
  */
 @Component
+@Profile("!test")
 public class NmapAvailabilityCheck implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(NmapAvailabilityCheck.class);
