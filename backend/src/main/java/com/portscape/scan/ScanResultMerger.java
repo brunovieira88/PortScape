@@ -52,6 +52,6 @@ final class ScanResultMerger {
             return discovered;
         }
         return new Port(discovered.number(), discovered.protocol(), discovered.state(),
-                versioned.service(), versioned.product(), versioned.version());
+                versioned.service(), versioned.product(), versioned.version(), versioned.cpes());
     }
 }

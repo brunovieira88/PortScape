@@ -1,6 +1,21 @@
 server:
   port: 8080
 
+spring:
+  datasource:
+    # A BD corre em container (ver compose.yaml na raiz); o nmap corre nativamente.
+    url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/portscape}
+    username: ${POSTGRES_USER:portscape}
+    password: ${POSTGRES_PASSWORD:portscape}
+  jpa:
+    # O schema e da responsabilidade do Flyway (src/main/resources/db/migration).
+    # "validate" garante que as entidades e as migracoes nao divergem em silencio.
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
 portscape:
   nmap:
     # Prefixo do comando. Para scan privilegiado (-sS/-O) usar sudoers NOPASSWD:
@@ -23,6 +38,63 @@ portscape:
       - -T4
     timeout: 10m
     host-timeout: 60s
+
+  nvd:
+    # Consulta de CVEs reais ao National Vulnerability Database do NIST.
+    # A app envia apenas CPEs (ex. cpe:2.3:a:openbsd:openssh:9.6) -- nunca IPs,
+    # nomes de maquinas nem resultados de scan. Pör a false desliga a consulta:
+    # o scoring continua a funcionar so com as regras de portas.
+    enabled: true
+    base-url: https://services.nvd.nist.gov
+    # Sem key: 5 pedidos / 30s. Com key: 50. Pedir em https://nvd.nist.gov/developers/request-an-api-key
+    api-key: ${PORTSCAPE_NVD_API_KEY:}
+    timeout: 10s
+    # Espacamento entre pedidos, para respeitar o rate limit sem levar 429.
+    min-request-interval: 6s
+    # A cache em Postgres e o que torna isto viavel: ao segundo scan da mesma rede
+    # quase todos os CPEs ja la estao e nao se sai para a rede.
+    cache-ttl: 7d
+    # "Sem CVEs" tanto sai de um produto sem vulnerabilidades como de um nome que o
+    # NVD nao reconheceu -- por isso expira mais cedo que um resultado com conteudo.
+    empty-cache-ttl: 1d
+
+  risk:
+    # Pontos por porta aberta. Aqui esta o juizo editorial do projeto: o que faz um
+    # edificio ficar vermelho nao e ter muitas portas, e ter as portas erradas.
+    # Portas sem cifra ou de administracao remota pesam muito; web pesa pouco.
+    port-weights:
+      21: 25    # FTP sem TLS
+      23: 35    # Telnet -- credenciais em claro
+      111: 15   # rpcbind
+      135: 20   # MSRPC
+      139: 20   # NetBIOS
+      445: 30   # SMB
+      512: 30   # rexec
+      513: 30   # rlogin
+      514: 30   # rsh
+      1433: 20  # MSSQL exposto
+      3306: 20  # MySQL exposto
+      3389: 30  # RDP
+      5432: 20  # PostgreSQL exposto
+      5900: 25  # VNC
+      6379: 25  # Redis (historicamente sem autenticacao por defeito)
+      27017: 20 # MongoDB exposto
+      22: 5     # SSH -- esperado numa rede gerida
+      53: 5     # DNS
+      80: 5     # HTTP
+      443: 2    # HTTPS
+      8080: 5
+    # Porta aberta que nao esta na tabela acima.
+    default-port-weight: 8
+    # Pontos por unidade de CVSS do pior CVE do host (8.1 * 4 = 32 pontos).
+    cvss-multiplier: 4.0
+    severe-cvss-threshold: 7.0
+    extra-severe-cve-points: 3
+    max-extra-severe-cve-points: 15
+    # Um dispositivo que nao existia no baseline soma risco so por existir.
+    unknown-host-points: 25
+    new-port-points: 8
+    max-new-port-points: 24
 
 logging:
   level:

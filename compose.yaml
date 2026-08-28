@@ -1,0 +1,23 @@
+# Só a base de dados. O nmap corre nativamente no host, nunca em container:
+# em Docker Desktop (macOS) o `--network host` é a VM LinuxKit e não o macOS,
+# e o scan reporta hosts que não existem na rede real. Ver README.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: portscape-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-portscape}
+      POSTGRES_USER: ${POSTGRES_USER:-portscape}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-portscape}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-portscape} -d ${POSTGRES_DB:-portscape}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:

@@ -132,4 +132,30 @@ class NmapXmlParserTest {
                 .isInstanceOf(NmapXmlParseException.class)
                 .hasMessageContaining("nao devolveu XML");
     }
+
+    @Test
+    @DisplayName("os CPEs do servico sao extraidos -- sao a chave da consulta de CVEs")
+    void extractsServiceCpes() throws IOException {
+        List<Host> hosts = parser.parse(load("sample-scan.xml"));
+
+        Port telnet = hosts.stream()
+                .flatMap(host -> host.ports().stream())
+                .filter(port -> port.number() == 23)
+                .findFirst().orElseThrow();
+        assertThat(telnet.cpes()).containsExactly("cpe:/a:busybox:busybox");
+
+        Port ssh = hosts.stream()
+                .flatMap(host -> host.ports().stream())
+                .filter(port -> port.number() == 22)
+                .findFirst().orElseThrow();
+        assertThat(ssh.cpes()).containsExactly("cpe:/a:openbsd:openssh:9.6");
+    }
+
+    @Test
+    @DisplayName("uma porta sem <cpe> fica com lista vazia, nunca null")
+    void portsWithoutCpesGetAnEmptyList() throws IOException {
+        assertThat(parser.parse(load("sample-scan.xml")))
+                .flatExtracting(Host::ports)
+                .allSatisfy(port -> assertThat(port.cpes()).isNotNull());
+    }
 }

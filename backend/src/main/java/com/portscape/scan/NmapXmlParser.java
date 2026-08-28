@@ -141,6 +141,19 @@ public class NmapXmlParser {
         return match == null ? null : match.accuracy;
     }
 
+    /** Os CPEs so aparecem na fase de deteccao de versao; na descoberta a lista vem vazia. */
+    private static List<String> cpesOf(XmlPort port) {
+        if (port.service == null || port.service.cpe == null) {
+            return List.of();
+        }
+        return port.service.cpe.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(cpe -> !cpe.isBlank())
+                .distinct()
+                .toList();
+    }
+
     /**
      * O {@code --open} ja filtra do lado do nmap, mas o parser nao depende disso:
      * o XML pode vir de outra invocacao ou de um ficheiro guardado.
@@ -160,7 +173,8 @@ public class NmapXmlParser {
                     xmlPort.state.state,
                     xmlPort.service == null ? null : xmlPort.service.name,
                     xmlPort.service == null ? null : xmlPort.service.product,
-                    xmlPort.service == null ? null : xmlPort.service.version));
+                    xmlPort.service == null ? null : xmlPort.service.version,
+                    cpesOf(xmlPort)));
         }
         ports.sort(Comparator.comparingInt(Port::number));
         return List.copyOf(ports);

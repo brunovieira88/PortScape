@@ -1,0 +1,43 @@
+{
+  "resultsPerPage": 2,
+  "startIndex": 0,
+  "totalResults": 2,
+  "format": "NVD_CVE",
+  "version": "2.0",
+  "vulnerabilities": [
+    {
+      "cve": {
+        "id": "CVE-2024-6387",
+        "sourceIdentifier": "cve@mitre.org",
+        "published": "2024-07-01T13:15:00.000",
+        "vulnStatus": "Analyzed",
+        "descriptions": [
+          {"lang": "es", "value": "Una condicion de carrera en sshd de OpenSSH."},
+          {"lang": "en", "value": "A signal handler race condition was found in OpenSSH's server (sshd)."}
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "baseScore": 8.1,
+                "baseSeverity": "HIGH"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2023-51385",
+        "descriptions": [
+          {"lang": "en", "value": "In ssh in OpenSSH, OS command injection might occur."}
+        ],
+        "metrics": {}
+      }
+    }
+  ]
+}

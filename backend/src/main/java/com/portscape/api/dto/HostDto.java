@@ -2,27 +2,51 @@ package com.portscape.api.dto;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.portscape.baseline.HostChange;
 import com.portscape.domain.Host;
 
 /**
  * {@code portCount} vai explicito no JSON: e dele que sai a altura do edificio na
- * cena 3D (fase 4) e evita que o frontend tenha de contar.
+ * cena 3D (fase 4) e evita que o frontend tenha de contar. O {@code riskScore} da a
+ * cor, e as {@code riskReasons} enchem o painel de detalhes.
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record HostDto(
         String ip,
         String hostname,
         String osGuess,
         Integer osAccuracy,
         int portCount,
+        Integer riskScore,
+        List<RiskReasonDto> riskReasons,
+        HostChange change,
+        boolean isNew,
+        boolean isChanged,
         List<PortDto> ports
 ) {
     public static HostDto from(Host host) {
+        return from(host, HostChange.UNKNOWN);
+    }
+
+    /**
+     * {@code isNew} e {@code isChanged} sao redundantes face a {@code change}, mas
+     * sao o que a cena 3D consome: um booleano por destaque visual evita comparar
+     * strings dentro do loop de render.
+     */
+    public static HostDto from(Host host, HostChange change) {
         return new HostDto(
                 host.ip(),
                 host.hostname(),
                 host.osGuess(),
                 host.osAccuracy(),
                 host.portCount(),
+                host.risk() == null ? null : host.risk().score(),
+                host.risk() == null ? List.of()
+                        : host.risk().reasons().stream().map(RiskReasonDto::from).toList(),
+                change,
+                change == HostChange.NEW,
+                change == HostChange.CHANGED,
                 host.ports().stream().map(PortDto::from).toList());
     }
 }

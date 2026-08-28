@@ -25,6 +25,8 @@ import com.portscape.domain.Host;
 import com.portscape.domain.Port;
 import com.portscape.domain.ScanStatus;
 import com.portscape.scan.ScanJob;
+import com.portscape.baseline.BaselineService;
+import com.portscape.baseline.ScanDiff;
 import com.portscape.scan.ScanService;
 import com.portscape.scan.exception.InvalidTargetException;
 
@@ -39,6 +41,15 @@ class ScanControllerTest {
 
     @MockitoBean
     private ScanService scanService;
+
+    @MockitoBean
+    private BaselineService baselineService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void noBaselineByDefault() {
+        // Sem baseline: o diff nao interfere com o que estes testes verificam.
+        when(baselineService.diffFor(any(ScanJob.class))).thenReturn(ScanDiff.none());
+    }
 
     @Test
     @DisplayName("POST devolve 202 com Location para o cliente fazer polling")
@@ -131,5 +142,77 @@ class ScanControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].hostsUp").value(1))
                 .andExpect(jsonPath("$[0].hosts").isEmpty());
+    }
+
+    @Test
+    @DisplayName("o JSON do scan traz os flags de mudanca face ao baseline")
+    void exposesBaselineFlagsOnEachHost() throws Exception {
+        ScanJob job = doneJob();
+        when(scanService.findScan(ID)).thenReturn(Optional.of(job));
+        when(baselineService.diffFor(any(ScanJob.class))).thenReturn(new ScanDiff(
+                BASELINE_ID,
+                java.util.Map.of("192.168.1.1", com.portscape.baseline.HostChange.NEW),
+                List.of()));
+
+        mockMvc.perform(get("/api/scans/" + ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.baselineScanId").value(BASELINE_ID.toString()))
+                .andExpect(jsonPath("$.hosts[0].change").value("NEW"))
+                .andExpect(jsonPath("$.hosts[0].isNew").value(true))
+                .andExpect(jsonPath("$.hosts[0].isChanged").value(false));
+    }
+
+    @Test
+    @DisplayName("sem baseline os hosts vem UNKNOWN, nao UNCHANGED")
+    void reportsUnknownWhenThereIsNoBaseline() throws Exception {
+        when(scanService.findScan(ID)).thenReturn(Optional.of(doneJob()));
+
+        mockMvc.perform(get("/api/scans/" + ID))
+                .andExpect(jsonPath("$.baselineScanId").doesNotExist())
+                .andExpect(jsonPath("$.hosts[0].change").value("UNKNOWN"))
+                .andExpect(jsonPath("$.hosts[0].isNew").value(false));
+    }
+
+    @Test
+    @DisplayName("o risco vai no JSON com as razoes que o explicam")
+    void exposesTheRiskScoreAndItsReasons() throws Exception {
+        when(scanService.findScan(ID)).thenReturn(Optional.of(doneJob()));
+
+        mockMvc.perform(get("/api/scans/" + ID))
+                .andExpect(jsonPath("$.hosts[0].riskScore").value(35))
+                .andExpect(jsonPath("$.hosts[0].riskReasons[0].code").value("OPEN_PORT"))
+                .andExpect(jsonPath("$.hosts[0].riskReasons[0].points").value(35));
+    }
+
+    @Test
+    void exposesTheDiffIncludingHostsThatDisappeared() throws Exception {
+        when(baselineService.diffFor(ID)).thenReturn(Optional.of(new ScanDiff(
+                BASELINE_ID,
+                java.util.Map.of("192.168.1.1", com.portscape.baseline.HostChange.UNCHANGED),
+                List.of(new Host("192.168.1.42", null, null, null, List.of())))));
+
+        mockMvc.perform(get("/api/scans/" + ID + "/diff"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.baselineScanId").value(BASELINE_ID.toString()))
+                .andExpect(jsonPath("$.changeByIp['192.168.1.1']").value("UNCHANGED"))
+                .andExpect(jsonPath("$.disappeared[0].ip").value("192.168.1.42"));
+    }
+
+    @Test
+    void diffOfAnUnknownScanIs404() throws Exception {
+        when(baselineService.diffFor(ID)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/scans/" + ID + "/diff")).andExpect(status().isNotFound());
+    }
+
+    private static final UUID BASELINE_ID = UUID.fromString("99999999-8888-7777-6666-555555555555");
+
+    /** Um scan concluido com um host de risco conhecido, para os testes acima lerem bem. */
+    private static ScanJob doneJob() {
+        Host host = new Host("192.168.1.1", "router.lan", "Linux", 94,
+                List.of(new Port(23, "tcp", "open", "telnet", "BusyBox telnetd", null)),
+                new com.portscape.risk.RiskScore(35, List.of(
+                        new com.portscape.risk.RiskReason("OPEN_PORT", "Porta 23/tcp aberta (telnet)", 35))));
+        return ScanJob.pending(ID, "192.168.1.0/24", NOW).running(NOW).done(List.of(host), NOW);
     }
 }
