@@ -10,5 +10,6 @@ public enum HostChange {
     NEW,
     CHANGED,
     UNCHANGED,
-    UNKNOWN
+    UNKNOWN,
+    DISAPPEARED
 }

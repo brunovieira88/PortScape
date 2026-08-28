@@ -8,6 +8,8 @@ import com.portscape.baseline.ScanDiff;
 import com.portscape.domain.ScanStatus;
 import com.portscape.scan.ScanJob;
 
+import com.portscape.layout.CityLayout;
+
 /**
  * Envelope canonico de um scan.
  *
@@ -27,20 +29,16 @@ public record ScanResponse(
         int hostsUp,
         String baselineScanId,
         boolean cveLookupDegraded,
+        CityLayout layout,
         List<HostDto> hosts,
+        List<RuinDto> ruins,
         ScanErrorDto error
 ) {
     public static ScanResponse from(ScanJob job) {
-        return from(job, ScanDiff.none());
+        return from(job, ScanDiff.none(), null);
     }
 
-    /**
-     * @param diff comparacao com o baseline atual, calculada na leitura. E por isso
-     *             que fixar outro baseline muda logo os flags de todos os scans, sem
-     *             reescrever nada -- ao contrario do {@code riskScore}, que fica
-     *             gravado com os CVEs que se conheciam na altura
-     */
-    public static ScanResponse from(ScanJob job, ScanDiff diff) {
+    public static ScanResponse from(ScanJob job, ScanDiff diff, CityLayout layout) {
         return new ScanResponse(
                 job.id().toString(),
                 job.target(),
@@ -52,13 +50,24 @@ public record ScanResponse(
                 job.hosts().size(),
                 diff.baselineScanId() == null ? null : diff.baselineScanId().toString(),
                 job.cveLookupDegraded(),
-                job.hosts().stream().map(host -> HostDto.from(host, diff.changeFor(host.ip()))).toList(),
+                layout,
+                job.hosts().stream().map(host -> {
+                    var position = layout == null ? null : layout.positions().get(host.ip());
+                    var posDto = position == null ? null : new PositionDto(position.x(), position.z());
+                    var band = position == null ? null : position.band();
+                    return HostDto.from(host, diff.changeFor(host.ip()), band, posDto);
+                }).toList(),
+                layout == null ? List.of() : diff.disappeared().stream()
+                        .map(host -> layout.positions().get(host.ip()))
+                        .filter(java.util.Objects::nonNull)
+                        .map(RuinDto::from)
+                        .toList(),
                 job.errorCode() == null ? null : new ScanErrorDto(job.errorCode(), job.errorMessage()));
     }
 
     /** Versao sem a lista de hosts, para o endpoint de listagem nao devolver tudo. */
     public ScanResponse withoutHosts() {
         return new ScanResponse(id, target, status, createdAt, startedAt, finishedAt,
-                durationMs, hostsUp, baselineScanId, cveLookupDegraded, List.of(), error);
+                durationMs, hostsUp, baselineScanId, cveLookupDegraded, null, List.of(), List.of(), error);
     }
 }

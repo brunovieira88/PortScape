@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.portscape.baseline.HostChange;
 import com.portscape.domain.Host;
 
+import com.portscape.risk.RiskBand;
+
 /**
  * {@code portCount} vai explicito no JSON: e dele que sai a altura do edificio na
  * cena 3D (fase 4) e evita que o frontend tenha de contar. O {@code riskScore} da a
@@ -19,6 +21,8 @@ public record HostDto(
         Integer osAccuracy,
         int portCount,
         Integer riskScore,
+        RiskBand riskBand,
+        PositionDto position,
         List<RiskReasonDto> riskReasons,
         HostChange change,
         boolean isNew,
@@ -26,7 +30,11 @@ public record HostDto(
         List<PortDto> ports
 ) {
     public static HostDto from(Host host) {
-        return from(host, HostChange.UNKNOWN);
+        return from(host, HostChange.UNKNOWN, null, null);
+    }
+
+    public static HostDto from(Host host, HostChange change) {
+        return from(host, change, null, null);
     }
 
     /**
@@ -34,7 +42,7 @@ public record HostDto(
      * sao o que a cena 3D consome: um booleano por destaque visual evita comparar
      * strings dentro do loop de render.
      */
-    public static HostDto from(Host host, HostChange change) {
+    public static HostDto from(Host host, HostChange change, RiskBand riskBand, PositionDto position) {
         return new HostDto(
                 host.ip(),
                 host.hostname(),
@@ -42,6 +50,8 @@ public record HostDto(
                 host.osAccuracy(),
                 host.portCount(),
                 host.risk() == null ? null : host.risk().score(),
+                riskBand,
+                position,
                 host.risk() == null ? List.of()
                         : host.risk().reasons().stream().map(RiskReasonDto::from).toList(),
                 change,

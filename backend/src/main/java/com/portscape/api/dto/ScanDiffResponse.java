@@ -6,6 +6,7 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.portscape.baseline.HostChange;
 import com.portscape.baseline.ScanDiff;
+import com.portscape.layout.CityLayout;
 
 /**
  * Comparacao de um scan com o baseline da sua rede.
@@ -21,11 +22,16 @@ public record ScanDiffResponse(
         Map<String, HostChange> changeByIp,
         List<HostDto> disappeared
 ) {
-    public static ScanDiffResponse from(String scanId, ScanDiff diff) {
+    public static ScanDiffResponse from(String scanId, ScanDiff diff, CityLayout layout) {
         return new ScanDiffResponse(
                 scanId,
                 diff.baselineScanId() == null ? null : diff.baselineScanId().toString(),
                 diff.changeByIp(),
-                diff.disappeared().stream().map(HostDto::from).toList());
+                diff.disappeared().stream().map(host -> {
+                    var position = layout == null ? null : layout.positions().get(host.ip());
+                    var posDto = position == null ? null : new PositionDto(position.x(), position.z());
+                    var band = position == null ? null : position.band();
+                    return HostDto.from(host, diff.changeFor(host.ip()), band, posDto);
+                }).toList());
     }
 }
