@@ -15,7 +15,8 @@ public final class RiskFixtures {
     /** Os mesmos pesos do application.yml, reduzidos ao que os testes precisam. */
     public static final RiskProperties PROPERTIES = new RiskProperties(
             Map.of(23, 35, 21, 25, 445, 30, 3389, 30, 22, 5, 80, 5, 443, 2),
-            8, 4.0, 3, 15, 7.0, 25, 8, 24);
+            8, 4.0, 3, 15, 7.0, 25, 8, 24,
+            75, 50, 25);
 
     private RiskFixtures() {
     }

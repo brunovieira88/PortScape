@@ -19,8 +19,11 @@ import com.portscape.api.dto.ScanDiffResponse;
 import com.portscape.api.dto.ScanResponse;
 import com.portscape.api.dto.StartScanRequest;
 import com.portscape.baseline.BaselineService;
+import com.portscape.baseline.ScanDiff;
 import com.portscape.scan.ScanJob;
 import com.portscape.scan.ScanService;
+import com.portscape.layout.CityLayoutCalculator;
+import com.portscape.layout.CityLayout;
 
 /**
  * Scans sao assincronos: o POST devolve 202 com o id e o cliente faz polling no GET.
@@ -32,10 +35,12 @@ public class ScanController {
 
     private final ScanService scanService;
     private final BaselineService baselineService;
+    private final CityLayoutCalculator layoutCalculator;
 
-    public ScanController(ScanService scanService, BaselineService baselineService) {
+    public ScanController(ScanService scanService, BaselineService baselineService, CityLayoutCalculator layoutCalculator) {
         this.scanService = scanService;
         this.baselineService = baselineService;
+        this.layoutCalculator = layoutCalculator;
     }
 
     @PostMapping
@@ -50,7 +55,11 @@ public class ScanController {
     @GetMapping("/{id}")
     public ScanResponse getScan(@PathVariable UUID id) {
         return scanService.findScan(id)
-                .map(job -> ScanResponse.from(job, baselineService.diffFor(job)))
+                .map(job -> {
+                    ScanDiff diff = baselineService.diffFor(job);
+                    CityLayout layout = layoutCalculator.calculate(job.target(), job.hosts(), diff.disappeared());
+                    return ScanResponse.from(job, diff, layout);
+                })
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Scan nao encontrado: " + id));
     }
 
@@ -60,8 +69,12 @@ public class ScanController {
      */
     @GetMapping("/{id}/diff")
     public ScanDiffResponse getDiff(@PathVariable UUID id) {
-        return baselineService.diffFor(id)
-                .map(diff -> ScanDiffResponse.from(id.toString(), diff))
+        return scanService.findScan(id)
+                .map(job -> {
+                    ScanDiff diff = baselineService.diffFor(job);
+                    CityLayout layout = layoutCalculator.calculate(job.target(), job.hosts(), diff.disappeared());
+                    return ScanDiffResponse.from(job.id().toString(), diff, layout);
+                })
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Scan nao encontrado: " + id));
     }
 

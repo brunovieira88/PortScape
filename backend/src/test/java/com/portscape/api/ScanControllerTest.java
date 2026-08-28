@@ -17,38 +17,45 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.portscape.domain.Host;
 import com.portscape.domain.Port;
-import com.portscape.domain.ScanStatus;
 import com.portscape.scan.ScanJob;
 import com.portscape.baseline.BaselineService;
 import com.portscape.baseline.ScanDiff;
 import com.portscape.scan.ScanService;
 import com.portscape.scan.exception.InvalidTargetException;
+import com.portscape.layout.CityLayoutCalculator;
+import com.portscape.layout.CityLayout;
 
 @WebMvcTest(ScanController.class)
 class ScanControllerTest {
 
-    private static final Instant NOW = Instant.parse("2026-08-28T10:00:00Z");
+    private static final Instant NOW = Instant.parse("2026-08-28T15:00:00Z");
     private static final UUID ID = UUID.fromString("11111111-2222-3333-4444-555555555555");
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockitoBean
+    @MockBean
     private ScanService scanService;
 
-    @MockitoBean
+    @MockBean
     private BaselineService baselineService;
+
+    @MockBean
+    private CityLayoutCalculator layoutCalculator;
 
     @org.junit.jupiter.api.BeforeEach
     void noBaselineByDefault() {
         // Sem baseline: o diff nao interfere com o que estes testes verificam.
         when(baselineService.diffFor(any(ScanJob.class))).thenReturn(ScanDiff.none());
+        when(layoutCalculator.calculate(any(), any(), any())).thenReturn(
+            new CityLayout(java.util.Map.of(), java.util.List.of(), 4.0, 100.0, 100.0)
+        );
     }
 
     @Test
@@ -145,21 +152,32 @@ class ScanControllerTest {
     }
 
     @Test
-    @DisplayName("o JSON do scan traz os flags de mudanca face ao baseline")
-    void exposesBaselineFlagsOnEachHost() throws Exception {
+    @DisplayName("o JSON do scan traz os flags de mudanca e o layout da cidade")
+    void exposesBaselineFlagsAndLayout() throws Exception {
         ScanJob job = doneJob();
         when(scanService.findScan(ID)).thenReturn(Optional.of(job));
         when(baselineService.diffFor(any(ScanJob.class))).thenReturn(new ScanDiff(
                 BASELINE_ID,
                 java.util.Map.of("192.168.1.1", com.portscape.baseline.HostChange.NEW),
                 List.of()));
+        
+        CityLayout layout = new CityLayout(
+            java.util.Map.of("192.168.1.1", new com.portscape.layout.HostPosition("192.168.1.1", com.portscape.risk.RiskBand.MEDIUM, 12.0, 4.0)),
+            List.of(), 4.0, 100.0, 100.0
+        );
+        when(layoutCalculator.calculate(any(), any(), any())).thenReturn(layout);
 
         mockMvc.perform(get("/api/scans/" + ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.baselineScanId").value(BASELINE_ID.toString()))
                 .andExpect(jsonPath("$.hosts[0].change").value("NEW"))
                 .andExpect(jsonPath("$.hosts[0].isNew").value(true))
-                .andExpect(jsonPath("$.hosts[0].isChanged").value(false));
+                .andExpect(jsonPath("$.hosts[0].isChanged").value(false))
+                .andExpect(jsonPath("$.hosts[0].riskBand").value("MEDIUM"))
+                .andExpect(jsonPath("$.hosts[0].position.x").value(12.0))
+                .andExpect(jsonPath("$.hosts[0].position.z").value(4.0))
+                .andExpect(jsonPath("$.layout.width").value(100.0))
+                .andExpect(jsonPath("$.ruins").isArray());
     }
 
     @Test
@@ -186,10 +204,12 @@ class ScanControllerTest {
 
     @Test
     void exposesTheDiffIncludingHostsThatDisappeared() throws Exception {
-        when(baselineService.diffFor(ID)).thenReturn(Optional.of(new ScanDiff(
+        ScanJob job = doneJob();
+        when(scanService.findScan(ID)).thenReturn(Optional.of(job));
+        when(baselineService.diffFor(any(ScanJob.class))).thenReturn(new ScanDiff(
                 BASELINE_ID,
                 java.util.Map.of("192.168.1.1", com.portscape.baseline.HostChange.UNCHANGED),
-                List.of(new Host("192.168.1.42", null, null, null, List.of())))));
+                List.of(new Host("192.168.1.42", null, null, null, List.of()))));
 
         mockMvc.perform(get("/api/scans/" + ID + "/diff"))
                 .andExpect(status().isOk())
@@ -200,7 +220,7 @@ class ScanControllerTest {
 
     @Test
     void diffOfAnUnknownScanIs404() throws Exception {
-        when(baselineService.diffFor(ID)).thenReturn(Optional.empty());
+        when(scanService.findScan(ID)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/scans/" + ID + "/diff")).andExpect(status().isNotFound());
     }

@@ -95,6 +95,18 @@ portscape:
     unknown-host-points: 25
     new-port-points: 8
     max-new-port-points: 24
+    # Faixas de risco: dao o bairro na cidade 3D e a cor no frontend. Sao calculadas
+    # na leitura, por isso mexer nestes valores reorganiza tambem os scans antigos.
+    critical-threshold: 75
+    high-threshold: 50
+    medium-threshold: 25
+
+  layout:
+    # Geometria da cidade 3D. A coluna de cada host e o resto da divisao do seu indice
+    # por grid-width, por isso mexer neste valor muda a coluna de todos os hosts.
+    grid-width: 16
+    spacing: 4.0
+    district-gap: 4
 
 logging:
   level:
