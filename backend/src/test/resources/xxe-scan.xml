@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<!-- Nao vem do nmap: existe so para provar que o parser nao resolve entidades externas. -->
+<nmaprun scanner="nmap" version="7.991">
+<host><status state="up" reason="syn-ack"/>
+<address addr="192.168.1.7" addrtype="ipv4"/>
+<hostnames><hostname name="&xxe;" type="PTR"/></hostnames>
+<ports><port protocol="tcp" portid="22"><state state="open" reason="syn-ack"/><service name="ssh"/></port></ports>
+</host>
+</nmaprun>

@@ -62,7 +62,7 @@ Isto é o valor acrescentado do projeto, não só "correr nmap e mostrar". Pesos
 4. **Frontend — cena estática:** grid + edifícios com altura/cor a partir de um JSON de exemplo (mockar antes de ligar à API real).
 5. **Frontend — integração:** ligar à API, painel de detalhes ao clicar, lista de scans anteriores.
 6. **Polish:** animações de câmara, destaque visual para hosts novos/alterados, dark mode "cidade à noite".
-
+7. **Modo demo estático (GitHub Pages)**: o frontend deve conseguir correr sozinho, sem backend, carregando um JSON de exemplo pré-gerado (scan fictício/sintético) em vez de chamar a API real. Serve para ter um link ao vivo no README que qualquer pessoa pode abrir e explorar a cidade 3D sem instalar nada. Implementar via variável de ambiente/flag de build que troca a fonte de dados (API real vs. ficheiro JSON estático) — não duplicar componentes da cena 3D para isto.
 ## Convenções de código
 
 - Java: seguir convenções Spring Boot standard, controllers finos (lógica em services), DTOs separados das entidades JPA
