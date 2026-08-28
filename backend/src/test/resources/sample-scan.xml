@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///opt/homebrew/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Estrutura capturada de um scan real do nmap 7.991 (nmap -sS -sV -O -oX - com deteccao de versao e de OS).
+     Enderecos, hostnames e MACs foram substituidos: nao e a rede de ninguem. -->
+<nmaprun scanner="nmap" args="nmap -sS -sV -O -&#45;open -oX - 192.168.1.0/24" start="1787931332" startstr="Fri Aug 28 16:35:32 2026" version="7.991" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1024"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<hosthint><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.1" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+</hosthint>
+<host starttime="1787931332" endtime="1787931344"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.1" addrtype="ipv4"/>
+<address addr="AA:BB:CC:00:11:22" addrtype="mac" vendor="Example Networks"/>
+<hostnames>
+<hostname name="router.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="997">
+<extrareasons reason="resets" count="997" proto="tcp" ports="1-22,24-79,81-442,444-1024"/>
+</extraports>
+<port protocol="tcp" portid="23"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="telnet" product="BusyBox telnetd" method="probed" conf="10"><cpe>cpe:/a:busybox:busybox</cpe></service></port>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="lighttpd" version="1.4.59" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="443"><state state="closed" reason="reset" reason_ttl="64"/><service name="https" method="table" conf="3"/></port>
+</ports>
+<os><portused state="open" proto="tcp" portid="23"/>
+<osmatch name="Linux 4.15 - 5.8" accuracy="90" line="62684">
+<osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="4.X" accuracy="90"><cpe>cpe:/o:linux:linux_kernel:4</cpe></osclass>
+</osmatch>
+<osmatch name="Linux 5.4 - 5.15" accuracy="94" line="62999">
+<osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="5.X" accuracy="94"><cpe>cpe:/o:linux:linux_kernel:5</cpe></osclass>
+</osmatch>
+</os>
+<times srtt="29" rttvar="9" to="100000"/>
+</host>
+<host starttime="1787931332" endtime="1787931344"><status state="up" reason="syn-ack" reason_ttl="64"/>
+<address addr="192.168.1.42" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="filtered" count="999">
+<extrareasons reason="no-responses" count="999" proto="tcp" ports="1-21,23-1024"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" product="OpenSSH" version="9.6" extrainfo="protocol 2.0" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:9.6</cpe></service></port>
+</ports>
+<times srtt="1200" rttvar="400" to="100000"/>
+</host>
+<host starttime="1787931332" endtime="1787931344"><status state="down" reason="no-response" reason_ttl="0"/>
+<address addr="192.168.1.99" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+</host>
+<runstats><finished time="1787931344" timestr="Fri Aug 28 16:35:44 2026" summary="Nmap done at Fri Aug 28 16:35:44 2026; 256 IP addresses (2 hosts up) scanned in 12.40 seconds" elapsed="12.40" exit="success"/><hosts up="2" down="254" total="256"/>
+</runstats>
+</nmaprun>

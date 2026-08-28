@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<!-- Scan valido que nao encontrou hosts. Nao e um erro. -->
+<nmaprun scanner="nmap" args="nmap -sS -oX - 10.0.0.0/24" start="1787931332" version="7.991" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1024"/>
+<runstats><finished time="1787931340" elapsed="8.00" exit="success"/><hosts up="0" down="256" total="256"/>
+</runstats>
+</nmaprun>

@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+portscape:
+  nmap:
+    # Prefixo do comando. Para scan privilegiado (-sS/-O) usar sudoers NOPASSWD:
+    #   command: ["sudo", "-n", "/opt/homebrew/bin/nmap"]
+    command:
+      - sudo
+      - -n
+      - /opt/homebrew/bin/nmap
+    # Usado so se a deteccao automatica da subnet local (via rota por defeito) falhar.
+    default-target: 192.168.1.0/24
+    # Argumentos da fase de DESCOBERTA (portas + OS) -- NAO por -sV aqui.
+    # A deteccao de versao corre numa segunda fase, sem privilegios, sempre com
+    # -sT -sV (fixo no NmapCommandBuilder): correr -sV como root faz o nmap falhar
+    # em macOS (NSOCK ERROR mksock_bind_addr, todas as portas saem "tcpwrapped").
+    # Ver NmapCommandBuilder e o README para o detalhe do bug.
+    arguments:
+      - -sS
+      - -O
+      - --open
+      - -T4
+    timeout: 10m
+    host-timeout: 60s
+
+logging:
+  level:
+    com.portscape: INFO
