@@ -155,7 +155,7 @@ export default function App() {
       )}
 
       {/* Painel Lateral com Lista de Dispositivos */}
-      <DeviceListPanel scanData={scanData} onSelectHost={setSelectedHost} onOpenDetails={setDetailedHost} />
+      <DeviceListPanel scanData={scanData} onOpenDetails={setDetailedHost} />
 
       {/* Modal de Detalhes Completos do Host */}
       {detailedHost && (
@@ -167,8 +167,8 @@ export default function App() {
         <Canvas gl={{ antialias: false, toneMapping: 0 }}>
           <Suspense fallback={null}>
             <City 
-              onSelectHost={setSelectedHost} 
-              selectedHost={selectedHost} 
+              
+              selectedHost={selectedHost} onSelectHost={setSelectedHost} 
               scanData={scanData} 
               onOpenDetails={setDetailedHost} 
             />

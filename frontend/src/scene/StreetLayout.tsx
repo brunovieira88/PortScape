@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 
-const SCALE = 16;
+const SCALE = 22;
 const BLOCK_SIZE = 10;
 
-export function StreetLayout({ scanData, offsetX, offsetZ, gridWidth, gridDepth }: { scanData: any, offsetX: number, offsetZ: number, gridWidth: number, gridDepth: number }) {
+export function StreetLayout({ offsetX, offsetZ, gridWidth, gridDepth }: { offsetX: number, offsetZ: number, gridWidth: number, gridDepth: number }) {
 
   const elements = useMemo(() => {
     const items = [];
@@ -44,50 +44,62 @@ export function StreetLayout({ scanData, offsetX, offsetZ, gridWidth, gridDepth 
           </mesh>
         );
 
-        // B) Marcas da Estrada (Dashed Lines)
+        // B) Estrada (Marcações Centrais das Vias - Linhas Tracejadas)
+        // Com a largura atual das avenidas, dividimos em tracejados perfeitos para ultrapassagens
+        const numDashes = 6;
+        const dashLength = (SCALE * 0.8) / (numDashes * 2);
+
         if (kx < endKx) {
           const roadX = realX + SCALE / 2; // meio da estrada
-          items.push(
-            <mesh key={`road-mark-z-${kx}-${kz}`} position={[roadX, -0.04, realZ]} rotation={[-Math.PI / 2, 0, 0]}>
-              <planeGeometry args={[0.2, SCALE * 0.8]} />
-              <meshBasicMaterial color="#aaaaaa" />
-            </mesh>
-          );
+          for (let i = 0; i < numDashes; i++) {
+            const zOffset = -(SCALE * 0.4) + (i * 2 * dashLength) + (dashLength / 2);
+            items.push(
+              <mesh key={`road-mark-z-${kx}-${kz}-${i}`} position={[roadX, -0.04, realZ + zOffset]} rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[0.2, dashLength]} />
+                <meshBasicMaterial color="#aaaaaa" />
+              </mesh>
+            );
+          }
         }
 
-        // Linha central ao longo do eixo X (separador de faixas)
+        // Linha central ao longo do eixo X (separador de faixas transversal)
         if (kz < endKz) {
           const roadZ = realZ + SCALE / 2;
-          items.push(
-            <mesh key={`road-mark-x-${kx}-${kz}`} position={[realX, -0.04, roadZ]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
-              <planeGeometry args={[0.2, SCALE * 0.8]} />
-              <meshBasicMaterial color="#aaaaaa" />
-            </mesh>
-          );
+          for (let i = 0; i < numDashes; i++) {
+            const xOffset = -(SCALE * 0.4) + (i * 2 * dashLength) + (dashLength / 2);
+            items.push(
+              <mesh key={`road-mark-x-${kx}-${kz}-${i}`} position={[realX + xOffset, -0.04, roadZ]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+                <planeGeometry args={[0.2, dashLength]} />
+                <meshBasicMaterial color="#aaaaaa" />
+              </mesh>
+            );
+          }
         }
 
-        // C) Adereços de Estrada BEM ENQUADRADOS
+        // D) Adereços de Estrada BEM ENQUADRADOS
         const cornerX = realX + (BLOCK_SIZE / 2) + 0.2;
         const cornerZ = realZ + (BLOCK_SIZE / 2) + 0.2;
         
+        // Postes de Luz Normais
         if (Math.random() > 0.7) {
           items.push(
-            <group key={`light-${kx}-${kz}`} position={[cornerX, 0, cornerZ]}>
-              <mesh position={[0, 2, 0]}>
-                <cylinderGeometry args={[0.05, 0.05, 4]} />
-                <meshBasicMaterial color="#333333" />
+            <group key={`lamp-${kx}-${kz}`} position={[cornerX, 0, cornerZ]}>
+              <mesh position={[0, 1.5, 0]}>
+                <cylinderGeometry args={[0.02, 0.05, 3]} />
+                <meshBasicMaterial color="#555555" />
               </mesh>
-              <mesh position={[0.5, 4, 0]} rotation={[0, 0, Math.PI / 2]}>
-                <cylinderGeometry args={[0.05, 0.05, 1]} />
-                <meshBasicMaterial color="#333333" />
+              <mesh position={[0.2, 3, 0]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.02, 0.02, 0.6]} />
+                <meshBasicMaterial color="#555555" />
               </mesh>
-              <mesh position={[0.8, 3.9, 0]}>
-                <boxGeometry args={[0.3, 0.1, 0.1]} />
-                <meshBasicMaterial color="#ffffff" toneMapped={false} />
+              <mesh position={[0.4, 2.9, 0]}>
+                <boxGeometry args={[0.2, 0.05, 0.1]} />
+                <meshBasicMaterial color="#ffffff" />
               </mesh>
             </group>
           );
         }
+
       }
     }
     return items;

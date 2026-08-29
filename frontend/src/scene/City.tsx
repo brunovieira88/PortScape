@@ -1,5 +1,5 @@
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
-import { Stars, Sparkles } from '@react-three/drei';
+import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useMemo } from 'react';
 import { Building } from './Building';
@@ -9,7 +9,7 @@ import { StreetLayout } from './StreetLayout';
 
 
 // SCALE define a distância total entre os edifícios. Baixado de 13 para 11.5 para aproximar mais os bairros.
-const SCALE = 16; 
+const SCALE = 22; 
 
 import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
@@ -156,7 +156,7 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: Ci
       <Skybox />
 
       {/* Ruas, Passeios, Linhas e Candeeiros 100% Enquadrados */}
-      <StreetLayout scanData={scanData} offsetX={offsetX} offsetZ={offsetZ} gridWidth={gridWidth} gridDepth={gridDepth} />
+      <StreetLayout offsetX={offsetX} offsetZ={offsetZ} gridWidth={gridWidth} gridDepth={gridDepth} />
 
       {/* Edifícios Host (Hosts Ativos) */}
       {processedHosts.map((host: any) => (

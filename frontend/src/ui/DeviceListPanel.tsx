@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export function DeviceListPanel({ scanData, onSelectHost, onOpenDetails }: { scanData: any, onSelectHost: (host: any) => void, onOpenDetails?: (host: any) => void }) {
+export function DeviceListPanel({ scanData, onOpenDetails }: { scanData: any, onOpenDetails?: (host: any) => void }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const activeHosts = scanData?.hosts || [];
