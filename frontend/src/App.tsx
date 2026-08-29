@@ -6,10 +6,13 @@ import mockData from './mock/sample-scan.json';
 import { startScan, getScan } from './api/client';
 import { DeviceListPanel } from './ui/DeviceListPanel';
 import { HostDetailsModal } from './ui/HostDetailsModal';
+import { HistoryPanel } from './ui/HistoryPanel';
 
 export default function App() {
   const [selectedHost, setSelectedHost] = useState<any | null>(null);
   const [detailedHost, setDetailedHost] = useState<any | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [scanData, setScanData] = useState<any>(mockData);
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<string>('');
@@ -41,6 +44,17 @@ export default function App() {
       if (e.key === 'Escape') setSelectedHost(null);
     };
   }
+
+  const handleLoadScan = async (id: string) => {
+    try {
+      const fullScan = await getScan(id);
+      setScanData(fullScan);
+      setSelectedHost(null);
+      setShowMenu(false);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const handleStartScan = async () => {
     try {
@@ -90,6 +104,8 @@ export default function App() {
     }
   };
 
+  const anyPanelOpen = isHistoryOpen || isInventoryOpen;
+
   return (
     <div className="w-screen h-screen bg-black overflow-hidden relative font-sans text-white select-none">
       
@@ -103,7 +119,7 @@ export default function App() {
       )}
 
       {/* Top Left - Título Minimalista Estilo RuView */}
-      <div className={`absolute left-8 z-[999] pointer-events-none transition-all duration-300 ${scanData.id === '11111111-2222-3333-4444-555555555555' ? 'top-14' : 'top-6'}`}>
+      <div className={`absolute left-8 z-[999] pointer-events-none transition-all duration-300 ${scanData.id === '11111111-2222-3333-4444-555555555555' ? 'top-14' : 'top-6'} ${anyPanelOpen || showMenu ? 'opacity-0' : 'opacity-100'}`}>
         <h1 className="text-2xl font-bold text-[#00f0ff] tracking-widest flex items-center gap-2 font-mono">
           PortScape
         </h1>
@@ -113,14 +129,26 @@ export default function App() {
       </div>
 
       {/* Botão de Novo Scan (Canto Inferior Esquerdo) para voltar ao menu */}
-      {!showMenu && (
+      {/* Botão de Novo Scan */}
+      <div className={`transition-opacity duration-300 ${showMenu || anyPanelOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <button 
           onClick={() => setShowMenu(true)}
-          className="absolute bottom-8 left-8 z-[999] bg-[#030d12]/80 backdrop-blur-md border border-[#00f0ff]/30 text-[#00f0ff] px-6 py-3 rounded-full text-xs font-bold tracking-widest uppercase hover:bg-[#00f0ff]/10 hover:shadow-[0_0_15px_rgba(0,240,255,0.2)] transition-all"
+          className="absolute top-8 right-16 z-[9999] group overflow-hidden bg-[#030d12]/95 backdrop-blur-xl border border-[#00f0ff]/40 text-[#00f0ff] px-6 py-2.5 font-mono text-[10px] font-bold tracking-[0.2em] uppercase hover:bg-[#00f0ff]/10 transition-all duration-300 shadow-[0_0_20px_rgba(0,240,255,0.15)] hover:shadow-[0_0_40px_rgba(0,240,255,0.4)]"
+          style={{ clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)' }}
         >
-          New Network Scan
+          <div className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-[#00f0ff]/30 to-transparent -translate-x-full group-hover:animate-[sweep_1.5s_ease-in-out_infinite]"></div>
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="relative w-4 h-4 flex items-center justify-center">
+              <div className="absolute inset-0 border border-[#00f0ff]/50 rounded-full"></div>
+              <div className="absolute inset-0 border-t-2 border-[#00f0ff] rounded-full animate-[spin_2s_linear_infinite]"></div>
+              <div className="absolute w-1 h-1 bg-[#00f0ff] rounded-full animate-pulse"></div>
+            </div>
+            <span className="group-hover:text-white transition-colors">INITIATE SCAN</span>
+          </div>
+          <div className="absolute top-0 right-2 w-4 h-[1px] bg-[#00f0ff]/80"></div>
+          <div className="absolute bottom-0 left-2 w-4 h-[1px] bg-[#00f0ff]/80"></div>
         </button>
-      )}
+      </div>
 
       {/* Painel Central de Controlo de Scans (Backend) */}
       {showMenu && (
@@ -180,13 +208,34 @@ export default function App() {
         </div>
       )}
 
+      {/* Painel de Histórico (Canto Esquerdo) */}
+      <HistoryPanel 
+        activeScanId={scanData?.id} 
+        onSelectScan={handleLoadScan} 
+        isOpen={isHistoryOpen} 
+        onToggle={() => setIsHistoryOpen(!isHistoryOpen)} 
+        isHidden={isInventoryOpen || showMenu}
+      />
+
       {/* Painel Lateral com Lista de Dispositivos */}
-      <DeviceListPanel scanData={scanData} onOpenDetails={setDetailedHost} />
+      <DeviceListPanel 
+        scanData={scanData} 
+        onOpenDetails={setDetailedHost} 
+        isOpen={isInventoryOpen}
+        onToggle={() => setIsInventoryOpen(!isInventoryOpen)}
+        isHidden={isHistoryOpen || showMenu}
+      />
 
       {/* Modal de Detalhes Completos do Host */}
       {detailedHost && (
         <HostDetailsModal host={detailedHost} onClose={() => setDetailedHost(null)} />
       )}
+
+      {/* Overlay Escuro para focar nos menus */}
+      <div 
+        className={`absolute inset-0 z-[997] transition-all duration-500 pointer-events-none ${anyPanelOpen ? 'bg-black/40 backdrop-blur-[2px] pointer-events-auto' : 'bg-transparent backdrop-blur-none'}`}
+        onClick={() => { setIsHistoryOpen(false); setIsInventoryOpen(false); }}
+      ></div>
 
       {/* R3F 3D Canvas */}
       <ErrorBoundary>
@@ -201,6 +250,13 @@ export default function App() {
           </Suspense>
         </Canvas>
       </ErrorBoundary>
+
+      <style>{`
+        @keyframes sweep {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(50%); }
+        }
+      `}</style>
     </div>
   );
 }

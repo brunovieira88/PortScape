@@ -62,4 +62,10 @@ public class JpaScanJobStore implements ScanJobStore {
                 .map(ScanEntityMapper::toDomain)
                 .toList();
     }
+
+    @Override
+    @Transactional
+    public void delete(UUID id) {
+        repository.deleteById(id);
+    }
 }

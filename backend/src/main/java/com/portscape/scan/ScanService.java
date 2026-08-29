@@ -119,6 +119,10 @@ public class ScanService {
         return store.findAll();
     }
 
+    public void deleteScan(UUID id) {
+        store.delete(id);
+    }
+
     /**
      * Corre o scan e escreve o resultado no store. Nao deixa escapar excecoes: uma
      * falha aqui e um estado FAILED do job, nao um erro perdido no pool de threads.

@@ -21,4 +21,6 @@ public interface ScanJobStore {
 
     /** Mais recentes primeiro -- e a ordem que a lista de scans no frontend quer. */
     List<ScanJob> findAll();
+
+    void delete(UUID id);
 }

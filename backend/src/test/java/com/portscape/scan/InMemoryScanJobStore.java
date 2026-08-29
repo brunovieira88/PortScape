@@ -42,4 +42,9 @@ public class InMemoryScanJobStore implements ScanJobStore {
                 .sorted(Comparator.comparing(ScanJob::createdAt).reversed())
                 .toList();
     }
+
+    @Override
+    public void delete(UUID id) {
+        jobs.remove(id);
+    }
 }

@@ -28,3 +28,10 @@ export async function listScans() {
   if (!res.ok) throw new Error('Failed to list scans');
   return res.json();
 }
+
+export async function deleteScan(id: string) {
+  const res = await fetch(`${API_BASE}/scans/${id}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error('Failed to delete scan');
+}

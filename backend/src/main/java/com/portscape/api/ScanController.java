@@ -86,4 +86,10 @@ public class ScanController {
                 .map(ScanResponse::withoutHosts)
                 .toList();
     }
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    @org.springframework.web.bind.annotation.ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteScan(@PathVariable UUID id) {
+        scanService.deleteScan(id);
+    }
 }
