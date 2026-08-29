@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 
-const SCALE = 13;
+const SCALE = 16;
 const BLOCK_SIZE = 10;
 
 export function StreetLayout({ scanData, offsetX, offsetZ, gridWidth, gridDepth }: { scanData: any, offsetX: number, offsetZ: number, gridWidth: number, gridDepth: number }) {

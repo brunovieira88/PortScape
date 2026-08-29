@@ -8,14 +8,39 @@ import { StreetLayout } from './StreetLayout';
 
 
 
-// SCALE a 13 para reduzir a distância entre casas/prédios (sem mexer no tamanho deles)
-const SCALE = 13; 
+// SCALE define a distância total entre os edifícios. Baixado de 13 para 11.5 para aproximar mais os bairros.
+const SCALE = 16; 
+
+import { useFrame } from '@react-three/fiber';
+import { useRef } from 'react';
 
 interface CityProps {
   scanData: any;
   selectedHost: any;
   onSelectHost: (host: any) => void;
   onOpenDetails: (host: any) => void;
+}
+
+function Skybox() {
+  const skyRef = useRef<THREE.Group>(null);
+  
+  // A magia para fazer o céu parecer infinito:
+  // Em todos os frames, movemos a cúpula do céu para a exata posição da câmara!
+  useFrame(({ camera }) => {
+    if (skyRef.current) {
+      skyRef.current.position.copy(camera.position);
+      skyRef.current.updateMatrixWorld();
+    }
+  });
+
+  return (
+    <group ref={skyRef}>
+      {/* O raio volta a 300 para garantir que o tamanho dos pontos é visível e não sofre culling.
+          O factor aumenta para 15 para evitar sub-pixel flickering (estrelas a piscar) */}
+      <Stars radius={300} depth={150} count={4000} factor={15} saturation={1} fade speed={0} />
+      <CrescentMoon />
+    </group>
+  );
 }
 
 function CrescentMoon() {
@@ -62,9 +87,55 @@ function CrescentMoon() {
 export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: CityProps) {
   const backendSpacing = scanData.layout?.spacing || 1.0;
   
+  // COMPACT_FACTOR (Ex: 2.0): Força as coordenadas flutuantes do backend a dividirem-se
+  // por um número maior, o que resulta em menos "blocos vazios" (lotes) de alcatrão entre os hosts.
+  const COMPACT_FACTOR = 2.0;
+  const effectiveSpacing = backendSpacing * COMPACT_FACTOR;
+  
+  // Anti-collision Grid Packer
+  const { processedHosts, processedRuins } = useMemo(() => {
+    const occupied = new Set<string>();
+    
+    const findEmptyCell = (startX: number, startZ: number) => {
+      if (!occupied.has(`${startX},${startZ}`)) return { x: startX, z: startZ };
+      let radius = 1;
+      while (radius < 50) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          for (let dz = -radius; dz <= radius; dz++) {
+            if (Math.abs(dx) === radius || Math.abs(dz) === radius) {
+              const nx = startX + dx;
+              const nz = startZ + dz;
+              if (!occupied.has(`${nx},${nz}`)) return { x: nx, z: nz };
+            }
+          }
+        }
+        radius++;
+      }
+      return { x: startX, z: startZ };
+    };
+
+    const hosts = (scanData.hosts || []).map((h: any) => {
+      const gx = Math.round(h.position.x / effectiveSpacing);
+      const gz = Math.round(h.position.z / effectiveSpacing);
+      const cell = findEmptyCell(gx, gz);
+      occupied.add(`${cell.x},${cell.z}`);
+      return { ...h, gridX: cell.x, gridZ: cell.z };
+    });
+
+    const ruins = (scanData.ruins || []).map((r: any) => {
+      const gx = Math.round(r.position.x / effectiveSpacing);
+      const gz = Math.round(r.position.z / effectiveSpacing);
+      const cell = findEmptyCell(gx, gz);
+      occupied.add(`${cell.x},${cell.z}`);
+      return { ...r, gridX: cell.x, gridZ: cell.z };
+    });
+
+    return { processedHosts: hosts, processedRuins: ruins };
+  }, [scanData, effectiveSpacing]);
+
   // Tamanho real dos edifícios calculados pelo backend
-  const layoutW = scanData.layout.width / backendSpacing;
-  const layoutD = scanData.layout.depth / backendSpacing;
+  const layoutW = scanData.layout.width / effectiveSpacing;
+  const layoutD = scanData.layout.depth / effectiveSpacing;
   
   // O offset dos edifícios DEVE ser o centro exato da bounding box deles
   // para que a câmara no (0,0) nasça sempre no meio da cidade!
@@ -81,39 +152,37 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: Ci
       <StreetControls scanData={scanData} />
       <ambientLight intensity={0.1} />
 
-      {/* Céu Cyberpunk: Estrelas dentro do alcance da câmara (Z < 1000) */}
-      <Stars radius={300} depth={150} count={8000} factor={6} saturation={1} fade speed={1} />
-      
-      <CrescentMoon />
+      {/* Céu Cyberpunk: Estrelas e Lua infinitas e perfeitamente estáticas */}
+      <Skybox />
 
       {/* Ruas, Passeios, Linhas e Candeeiros 100% Enquadrados */}
       <StreetLayout scanData={scanData} offsetX={offsetX} offsetZ={offsetZ} gridWidth={gridWidth} gridDepth={gridDepth} />
 
-      {/* Renderização dos Edifícios "Vivos" */}
-      {scanData.hosts.map((host: any) => (
+      {/* Edifícios Host (Hosts Ativos) */}
+      {processedHosts.map((host: any) => (
         <Building
           key={`${scanData.id}-${host.ip}`}
           label={host.ip}
-          x={((host.position.x / backendSpacing) + offsetX) * SCALE}
-          z={((host.position.z / backendSpacing) + offsetZ) * SCALE}
+          x={(host.gridX + offsetX) * SCALE}
+          z={(host.gridZ + offsetZ) * SCALE}
           portCount={host.portCount}
           riskBand={host.riskBand as any}
           isRuin={false}
-          onClick={() => onSelectHost(host)}
           hostData={host}
           isSelected={selectedHost?.ip === host.ip}
+          onClick={() => onSelectHost(host)}
           onClose={() => onSelectHost(null)}
           onOpenDetails={() => onOpenDetails(host)}
         />
       ))}
 
-      {/* Renderização das Ruínas (Hosts que desapareceram) */}
-      {scanData.ruins.map((ruin: any) => (
+      {/* Relíquias (Ruins) */}
+      {processedRuins.map((ruin: any) => (
         <Building
           key={`${scanData.id}-ruin-${ruin.ip}`}
           label={ruin.ip}
-          x={((ruin.position.x / backendSpacing) + offsetX) * SCALE}
-          z={((ruin.position.z / backendSpacing) + offsetZ) * SCALE}
+          x={(ruin.gridX + offsetX) * SCALE}
+          z={(ruin.gridZ + offsetZ) * SCALE}
           portCount={2} 
           riskBand={ruin.riskBand as any}
           isRuin={true}
