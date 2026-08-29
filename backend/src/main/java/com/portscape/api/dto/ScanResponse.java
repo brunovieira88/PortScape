@@ -58,9 +58,11 @@ public record ScanResponse(
                     return HostDto.from(host, diff.changeFor(host.ip()), band, posDto);
                 }).toList(),
                 layout == null ? List.of() : diff.disappeared().stream()
-                        .map(host -> layout.positions().get(host.ip()))
+                        .map(host -> {
+                            var position = layout.positions().get(host.ip());
+                            return position == null ? null : RuinDto.from(host, position);
+                        })
                         .filter(java.util.Objects::nonNull)
-                        .map(RuinDto::from)
                         .toList(),
                 job.errorCode() == null ? null : new ScanErrorDto(job.errorCode(), job.errorMessage()));
     }

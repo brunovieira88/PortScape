@@ -15,6 +15,7 @@ interface BuildingProps {
   isSelected?: boolean;
   hostData?: any;
   onClose?: () => void;
+  onOpenDetails?: () => void;
 }
 
 const BAND_COLORS = {
@@ -25,7 +26,7 @@ const BAND_COLORS = {
   UNKNOWN: '#808080'   // Dim Gray
 };
 
-export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, isSelected, hostData, onClose }: BuildingProps) {
+export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, isSelected, hostData, onClose, onOpenDetails }: BuildingProps) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
   
@@ -97,6 +98,14 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
     if (isNear) setForceClosed(true); 
   };
 
+  let cleanHostname: string | undefined = undefined;
+  if (hostData?.hostname && typeof hostData.hostname === 'string') {
+    const stripped = hostData.hostname.replace(/\.(home|lan|local)$/i, '').trim();
+    if (stripped !== '' && stripped.toLowerCase() !== 'null') {
+      cleanHostname = stripped;
+    }
+  }
+
   return (
     <group 
       ref={groupRef} 
@@ -109,6 +118,7 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
         portCount={portCount} 
         color={color} 
         isRuin={isRuin} 
+        riskBand={riskBand}
       />
       
       {showUI && (
@@ -118,17 +128,17 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
             <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} />
           </mesh>
 
-          <mesh position={[spawnOffset[0], baseH / 4, spawnOffset[1]]}>
-            <cylinderGeometry args={[0.02, 0.02, baseH / 2, 8]} />
+          <mesh position={[spawnOffset[0], 2.5, spawnOffset[1]]}>
+            <cylinderGeometry args={[0.02, 0.02, 5, 8]} />
             <meshBasicMaterial color={color} transparent opacity={0.6} />
           </mesh>
 
           <Html 
             key={`html-panel-${label}`}
-            position={[spawnOffset[0], baseH / 2, spawnOffset[1]]} 
+            position={[spawnOffset[0], 5, spawnOffset[1]]} 
             center 
             zIndexRange={[100, 0]}
-            distanceFactor={15} // Faz com que o painel escale perfeitamente com a distância 3D!
+            distanceFactor={10}
           >
             <style>
               {`
@@ -145,21 +155,21 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
             </style>
 
             <div className="relative hologram-panel">
-              <div className="w-96 bg-[#030d12]/80 backdrop-blur-2xl border border-[#00f0ff]/20 shadow-[0_0_30px_rgba(0,240,255,0.15)] text-white font-sans select-none rounded-2xl overflow-hidden">
+              <div className="w-80 bg-[#030d12]/80 backdrop-blur-2xl border border-[#00f0ff]/20 shadow-[0_0_30px_rgba(0,240,255,0.15)] text-white font-sans select-none rounded-2xl overflow-hidden">
               
               {/* Header */}
               <div className="flex justify-between items-center bg-white/5 p-4 border-b border-white/10">
                 <div>
                   <div className="text-xs text-[#00f0ff] tracking-widest uppercase mb-1">
-                    {hostData.hostname || 'Target IP'}
+                    {hostData.ip || 'Target IP'}
                   </div>
-                  <div className="text-2xl font-bold tracking-wider">{hostData.ip}</div>
+                  <div className="text-xl font-bold tracking-wider">{cleanHostname || hostData.ip}</div>
                 </div>
                 {/* OS ICON / BADGE */}
-                {hostData.osGuess && (
+                {(hostData.osGuess && typeof hostData.osGuess === 'string' && hostData.osGuess.trim().toLowerCase() !== 'null') && (
                   <div className="text-right">
                     <div className="text-[10px] text-gray-500 uppercase tracking-widest">OS DETECTED</div>
-                    <div className="text-sm text-white font-mono">{hostData.osGuess} ({hostData.osAccuracy}%)</div>
+                    <div className="text-sm text-white font-mono">{hostData.osGuess}</div>
                   </div>
                 )}
                 <button 
@@ -195,6 +205,15 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
                     </div>
                   ))}
                 </div>
+
+                <div className="mt-6 border-t border-[#00f0ff]/20 pt-4">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); if (onOpenDetails) onOpenDetails(); }}
+                    className="w-full bg-[#00f0ff]/10 hover:bg-[#00f0ff]/30 text-[#00f0ff] border border-[#00f0ff]/50 py-3 rounded-lg text-xs font-bold tracking-[0.2em] uppercase transition-all shadow-[0_0_10px_rgba(0,240,255,0.1)] hover:shadow-[0_0_20px_rgba(0,240,255,0.3)]"
+                  >
+                    View Complete Audit Logs
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -211,7 +230,7 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
               textShadow: `-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 10px ${color}, 0 0 20px ${color}`
             }}
           >
-            <div className="text-white font-bold tracking-widest text-sm">{label}</div>
+            <div className="text-white font-bold tracking-widest text-sm">{cleanHostname || label}</div>
             <div className="text-white/90 font-bold uppercase text-[10px] mt-0.5">
               {isRuin ? "OFFLINE" : `${portCount} PORTS`}
             </div>

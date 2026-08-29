@@ -58,9 +58,15 @@ public class CityLayoutCalculator {
         Map<String, HostPosition> positions = new LinkedHashMap<>();
         List<District> districts = new ArrayList<>();
 
+        double currentDistrictX = 0;
+
         for (RiskBand band : RiskBand.values()) {
             List<Host> members = byBand.getOrDefault(band, List.of());
-            double districtX = band.ordinal() * layout.districtStride() * layout.spacing();
+            if (members.isEmpty()) {
+                continue;
+            }
+
+            double districtX = currentDistrictX;
             long minRow = members.stream()
                     .mapToLong(host -> indexByIp.get(host.ip()) / layout.gridWidth())
                     .min().orElse(0L);
@@ -80,6 +86,9 @@ public class CityLayoutCalculator {
             double depth = members.isEmpty() ? 0 : (maxRow - minRow + 1) * layout.spacing();
             districts.add(new District(band, districtX,
                     layout.gridWidth() * layout.spacing(), depth, members.size()));
+            
+            // Avança para o próximo bairro
+            currentDistrictX += layout.districtStride() * layout.spacing();
         }
 
         double width = districts.isEmpty() ? 0

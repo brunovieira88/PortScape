@@ -1,17 +1,39 @@
 import { Canvas } from '@react-three/fiber';
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { City } from './scene/City';
 import { ErrorBoundary } from './ErrorBoundary';
 import mockData from './mock/sample-scan.json';
 import { startScan, getScan } from './api/client';
+import { DeviceListPanel } from './ui/DeviceListPanel';
+import { HostDetailsModal } from './ui/HostDetailsModal';
 
 export default function App() {
   const [selectedHost, setSelectedHost] = useState<any | null>(null);
+  const [detailedHost, setDetailedHost] = useState<any | null>(null);
   const [scanData, setScanData] = useState<any>(mockData);
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<string>('');
   const [targetIp, setTargetIp] = useState<string>('');
   const [showMenu, setShowMenu] = useState(true); // Menu no centro do ecrã
+
+  useEffect(() => {
+    const fetchLatest = async () => {
+      try {
+        const res = await fetch('/api/scans');
+        if (!res.ok) return;
+        const scans = await res.json();
+        if (scans && scans.length > 0) {
+          const latestId = scans[0].id;
+          const fullScan = await getScan(latestId);
+          setScanData(fullScan);
+          // Removido o setShowMenu(false) a pedido do utilizador
+        }
+      } catch (e) {
+        console.log("No real scans available yet, using mockData.");
+      }
+    };
+    fetchLatest();
+  }, []);
 
   if (selectedHost) {
     window.onkeydown = (e) => {
@@ -54,8 +76,17 @@ export default function App() {
   return (
     <div className="w-screen h-screen bg-black overflow-hidden relative font-sans text-white select-none">
       
+      {/* AVISO DE MOCK DATA GLOBAL */}
+      {scanData.id === '11111111-2222-3333-4444-555555555555' && (
+        <div className="absolute top-0 left-0 w-full bg-red-600/90 text-white font-mono text-[10px] sm:text-xs text-center py-2 z-[9999] tracking-[0.3em] font-bold shadow-[0_0_30px_rgba(255,0,0,0.8)] border-b border-red-500 uppercase flex justify-center items-center gap-4">
+          <span className="animate-pulse">⚠️</span>
+          SIMULATION MODE: DISPLAYING OFFLINE MOCK DATA. INITIATE A REAL SCAN TO OBSERVE ACTUAL NETWORK TOPOLOGY.
+          <span className="animate-pulse">⚠️</span>
+        </div>
+      )}
+
       {/* Top Left - Título Minimalista Estilo RuView */}
-      <div className="absolute top-6 left-8 z-[999] pointer-events-none">
+      <div className={`absolute left-8 z-[999] pointer-events-none transition-all duration-300 ${scanData.id === '11111111-2222-3333-4444-555555555555' ? 'top-14' : 'top-6'}`}>
         <h1 className="text-2xl font-bold text-[#00f0ff] tracking-widest flex items-center gap-2 font-mono">
           PortScape
         </h1>
@@ -123,11 +154,24 @@ export default function App() {
         </div>
       )}
 
+      {/* Painel Lateral com Lista de Dispositivos */}
+      <DeviceListPanel scanData={scanData} onSelectHost={setSelectedHost} onOpenDetails={setDetailedHost} />
+
+      {/* Modal de Detalhes Completos do Host */}
+      {detailedHost && (
+        <HostDetailsModal host={detailedHost} onClose={() => setDetailedHost(null)} />
+      )}
+
       {/* R3F 3D Canvas */}
       <ErrorBoundary>
         <Canvas gl={{ antialias: false, toneMapping: 0 }}>
           <Suspense fallback={null}>
-            <City onSelectHost={setSelectedHost} selectedHost={selectedHost} scanData={scanData} />
+            <City 
+              onSelectHost={setSelectedHost} 
+              selectedHost={selectedHost} 
+              scanData={scanData} 
+              onOpenDetails={setDetailedHost} 
+            />
           </Suspense>
         </Canvas>
       </ErrorBoundary>
