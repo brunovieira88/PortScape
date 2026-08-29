@@ -13,6 +13,7 @@ export default function App() {
   const [scanData, setScanData] = useState<any>(mockData);
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<string>('');
+  const [simulatedProgress, setSimulatedProgress] = useState<number>(0);
   const [targetIp, setTargetIp] = useState<string>('');
   const [showMenu, setShowMenu] = useState(true); // Menu no centro do ecrã
 
@@ -45,6 +46,16 @@ export default function App() {
     try {
       setIsScanning(true);
       setScanStatus('INITIALIZING SCAN...');
+      setSimulatedProgress(0);
+      
+      let prog = 0;
+      const progressTimer = setInterval(() => {
+        // Velocidade dinâmica: começa rápido (descoberta), abranda brutalmente no fim (OS/Version detection)
+        const speed = prog < 40 ? 0.008 : (prog < 75 ? 0.002 : 0.0003);
+        prog += (95 - prog) * speed;
+        setSimulatedProgress(prog);
+      }, 50);
+
       const res = await startScan(targetIp || undefined);
       
       const poll = setInterval(async () => {
@@ -54,12 +65,18 @@ export default function App() {
           
           if (pollRes.status === 'DONE' || pollRes.status === 'FAILED') {
             clearInterval(poll);
-            setIsScanning(false);
-            if (pollRes.status === 'DONE') {
-              setScanData(pollRes);
-              setSelectedHost(null);
-              setShowMenu(false); // Esconde o menu para mostrar a cidade
-            }
+            clearInterval(progressTimer);
+            if (pollRes.status === 'DONE') setSimulatedProgress(100);
+            
+            // Pequeno delay para o utilizador ver a barra a encher aos 100%
+            setTimeout(() => {
+              setIsScanning(false);
+              if (pollRes.status === 'DONE') {
+                setScanData(pollRes);
+                setSelectedHost(null);
+                setShowMenu(false);
+              }
+            }, 800);
           }
         } catch (e) {
           console.error(e);
@@ -138,8 +155,17 @@ export default function App() {
           </button>
 
           {isScanning && (
-            <div className="mt-6 text-xs font-mono text-[#00f0ff] animate-pulse uppercase tracking-widest">
-              {scanStatus}
+            <div className="mt-6 w-full flex flex-col items-center">
+              <div className="text-[10px] font-mono text-[#00f0ff] mb-2 uppercase tracking-widest flex justify-between w-full px-1">
+                <span>{scanStatus}</span>
+                <span>{Math.round(simulatedProgress)}%</span>
+              </div>
+              <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-[#00f0ff] shadow-[0_0_10px_#00f0ff] transition-all duration-75 ease-linear" 
+                  style={{ width: `${simulatedProgress}%` }}
+                ></div>
+              </div>
             </div>
           )}
 

@@ -24,6 +24,7 @@ class NmapCommandBuilderTest {
         assertThat(builder.buildDiscovery("192.168.1.0/24")).containsExactly(
                 "/usr/bin/nmap", "-sS", "-O", "--open",
                 "--host-timeout", "60s",
+                "--stats-every", "1s",
                 "-oX", "-",
                 "192.168.1.0/24");
     }

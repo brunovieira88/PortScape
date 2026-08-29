@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -51,6 +54,10 @@ public class NmapExecutor {
      * @throws NmapExecutionException qualquer outra falha, incluindo timeout
      */
     public String execute(List<String> command) {
+        return execute(command, null);
+    }
+
+    public String execute(List<String> command, Consumer<Integer> progressListener) {
         log.info("A executar: {}", String.join(" ", command));
 
         Process process;
@@ -62,8 +69,8 @@ public class NmapExecutor {
                             + "'. Confirma que esta instalado e que portscape.nmap.command esta correto.", e);
         }
 
-        CompletableFuture<String> stdout = readAsync(process.getInputStream());
-        CompletableFuture<String> stderr = readAsync(process.getErrorStream());
+        CompletableFuture<String> stdout = readAsync(process.getInputStream(), progressListener);
+        CompletableFuture<String> stderr = readAsync(process.getErrorStream(), null);
 
         try {
             boolean finished = process.waitFor(properties.timeout().toMillis(), TimeUnit.MILLISECONDS);
@@ -138,13 +145,38 @@ public class NmapExecutor {
                 : trimmed.substring(0, STDERR_EXCERPT_LIMIT) + "... (truncado)";
     }
 
-    private static CompletableFuture<String> readAsync(InputStream stream) {
+    private static CompletableFuture<String> readAsync(InputStream stream, Consumer<Integer> progressListener) {
         return CompletableFuture.supplyAsync(() -> {
-            try (stream) {
-                return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (progressListener != null && line.contains("<taskprogress")) {
+                        try {
+                            int start = line.indexOf("percent=\"") + 9;
+                            int end = line.indexOf("\"", start);
+                            if (start > 8 && end > start) {
+                                String pctStr = line.substring(start, end);
+                                progressListener.accept((int) Double.parseDouble(pctStr));
+                            }
+                        } catch (Exception ignored) {
+                        }
+                    }
+                    
+                    // O --stats-every 1s injeta <taskprogress> e outras tags no meio da lista de <host>.
+                    // O Jackson XML Mapper tem um bug/feitio conhecido: se uma lista (useWrapping=false)
+                    // for interrompida por tags alienigenas, ele corta a lista ali mesmo.
+                    // A solucao e limpar estas tags de ruido do XML final.
+                    if (line.trim().startsWith("<task")) {
+                        continue;
+                    }
+                    
+                    sb.append(line).append("\n");
+                }
             } catch (IOException e) {
                 throw new java.io.UncheckedIOException(e);
             }
+            return sb.toString();
         });
     }
 }

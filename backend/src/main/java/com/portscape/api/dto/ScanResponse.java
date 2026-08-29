@@ -29,9 +29,10 @@ public record ScanResponse(
         int hostsUp,
         String baselineScanId,
         boolean cveLookupDegraded,
+        int progress,
         CityLayout layout,
         List<HostDto> hosts,
-        List<RuinDto> ruins,
+        List<HostDto> ruins,
         ScanErrorDto error
 ) {
     public static ScanResponse from(ScanJob job) {
@@ -50,6 +51,7 @@ public record ScanResponse(
                 job.hosts().size(),
                 diff.baselineScanId() == null ? null : diff.baselineScanId().toString(),
                 job.cveLookupDegraded(),
+                job.progress(),
                 layout,
                 job.hosts().stream().map(host -> {
                     var position = layout == null ? null : layout.positions().get(host.ip());
@@ -60,7 +62,7 @@ public record ScanResponse(
                 layout == null ? List.of() : diff.disappeared().stream()
                         .map(host -> {
                             var position = layout.positions().get(host.ip());
-                            return position == null ? null : RuinDto.from(host, position);
+                            return position == null ? null : HostDto.from(host, com.portscape.baseline.HostChange.DISAPPEARED, position.band(), new PositionDto(position.x(), position.z()));
                         })
                         .filter(java.util.Objects::nonNull)
                         .toList(),
@@ -70,6 +72,6 @@ public record ScanResponse(
     /** Versao sem a lista de hosts, para o endpoint de listagem nao devolver tudo. */
     public ScanResponse withoutHosts() {
         return new ScanResponse(id, target, status, createdAt, startedAt, finishedAt,
-                durationMs, hostsUp, baselineScanId, cveLookupDegraded, null, List.of(), List.of(), error);
+                durationMs, hostsUp, baselineScanId, cveLookupDegraded, progress, null, List.of(), List.of(), error);
     }
 }

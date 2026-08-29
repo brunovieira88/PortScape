@@ -15,6 +15,7 @@ import java.util.UUID;
 public interface ScanJobStore {
 
     void save(ScanJob job);
+    void updateProgress(UUID id, int progress);
 
     Optional<ScanJob> find(UUID id);
 

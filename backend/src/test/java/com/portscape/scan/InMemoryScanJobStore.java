@@ -24,6 +24,14 @@ public class InMemoryScanJobStore implements ScanJobStore {
     }
 
     @Override
+    public void updateProgress(UUID id, int progress) {
+        ScanJob existing = jobs.get(id);
+        if (existing != null) {
+            jobs.put(id, existing.withProgress(progress));
+        }
+    }
+
+    @Override
     public Optional<ScanJob> find(UUID id) {
         return Optional.ofNullable(jobs.get(id));
     }

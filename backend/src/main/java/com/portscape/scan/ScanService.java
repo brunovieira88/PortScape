@@ -136,7 +136,7 @@ public class ScanService {
         store.save(job);
 
         try {
-            List<Host> discovered = parser.parse(executor.execute(commandBuilder.buildDiscovery(job.target())));
+            List<Host> discovered = parser.parse(executor.execute(commandBuilder.buildDiscovery(job.target()), (p) -> store.updateProgress(id, p)));
             ScoredHosts scored = withRiskScores(job.target(), withServiceVersions(id, discovered));
             store.save(job.done(scored.hosts(), clock.instant(), scored.cveLookupDegraded()));
             log.info("Scan {} concluido: {} host(s)", id, scored.hosts().size());

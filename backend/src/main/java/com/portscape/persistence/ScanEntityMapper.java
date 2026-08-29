@@ -30,6 +30,7 @@ public final class ScanEntityMapper {
         entity.setErrorCode(job.errorCode());
         entity.setErrorMessage(job.errorMessage());
         entity.setCveLookupDegraded(job.cveLookupDegraded());
+        entity.setProgress(job.progress());
         entity.replaceHosts(job.hosts().stream().map(ScanEntityMapper::toEntity).toList());
     }
 
@@ -44,7 +45,8 @@ public final class ScanEntityMapper {
                 entity.getHosts().stream().map(ScanEntityMapper::toDomain).toList(),
                 entity.getErrorCode(),
                 entity.getErrorMessage(),
-                entity.isCveLookupDegraded());
+                entity.isCveLookupDegraded(),
+                entity.getProgress());
     }
 
     private static HostEntity toEntity(Host host) {

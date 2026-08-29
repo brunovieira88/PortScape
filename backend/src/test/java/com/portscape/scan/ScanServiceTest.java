@@ -91,7 +91,7 @@ class ScanServiceTest {
     void completesTheJobWithTheParsedHosts() {
         List<Host> hosts = List.of(new Host("192.168.1.10", "nas.lan", "Linux", 94,
                 List.of(new Port(22, "tcp", "open", "ssh", "OpenSSH", "9.6"))));
-        when(executor.execute(anyList())).thenReturn("<nmaprun/>");
+        when(executor.execute(anyList(), any())).thenReturn("<nmaprun/>");
         when(parser.parse(any())).thenReturn(hosts);
 
         ScanJob started = service.startScan("192.168.1.0/24");
@@ -110,7 +110,7 @@ class ScanServiceTest {
     @Test
     @DisplayName("o job devolvido pelo POST esta em PENDING, antes do scan comecar")
     void returnsAPendingJobImmediately() {
-        when(executor.execute(anyList())).thenReturn("<nmaprun/>");
+        when(executor.execute(anyList(), any())).thenReturn("<nmaprun/>");
         when(parser.parse(any())).thenReturn(List.of());
 
         ScanJob started = service.startScan("192.168.1.0/24");
@@ -122,7 +122,7 @@ class ScanServiceTest {
 
     @Test
     void marksTheJobRunningBeforeExecutingNmap() {
-        when(executor.execute(anyList())).thenAnswer(invocation -> {
+        when(executor.execute(anyList(), any())).thenAnswer(invocation -> {
             // Enquanto o nmap corre, o polling tem de ver RUNNING.
             assertThat(store.findAll()).singleElement()
                     .extracting(ScanJob::status).isEqualTo(ScanStatus.RUNNING);
@@ -136,7 +136,7 @@ class ScanServiceTest {
     @Test
     @DisplayName("uma falha de scan vira estado FAILED, nao uma excecao perdida no pool")
     void recordsScanFailuresOnTheJob() {
-        when(executor.execute(anyList())).thenThrow(new NmapPrivilegeException("precisa de root"));
+        when(executor.execute(anyList(), any())).thenThrow(new NmapPrivilegeException("precisa de root"));
 
         ScanJob started = service.startScan("192.168.1.0/24");
         ScanJob failed = store.find(started.id()).orElseThrow();
@@ -149,7 +149,7 @@ class ScanServiceTest {
 
     @Test
     void recordsUnexpectedFailuresToo() {
-        when(executor.execute(anyList())).thenThrow(new IllegalStateException("boom"));
+        when(executor.execute(anyList(), any())).thenThrow(new IllegalStateException("boom"));
 
         ScanJob started = service.startScan("192.168.1.0/24");
 
@@ -159,7 +159,7 @@ class ScanServiceTest {
     @Test
     @DisplayName("sem target pedido e sem deteccao de rede, cai no default-target configurado")
     void fallsBackToTheConfiguredDefaultTarget() {
-        when(executor.execute(anyList())).thenReturn("<nmaprun/>");
+        when(executor.execute(anyList(), any())).thenReturn("<nmaprun/>");
         when(parser.parse(any())).thenReturn(List.of());
 
         assertThat(service.startScan(null).target()).isEqualTo("192.168.1.0/24");
@@ -170,7 +170,7 @@ class ScanServiceTest {
     @DisplayName("sem target pedido, usa a subnet detetada em vez do default-target")
     void prefersTheDetectedLocalSubnetOverTheConfiguredDefault() {
         when(localNetworkDetector.detectLocalSubnet()).thenReturn(Optional.of("10.0.5.0/24"));
-        when(executor.execute(anyList())).thenReturn("<nmaprun/>");
+        when(executor.execute(anyList(), any())).thenReturn("<nmaprun/>");
         when(parser.parse(any())).thenReturn(List.of());
 
         assertThat(service.startScan(null).target()).isEqualTo("10.0.5.0/24");
@@ -180,7 +180,7 @@ class ScanServiceTest {
     @DisplayName("um target pedido explicitamente ganha sempre a deteccao automatica")
     void anExplicitTargetWinsOverDetection() {
         when(localNetworkDetector.detectLocalSubnet()).thenReturn(Optional.of("10.0.5.0/24"));
-        when(executor.execute(anyList())).thenReturn("<nmaprun/>");
+        when(executor.execute(anyList(), any())).thenReturn("<nmaprun/>");
         when(parser.parse(any())).thenReturn(List.of());
 
         assertThat(service.startScan("192.168.1.0/24").target()).isEqualTo("192.168.1.0/24");
@@ -192,7 +192,7 @@ class ScanServiceTest {
         assertThatThrownBy(() -> service.startScan("8.8.8.8"))
                 .isInstanceOf(InvalidTargetException.class);
 
-        verify(executor, never()).execute(anyList());
+        verify(executor, never()).execute(anyList(), any());
         assertThat(store.findAll()).isEmpty();
     }
 
@@ -204,18 +204,20 @@ class ScanServiceTest {
         Host versioned = new Host("192.168.1.10", "nas.lan", "Linux", 94,
                 List.of(new Port(22, "tcp", "open", "ssh", "OpenSSH", "9.6")));
 
-        when(executor.execute(anyList())).thenReturn("discovery-xml", "version-xml");
+        when(executor.execute(anyList(), any())).thenReturn("discovery-xml");
+        when(executor.execute(anyList())).thenReturn("version-xml");
         when(parser.parse("discovery-xml")).thenReturn(List.of(discovered));
         when(parser.parse("version-xml")).thenReturn(List.of(versioned));
 
         ScanJob started = service.startScan("192.168.1.0/24");
         ScanJob finished = store.find(started.id()).orElseThrow();
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<String>> commands = ArgumentCaptor.forClass(List.class);
-        verify(executor, times(2)).execute(commands.capture());
-        assertThat(commands.getAllValues().get(0)).doesNotContain("-sV");
-        assertThat(commands.getAllValues().get(1)).contains("-sT", "-sV");
+        ArgumentCaptor<List<String>> commands1 = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<String>> commands2 = ArgumentCaptor.forClass(List.class);
+        verify(executor).execute(commands1.capture(), any());
+        verify(executor).execute(commands2.capture());
+        assertThat(commands1.getValue()).doesNotContain("-sV");
+        assertThat(commands2.getValue()).contains("-sT", "-sV");
 
         assertThat(finished.hosts().get(0).ports().get(0).service()).isEqualTo("ssh");
         assertThat(finished.hosts().get(0).ports().get(0).product()).isEqualTo("OpenSSH");
@@ -227,7 +229,7 @@ class ScanServiceTest {
         Host discovered = new Host("192.168.1.10", "nas.lan", "Linux", 94,
                 List.of(new Port(22, "tcp", "open", null, null, null)));
 
-        when(executor.execute(anyList()))
+        when(executor.execute(anyList(), any()))
                 .thenReturn("discovery-xml")
                 .thenThrow(new NmapExecutionException("falha a inquirir versao"));
         when(parser.parse("discovery-xml")).thenReturn(List.of(discovered));
@@ -243,17 +245,17 @@ class ScanServiceTest {
     @Test
     @DisplayName("sem hosts nem portas, nao ha segunda invocacao ao nmap")
     void skipsVersionDetectionWhenThereIsNothingToQuery() {
-        when(executor.execute(anyList())).thenReturn("discovery-xml");
+        when(executor.execute(anyList(), any())).thenReturn("discovery-xml");
         when(parser.parse("discovery-xml")).thenReturn(List.of());
 
         service.startScan("192.168.1.0/24");
 
-        verify(executor, times(1)).execute(anyList());
+        verify(executor, times(1)).execute(anyList(), any());
     }
 
     @Test
     void listsScansMostRecentFirst() {
-        when(executor.execute(anyList())).thenReturn("<nmaprun/>");
+        when(executor.execute(anyList(), any())).thenReturn("<nmaprun/>");
         when(parser.parse(any())).thenReturn(List.of());
 
         service.startScan("192.168.1.0/24");

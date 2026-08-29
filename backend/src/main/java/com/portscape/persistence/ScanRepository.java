@@ -10,6 +10,10 @@ import com.portscape.domain.ScanStatus;
 
 public interface ScanRepository extends JpaRepository<ScanEntity, UUID> {
 
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("UPDATE ScanEntity s SET s.progress = :progress WHERE s.id = :id")
+    void updateProgress(UUID id, int progress);
+
     /** Mais recentes primeiro -- e a ordem que a lista de scans no frontend quer. */
     List<ScanEntity> findAllByOrderByCreatedAtDesc();
 
@@ -20,5 +24,8 @@ public interface ScanRepository extends JpaRepository<ScanEntity, UUID> {
      * por isso nunca se compara consigo proprio.
      */
     Optional<ScanEntity> findFirstByTargetAndStatusAndIdNotOrderByFinishedAtDesc(
+            String target, ScanStatus status, UUID excludedId);
+
+    Optional<ScanEntity> findFirstByTargetAndStatusAndIdNotOrderByFinishedAtAsc(
             String target, ScanStatus status, UUID excludedId);
 }

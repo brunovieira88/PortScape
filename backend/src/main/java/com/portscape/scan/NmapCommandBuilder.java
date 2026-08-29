@@ -43,6 +43,8 @@ public class NmapCommandBuilder {
         command.add("--host-timeout");
         command.add(properties.hostTimeout().toSeconds() + "s");
         // XML para stdout: evita ficheiros temporarios e a limpeza que trariam.
+        command.add("--stats-every");
+        command.add("1s");
         command.add("-oX");
         command.add("-");
         // Target sempre em ultimo, como o nmap espera.

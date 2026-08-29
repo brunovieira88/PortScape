@@ -89,7 +89,7 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: Ci
   
   // COMPACT_FACTOR (Ex: 2.0): Força as coordenadas flutuantes do backend a dividirem-se
   // por um número maior, o que resulta em menos "blocos vazios" (lotes) de alcatrão entre os hosts.
-  const COMPACT_FACTOR = 2.0;
+  const COMPACT_FACTOR = 4.0;
   const effectiveSpacing = backendSpacing * COMPACT_FACTOR;
   
   // Anti-collision Grid Packer
@@ -183,7 +183,7 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: Ci
           label={ruin.ip}
           x={(ruin.gridX + offsetX) * SCALE}
           z={(ruin.gridZ + offsetZ) * SCALE}
-          portCount={2} 
+          portCount={ruin.portCount || 2} 
           riskBand={ruin.riskBand as any}
           isRuin={true}
           onClick={() => onSelectHost(ruin)}

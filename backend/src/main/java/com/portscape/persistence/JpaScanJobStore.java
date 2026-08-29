@@ -44,6 +44,12 @@ public class JpaScanJobStore implements ScanJobStore {
     }
 
     @Override
+    @Transactional
+    public void updateProgress(UUID id, int progress) {
+        repository.updateProgress(id, progress);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Optional<ScanJob> find(UUID id) {
         return repository.findById(id).map(ScanEntityMapper::toDomain);
