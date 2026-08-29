@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  --color-risk-critical: #ff003c;
+  --color-risk-high: #ff8a00;
+  --color-risk-medium: #fcee0a;
+  --color-risk-low: #00f0ff;
+  --color-risk-unknown: #808080;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #000;
+  color: #fff;
+}

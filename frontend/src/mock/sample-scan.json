@@ -1,0 +1,63 @@
+{
+  "id": "11111111-2222-3333-4444-555555555555",
+  "status": "DONE",
+  "startedAt": "2026-08-28T15:00:00Z",
+  "layout": {
+    "width": 16.0,
+    "depth": 16.0
+  },
+  "hosts": [
+    {
+      "ip": "192.168.1.1",
+      "status": "UP",
+      "riskScore": 12,
+      "riskBand": "LOW",
+      "isNew": false,
+      "isChanged": false,
+      "change": "UNCHANGED",
+      "portCount": 1,
+      "position": { "x": 1.0, "z": 1.0 }
+    },
+    {
+      "ip": "192.168.1.10",
+      "status": "UP",
+      "riskScore": 95,
+      "riskBand": "CRITICAL",
+      "isNew": false,
+      "isChanged": true,
+      "change": "MODIFIED",
+      "portCount": 10,
+      "position": { "x": 5.0, "z": 10.0 }
+    },
+    {
+      "ip": "192.168.1.42",
+      "status": "UP",
+      "riskScore": 60,
+      "riskBand": "HIGH",
+      "isNew": true,
+      "isChanged": false,
+      "change": "NEW",
+      "portCount": 5,
+      "position": { "x": 12.0, "z": 8.0 }
+    },
+    {
+      "ip": "192.168.1.100",
+      "status": "UP",
+      "riskScore": 35,
+      "riskBand": "MEDIUM",
+      "isNew": false,
+      "isChanged": false,
+      "change": "UNCHANGED",
+      "portCount": 3,
+      "position": { "x": 8.0, "z": 4.0 }
+    }
+  ],
+  "ruins": [
+    {
+      "ip": "192.168.1.200",
+      "riskBand": "MEDIUM",
+      "position": { "x": 15.0, "z": 15.0 },
+      "change": "DISAPPEARED"
+    }
+  ]
+}
