@@ -9,17 +9,14 @@ export function StreetLayout({ offsetX, offsetZ, gridWidth, gridDepth }: { offse
   const elements = useMemo(() => {
     const items = [];
 
-    // 1. Chão Gigante (O Asfalto Escuro)
     items.push(
-      <mesh key="asphalt" position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh key="asphalt" position={[0, -0.2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[10000, 10000]} />
         <meshBasicMaterial color="#050505" />
       </mesh>
     );
 
     // 2. Grelha de Quarteirões, Passeios e Árvores
-    // Para cobrir a área em redor da câmara (0,0) sem quebrar o alinhamento com os prédios,
-    // calculamos as coordenadas base (inteiras) que caem num raio de gridWidth/2 e gridDepth/2
     const startKx = Math.floor(-gridWidth / 2 - offsetX);
     const endKx = Math.ceil(gridWidth / 2 - offsetX);
     const startKz = Math.floor(-gridDepth / 2 - offsetZ);
@@ -27,50 +24,51 @@ export function StreetLayout({ offsetX, offsetZ, gridWidth, gridDepth }: { offse
 
     for (let kx = startKx; kx <= endKx; kx++) {
       for (let kz = startKz; kz <= endKz; kz++) {
-        // Agora o lote fica EXATAMENTE alinhado com o edifício, mesmo que o offset
-        // seja uma fração (ex: -1.5), porque aplicamos a mesma fórmula matemática
+        
         const realX = (kx + offsetX) * SCALE;
         const realZ = (kz + offsetZ) * SCALE;
 
         // A) Passeio (Sidewalk)
         items.push(
-          <mesh key={`sidewalk-${kx}-${kz}`} position={[realX, 0, realZ]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh key={`sidewalk-${kx}-${kz}`} position={[realX, -0.05, realZ]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[BLOCK_SIZE + 0.2, BLOCK_SIZE + 0.2]} />
-            <meshBasicMaterial color="#111111" />
+            <meshBasicMaterial color="#111111" polygonOffset={true} polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
             <lineSegments>
               <edgesGeometry args={[new THREE.PlaneGeometry(BLOCK_SIZE + 0.2, BLOCK_SIZE + 0.2)]} />
-              <lineBasicMaterial color="#333333" />
+              <lineBasicMaterial color="#333333" linewidth={1} polygonOffset={true} polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
             </lineSegments>
           </mesh>
         );
 
-        // B) Estrada (Marcações Centrais das Vias - Linhas Tracejadas)
-        // Com a largura atual das avenidas, dividimos em tracejados perfeitos para ultrapassagens
-        const numDashes = 6;
-        const dashLength = (SCALE * 0.8) / (numDashes * 2);
+        // B) Marcas da Estrada (Road markings) - Linhas tracejadas
+        const roadX = realX + (SCALE / 2);
+        const roadZ = realZ + (SCALE / 2);
 
+        // Linhas tracejadas verticais
         if (kx < endKx) {
-          const roadX = realX + SCALE / 2; // meio da estrada
+          const numDashes = 5;
+          const dashLength = (SCALE * 0.8) / (numDashes * 2);
           for (let i = 0; i < numDashes; i++) {
             const zOffset = -(SCALE * 0.4) + (i * 2 * dashLength) + (dashLength / 2);
             items.push(
-              <mesh key={`road-mark-z-${kx}-${kz}-${i}`} position={[roadX, -0.04, realZ + zOffset]} rotation={[-Math.PI / 2, 0, 0]}>
-                <planeGeometry args={[0.2, dashLength]} />
-                <meshBasicMaterial color="#aaaaaa" />
+              <mesh key={`road-mark-z-${kx}-${kz}-${i}`} position={[roadX, -0.1, realZ + zOffset]} rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[0.6, dashLength]} />
+                <meshBasicMaterial color="#aaaaaa" depthWrite={false} polygonOffset={true} polygonOffsetFactor={-3} polygonOffsetUnits={-3} />
               </mesh>
             );
           }
         }
 
-        // Linha central ao longo do eixo X (separador de faixas transversal)
+        // Linhas tracejadas horizontais
         if (kz < endKz) {
-          const roadZ = realZ + SCALE / 2;
+          const numDashes = 5;
+          const dashLength = (SCALE * 0.8) / (numDashes * 2);
           for (let i = 0; i < numDashes; i++) {
             const xOffset = -(SCALE * 0.4) + (i * 2 * dashLength) + (dashLength / 2);
             items.push(
-              <mesh key={`road-mark-x-${kx}-${kz}-${i}`} position={[realX + xOffset, -0.04, roadZ]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
-                <planeGeometry args={[0.2, dashLength]} />
-                <meshBasicMaterial color="#aaaaaa" />
+              <mesh key={`road-mark-x-${kx}-${kz}-${i}`} position={[realX + xOffset, -0.1, roadZ]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+                <planeGeometry args={[0.6, dashLength]} />
+                <meshBasicMaterial color="#aaaaaa" depthWrite={false} polygonOffset={true} polygonOffsetFactor={-3} polygonOffsetUnits={-3} />
               </mesh>
             );
           }

@@ -12,11 +12,12 @@ export function StreetControls({ scanData }: { scanData: any }) {
 
   const STREET_Y = 1.7;
 
+  const introTime = useRef(0);
+  const isIntroPlaying = useRef(false);
+
   useEffect(() => {
     camera.rotation.order = 'YXZ';
-    camera.position.set(0, STREET_Y, 0);
-    targetRotation.current.copy(camera.rotation);
-
+    
     const handleKeyDown = (e: KeyboardEvent) => { keys.current[e.code] = true; };
     const handleKeyUp = (e: KeyboardEvent) => { keys.current[e.code] = false; };
     
@@ -24,49 +25,59 @@ export function StreetControls({ scanData }: { scanData: any }) {
     let prevMouseX = 0;
     let prevMouseY = 0;
 
-    const handleMouseDown = (e: MouseEvent) => { 
-      isDragging = true; 
+    const handlePointerDown = (e: PointerEvent) => {
+      isDragging = true;
       prevMouseX = e.clientX;
       prevMouseY = e.clientY;
-    };
-    
-    const handleMouseUp = () => { isDragging = false; };
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      
-      const deltaX = e.clientX - prevMouseX;
-      const deltaY = e.clientY - prevMouseY;
-      
-      targetRotation.current.y -= deltaX * 0.005;
-      targetRotation.current.x -= deltaY * 0.005;
-      targetRotation.current.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetRotation.current.x));
-
-      prevMouseX = e.clientX;
-      prevMouseY = e.clientY;
+      document.body.style.cursor = 'grabbing';
     };
 
+    const handlePointerUp = () => {
+      isDragging = false;
+      document.body.style.cursor = 'auto';
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (isDragging && !isIntroPlaying.current) { // Prevent looking around during intro
+        const deltaX = e.clientX - prevMouseX;
+        const deltaY = e.clientY - prevMouseY;
+        
+        targetRotation.current.y -= deltaX * 0.002;
+        targetRotation.current.x -= deltaY * 0.002;
+        
+        // Limita o olhar para cima/baixo
+        targetRotation.current.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetRotation.current.x));
+        
+        prevMouseX = e.clientX;
+        prevMouseY = e.clientY;
+      }
+    };
+
+    gl.domElement.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    gl.domElement.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('mousemove', handleMouseMove);
 
     return () => {
+      gl.domElement.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
-      gl.domElement.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('mousemove', handleMouseMove);
     };
   }, [camera, gl.domElement]);
 
-  // Teleporta o jogador de volta para o centro seguro (0,0) sempre que o mapa for reconstruído!
-  // Evita ficar preso "fora" das paredes invisíveis se o novo scan for mais pequeno.
   useEffect(() => {
-    camera.position.set(0, STREET_Y, 0);
+    // Voo de Drone - Nasce no céu e olha para baixo
+    camera.position.set(0, 150, 40);
+    targetRotation.current.set(-Math.PI / 4, 0, 0, 'YXZ');
+    camera.rotation.copy(targetRotation.current);
     velocity.current.set(0, 0, 0);
-  }, [scanData.id, camera]); // Só corre quando o ID do scan muda (ou seja, novo mapa carregado)
+    
+    introTime.current = 0;
+    isIntroPlaying.current = true;
+  }, [scanData.id, camera]);
 
   const SCALE = 13;
   const backendSpacing = scanData.layout?.spacing || 1.0;
@@ -103,9 +114,34 @@ export function StreetControls({ scanData }: { scanData: any }) {
   };
 
   useFrame((_state, delta) => {
+    if (isIntroPlaying.current) {
+      introTime.current += delta;
+      const progress = Math.min(introTime.current / 3.0, 1);
+      
+      // Easing out cubic: smooth deceleration as it approaches the ground
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      
+      // Interpolate Y from 150 to STREET_Y
+      camera.position.y = 150 * (1 - easeProgress) + STREET_Y * easeProgress;
+      
+      // Interpolate Z from 40 to 0 (move forward while dropping)
+      camera.position.z = 40 * (1 - easeProgress);
+      
+      // Interpolate rotation from looking down (-Math.PI / 4) to straight ahead (0)
+      targetRotation.current.x = (-Math.PI / 4) * (1 - easeProgress); 
+      targetRotation.current.y = 0; // Ensures looking straight
+
+      if (progress >= 1) {
+        isIntroPlaying.current = false;
+        camera.position.y = STREET_Y;
+        camera.position.z = 0;
+      }
+    }
+
     camera.rotation.x = THREE.MathUtils.lerp(camera.rotation.x, targetRotation.current.x, 10 * delta);
     camera.rotation.y = THREE.MathUtils.lerp(camera.rotation.y, targetRotation.current.y, 10 * delta);
     camera.rotation.z = 0; 
+
 
     const moveZ = (keys.current['KeyS'] || keys.current['ArrowDown'] ? 1 : 0) - (keys.current['KeyW'] || keys.current['ArrowUp'] ? 1 : 0);
     const moveX = (keys.current['KeyD'] || keys.current['ArrowRight'] ? 1 : 0) - (keys.current['KeyA'] || keys.current['ArrowLeft'] ? 1 : 0);
@@ -143,9 +179,11 @@ export function StreetControls({ scanData }: { scanData: any }) {
       nextZ = camera.position.z;
     }
 
-    camera.position.x = nextX;
-    camera.position.z = nextZ;
-    camera.position.y = STREET_Y;
+    if (!isIntroPlaying.current) {
+      camera.position.x = nextX;
+      camera.position.z = nextZ;
+      camera.position.y = STREET_Y;
+    }
   });
 
   return null;

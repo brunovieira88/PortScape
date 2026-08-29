@@ -70,7 +70,7 @@ function CrescentMoon() {
 
   return (
     <group position={[300, 200, -800]} rotation={[0, -Math.PI / 8, Math.PI / 6]}>
-      <mesh>
+      <mesh renderOrder={-1}>
         <planeGeometry args={[120, 120]} />
         {/* toneMapped={false} garante que brilha imenso e não fica cinzento */}
         <meshBasicMaterial 
@@ -78,6 +78,8 @@ function CrescentMoon() {
           transparent={true} 
           toneMapped={false} 
           color="#ffffff" 
+          depthWrite={false}
+          depthTest={false}
         />
       </mesh>
     </group>
@@ -171,6 +173,8 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: Ci
           hostData={host}
           isSelected={selectedHost?.ip === host.ip}
           onClick={() => onSelectHost(host)}
+          isNew={host.isNew}
+          isChanged={host.isChanged}
           onClose={() => onSelectHost(null)}
           onOpenDetails={() => onOpenDetails(host)}
         />

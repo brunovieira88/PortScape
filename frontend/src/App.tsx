@@ -239,7 +239,7 @@ export default function App() {
 
       {/* R3F 3D Canvas */}
       <ErrorBoundary>
-        <Canvas gl={{ antialias: false, toneMapping: 0 }}>
+        <Canvas gl={{ antialias: true, toneMapping: 0 }} camera={{ near: 0.5, far: 2000, fov: 60 }}>
           <Suspense fallback={null}>
             <City 
               

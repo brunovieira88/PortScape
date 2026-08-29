@@ -3,6 +3,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { Architecture } from './buildings/ArchitectureBuilder';
+import { NewHostHighlight } from './highlights/NewHostHighlight';
+import { ChangedHostHighlight } from './highlights/ChangedHostHighlight';
 
 interface BuildingProps {
   label: string;
@@ -16,6 +18,8 @@ interface BuildingProps {
   hostData?: any;
   onClose?: () => void;
   onOpenDetails?: () => void;
+  isNew?: boolean;
+  isChanged?: boolean;
 }
 
 const BAND_COLORS = {
@@ -26,7 +30,7 @@ const BAND_COLORS = {
   UNKNOWN: '#808080'   // Dim Gray
 };
 
-export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, isSelected, hostData, onClose, onOpenDetails }: BuildingProps) {
+export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, isSelected, hostData, onClose, onOpenDetails, isNew, isChanged }: BuildingProps) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
   
@@ -120,6 +124,8 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
         isRuin={isRuin} 
         riskBand={riskBand}
       />
+      {isNew && !isRuin && <NewHostHighlight />}
+      {isChanged && !isRuin && <ChangedHostHighlight height={baseH + roofExtra + 5} />}
       
       {showUI && (
         <>
