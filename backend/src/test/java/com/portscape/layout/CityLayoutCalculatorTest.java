@@ -78,21 +78,39 @@ class CityLayoutCalculatorTest {
     }
 
     @Test
-    @DisplayName("compactar encosta as colunas ocupadas sem trocar a ordem entre elas")
-    void compactsOccupiedColumnsWithoutReorderingThem() {
-        // Colunas de origem: .1 -> 1, .130 -> 2, .40 -> 8. Tres colunas ocupadas em 16.
-        CityLayout city = layoutOf(host("192.168.1.1", 90), host("192.168.1.130", 90),
+    @DisplayName("o bairro le-se por ordem de IP, da esquerda para a direita")
+    void fillsTheDistrictInIpOrder() {
+        CityLayout city = layoutOf(host("192.168.1.130", 90), host("192.168.1.1", 90),
                 host("192.168.1.40", 90));
 
-        double first = city.positionOf("192.168.1.1").x();
-        double second = city.positionOf("192.168.1.130").x();
-        double third = city.positionOf("192.168.1.40").x();
+        // Tres hosts dao um bloco de 2 colunas: .1 e .40 na primeira linha, .130 abaixo.
+        double districtX = districtOf(city, RiskBand.CRITICAL).x();
+        assertThat(city.positionOf("192.168.1.1")).extracting(HostPosition::x, HostPosition::z)
+                .containsExactly(districtX, 0.0);
+        assertThat(city.positionOf("192.168.1.40")).extracting(HostPosition::x, HostPosition::z)
+                .containsExactly(districtX + 4.0, 0.0);
+        assertThat(city.positionOf("192.168.1.130")).extracting(HostPosition::x, HostPosition::z)
+                .containsExactly(districtX, 4.0);
+    }
 
-        // Encostadas: 0, 4, 8 -- e nao 4, 8, 32 como as colunas de origem dariam.
-        assertThat(first).isEqualTo(districtOf(city, RiskBand.CRITICAL).x());
-        assertThat(second).isEqualTo(first + 4.0);
-        assertThat(third).isEqualTo(second + 4.0);
-        assertThat(districtOf(city, RiskBand.CRITICAL).width()).isEqualTo(3 * 4.0);
+    @Test
+    @DisplayName("o bairro e um bloco cheio -- sem celulas vazias a nao ser na ultima linha")
+    void packsEachDistrictWithoutHoles() {
+        // Oito hosts espalhados por um /24 davam antes um bairro 6x5 com 27% de ocupacao.
+        List<Host> hosts = List.of(host("192.168.1.1", 90), host("192.168.1.2", 90),
+                host("192.168.1.5", 90), host("192.168.1.10", 90), host("192.168.1.20", 90),
+                host("192.168.1.42", 90), host("192.168.1.100", 90), host("192.168.1.254", 90));
+
+        CityLayout city = calculator.calculate(TARGET, hosts, List.of());
+        District district = districtOf(city, RiskBand.CRITICAL);
+
+        // ceil(sqrt(8)) = 3 colunas, 3 linhas: 8 hosts em 9 lugares.
+        assertThat(district.width()).isEqualTo(3 * 4.0);
+        assertThat(district.depth()).isEqualTo(3 * 4.0);
+        // So a ultima linha pode ter buracos: as celulas vazias sao menos que uma linha.
+        int columns = (int) Math.round(district.width() / 4.0);
+        int rows = (int) Math.round(district.depth() / 4.0);
+        assertThat(columns * rows - hosts.size()).isLessThan(columns);
     }
 
     @Test
@@ -103,8 +121,9 @@ class CityLayoutCalculatorTest {
         CityLayout city = layoutOf(host("192.168.1.1", 90), host("192.168.1.40", 90),
                 host("192.168.1.130", 90), host("192.168.1.200", 90));
 
-        assertThat(city.width()).isEqualTo(3 * 4.0);
-        assertThat(city.depth()).isEqualTo(4 * 4.0);
+        // ceil(sqrt(4)) = 2: um bloco 2x2 cheio, nao uma grelha de 254 lugares.
+        assertThat(city.width()).isEqualTo(2 * 4.0);
+        assertThat(city.depth()).isEqualTo(2 * 4.0);
     }
 
     @Test
@@ -154,13 +173,15 @@ class CityLayoutCalculatorTest {
     }
 
     @Test
-    @DisplayName("as linhas sao encostadas: o host mais acima do bairro fica em z=0")
+    @DisplayName("o bairro comeca sempre no topo -- nao ha linhas vazias por cima")
     void pullsEveryDistrictUpToTheTop() {
         // .200 e .210 estao nas linhas 12 e 13 de um /24; sem compactar, z seria 48 e 52.
         CityLayout city = layoutOf(host("192.168.1.200", 90), host("192.168.1.210", 90));
 
-        assertThat(city.positionOf("192.168.1.200").z()).isZero();
-        assertThat(city.positionOf("192.168.1.210").z()).isEqualTo(4.0);
+        assertThat(city.positions().values()).allSatisfy(position ->
+                assertThat(position.z()).isZero());
+        // Dois hosts dao um bloco de 2x1: ficam lado a lado, nao empilhados.
+        assertThat(districtOf(city, RiskBand.CRITICAL).depth()).isEqualTo(4.0);
     }
 
     @Test
@@ -210,8 +231,8 @@ class CityLayoutCalculatorTest {
         CityLayout city = calculator.calculate("192.168.0.0/16",
                 List.of(host("192.168.1.5", 90), host("192.168.200.5", 90)), List.of());
 
-        assertThat(city.depth()).isEqualTo(2 * 4.0);
-        assertThat(city.width()).isEqualTo(4.0);
+        assertThat(city.depth()).isEqualTo(4.0);
+        assertThat(city.width()).isEqualTo(2 * 4.0);
     }
 
     @Test

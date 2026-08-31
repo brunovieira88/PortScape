@@ -7,8 +7,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.TreeMap;
-import java.util.function.LongUnaryOperator;
 
 import org.springframework.stereotype.Component;
 
@@ -23,20 +21,23 @@ import com.portscape.risk.RiskBand;
  * <p><b>A faixa de risco escolhe o bairro; o IP escolhe o lugar dentro dele.</b> Ver
  * uma maquina migrar para o bairro vermelho e informacao, nao ruido.
  *
- * <p><b>A cidade e compactada, e a compactacao e feita aqui.</b> Uma rede /24 tem 254
- * lugares e um scan tipico enche cinco. Desenhar a grelha toda dava uma cidade que e
- * quase so alcatrao, com os edificios longe demais uns dos outros para se lerem como
- * um conjunto. Por isso, dentro de cada bairro, as colunas e as linhas <i>ocupadas</i>
- * sao numeradas por ordem e encostadas: quatro colunas ocupadas ficam nas posicoes 0 a
- * 3, independentemente de terem saido dos IPs .1, .40, .130 e .200. O mesmo para as
- * linhas, e o mesmo para os bairros entre si -- cada um ocupa a largura de que precisa,
- * nao uma fatia fixa.
+ * <p><b>Cada bairro e um bloco denso.</b> Uma rede /24 tem 254 lugares e um scan
+ * tipico enche cinco. Desenhar a grelha toda dava uma cidade que e quase so alcatrao,
+ * com os edificios longe demais uns dos outros para se lerem como um conjunto. Por
+ * isso o bairro nao herda a forma que o IP daria a grelha: os hosts sao ordenados por
+ * IP e preenchem um bloco o mais quadrado possivel, {@code ceil(sqrt(n))} colunas de
+ * largura. Cinco hosts dao um 3x2 cheio, nao um 5x5 com quatro quintos de vazio.
  *
- * <p>O que isto <b>preserva</b> e a ordem: dois hosts na mesma coluna continuam na
- * mesma coluna, e um host a esquerda de outro continua a esquerda dele. O que isto
- * <b>custa</b> e a coordenada absoluta -- o .254 nao esta sempre na coluna 14, esta na
- * ultima coluna ocupada do seu bairro. E o mesmo compromisso ja assumido para os
- * bairros vazios, que tambem sao saltados: a posicao <i>relativa</i> e que e estavel.
+ * <p>Isto <b>coincide</b> com a grelha antiga quando o bairro esta cheio: 254 hosts
+ * dao {@code ceil(sqrt(254))} = 16 colunas por 16 linhas, exatamente a malha 16x16 que
+ * um /24 sempre teve. Nao e uma alternativa a grelha, e uma generalizacao dela que so
+ * se afasta no caso esparso -- que e o caso real.
+ *
+ * <p>O que isto <b>preserva</b> e a ordem: os hosts leem-se por ordem de IP da
+ * esquerda para a direita e de cima para baixo, como um texto. O que isto <b>custa</b>
+ * e a coordenada absoluta e a leitura por sub-bloco de rede -- a linha deixou de ser o
+ * {@code /28} a que o host pertence. E o mesmo compromisso ja assumido para os bairros
+ * vazios, que tambem sao saltados: a posicao <i>relativa</i> e que e estavel.
  *
  * <p>A alternativa -- compactar no frontend, ao arredondar as coordenadas para uma
  * grelha mais apertada -- parece equivalente e nao e: colapsa varios hosts na mesma
@@ -85,25 +86,29 @@ public class CityLayoutCalculator {
                 continue;
             }
 
-            // Coluna e linha vem do indice do host; o rank denso encosta as ocupadas.
-            Map<Long, Integer> columns = denseRank(members, indexByIp, this::columnOf);
-            Map<Long, Integer> rows = denseRank(members, indexByIp, this::rowOf);
+            // Por ordem de IP: e essa a ordem por que o bairro se le.
+            List<Host> ordered = members.stream()
+                    .sorted(Comparator.comparingLong(host -> indexByIp.get(host.ip())))
+                    .toList();
+
+            int columns = columnsFor(ordered.size());
+            int rows = (ordered.size() + columns - 1) / columns;
 
             double districtX = nextDistrictX;
-            double districtWidth = columns.size() * layout.spacing();
-            double districtDepth = rows.size() * layout.spacing();
+            double districtWidth = columns * layout.spacing();
+            double districtDepth = rows * layout.spacing();
             // O bairro seguinte comeca a seguir a este, nao numa grelha fixa: um bairro
             // com tres colunas ocupa tres colunas.
             nextDistrictX += districtWidth + layout.districtGap() * layout.spacing();
 
-            for (Host host : members) {
-                long index = indexByIp.get(host.ip());
+            for (int i = 0; i < ordered.size(); i++) {
+                Host host = ordered.get(i);
                 positions.put(host.ip(), new HostPosition(host.ip(), band,
-                        districtX + columns.get(columnOf(index)) * layout.spacing(),
-                        rows.get(rowOf(index)) * layout.spacing()));
+                        districtX + (i % columns) * layout.spacing(),
+                        (i / columns) * layout.spacing()));
             }
 
-            districts.add(new District(band, districtX, districtWidth, districtDepth, members.size()));
+            districts.add(new District(band, districtX, districtWidth, districtDepth, ordered.size()));
         }
 
         District last = districts.isEmpty() ? null : districts.get(districts.size() - 1);
@@ -112,34 +117,13 @@ public class CityLayoutCalculator {
         return new CityLayout(positions, districts, layout.spacing(), width, depth);
     }
 
-    private long columnOf(long index) {
-        return index % layout.gridWidth();
-    }
-
-    private long rowOf(long index) {
-        return index / layout.gridWidth();
-    }
-
     /**
-     * Numera por ordem os valores <i>usados</i> de uma coordenada: {@code {1, 40, 130}}
-     * da {@code {1->0, 40->1, 130->2}}. E o que encosta os edificios sem os reordenar.
-     *
-     * <p>Aplicar isto as colunas e as linhas de forma independente continua a nao
-     * gerar colisoes: os pares (coluna, linha) sao unicos a partida -- vem do indice
-     * do host, que e unico -- e numerar cada eixo separadamente e injetivo em cada
-     * eixo, logo o par continua unico.
+     * Largura do bloco de um bairro, em colunas: o lado de um quadrado que caiba os
+     * hosts todos, limitado por {@code grid-width} para um bairro muito povoado nao se
+     * esticar ate a cidade deixar de se ver de uma vez.
      */
-    private static Map<Long, Integer> denseRank(List<Host> members, Map<String, Long> indexByIp,
-            LongUnaryOperator coordinate) {
-        Map<Long, Integer> ranks = new TreeMap<>();
-        for (Host host : members) {
-            ranks.put(coordinate.applyAsLong(indexByIp.get(host.ip())), 0);
-        }
-        int rank = 0;
-        for (Map.Entry<Long, Integer> entry : ranks.entrySet()) {
-            entry.setValue(rank++);
-        }
-        return ranks;
+    private int columnsFor(int hostCount) {
+        return Math.min(layout.gridWidth(), (int) Math.ceil(Math.sqrt(hostCount)));
     }
 
     private Map<RiskBand, List<Host>> groupByBand(List<Host> hosts) {
@@ -158,9 +142,12 @@ public class CityLayoutCalculator {
      * so o ultimo octeto.
      *
      * <p>Um host que nao caiba nesta conta -- IPv6, ou um endereco fora da rede do
-     * target -- vai para uma zona de overflow no fim da grelha, com os lugares
-     * atribuidos por ordem de IP. Nao devia acontecer; rebentar a cena por causa
-     * disso seria pior do que arruma-lo algures de forma previsivel.
+     * target -- recebe um indice acima de todos os outros, por ordem de IP. Como o
+     * bairro e preenchido por ordem de indice, isso poe-no no fim do seu bairro (canto
+     * inferior direito) e nao numa zona a parte: depois da compactacao ele fica
+     * encostado aos restantes, sem folga visivel entre eles. Nao devia acontecer;
+     * rebentar a cena por causa disso seria pior do que arruma-lo num sitio
+     * previsivel.
      */
     private Map<String, Long> assignIndexes(String target, List<Host> hosts) {
         long network = networkAddressOf(target);

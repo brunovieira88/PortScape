@@ -112,10 +112,10 @@ portscape:
     medium-threshold: 25
 
   layout:
-    # Geometria da cidade 3D. O indice de cada host quebra de linha ao fim de
-    # grid-width colunas; depois disso, so as colunas e linhas ocupadas contam -- o
-    # CityLayoutCalculator encosta-as, para um scan de cinco maquinas nao dar uma
-    # grelha de 254 lugares quase toda vazia.
+    # Geometria da cidade 3D. Cada bairro e um bloco quase quadrado preenchido por
+    # ordem de IP, para um scan de cinco maquinas nao dar uma grelha de 254 lugares
+    # quase toda vazia. grid-width e so o tecto da largura de um bairro: um bairro com
+    # 254 hosts da 16x16, que e a malha que um /24 sempre teve.
     grid-width: 16
     spacing: 4.0
     # Intervalo entre bairros, em colunas. Baixo de proposito: como os bairros sao

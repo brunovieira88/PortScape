@@ -13,7 +13,7 @@
   "layout": {
     "spacing": 4.0,
     "width": 44.0,
-    "depth": 8.0,
+    "depth": 4.0,
     "districts": [
       {
         "band": "CRITICAL",
@@ -33,7 +33,7 @@
         "band": "MEDIUM",
         "x": 24.0,
         "width": 8.0,
-        "depth": 8.0,
+        "depth": 4.0,
         "hostCount": 2
       },
       {
@@ -246,7 +246,7 @@
       "riskReasons": [],
       "position": {
         "x": 28.0,
-        "z": 4.0
+        "z": 0.0
       },
       "portCount": 0,
       "isNew": false,

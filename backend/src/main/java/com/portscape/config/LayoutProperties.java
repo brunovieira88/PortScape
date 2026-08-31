@@ -5,9 +5,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * Geometria da cidade 3D.
  *
- * @param gridWidth   ao fim de quantas colunas o indice do host passa a linha
- *                    seguinte. 16 da a um /24 a forma de uma malha 16x16 antes de ser
- *                    compactada, e e o que decide que hosts partilham coluna
+ * @param gridWidth   largura maxima de um bairro, em colunas. Um bairro e um bloco
+ *                    quase quadrado ({@code ceil(sqrt(n))} colunas); este valor so
+ *                    entra quando isso passaria de 16, para um bairro muito povoado
+ *                    nao se esticar ate a cidade deixar de se ver de uma vez
  * @param spacing     distancia entre centros de celulas, em unidades de mundo
  * @param districtGap colunas vazias entre bairros, para as zonas se lerem separadas
  */

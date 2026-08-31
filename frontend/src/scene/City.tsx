@@ -3,6 +3,7 @@ import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useMemo } from 'react';
 import { Building, BAND_COLORS } from './Building';
+import { buildCityGrid, type PlacedDistrict } from './cityGrid';
 import { StreetControls } from './StreetControls';
 import { StreetLayout } from './StreetLayout';
 
@@ -92,26 +93,24 @@ function CrescentMoon() {
  * serem reconstituidas a partir das posicoes dos hosts -- e para isso que o record
  * viaja no JSON.
  */
-function DistrictPlate({ district, spacing, offsetX, offsetZ }:
-  { district: any, spacing: number, offsetX: number, offsetZ: number }) {
-
-  const cols = Math.max(1, Math.round(district.width / spacing));
-  const rows = Math.max(1, Math.round(district.depth / spacing));
-  const startX = Math.round(district.x / spacing);
+function DistrictPlate({ district, offsetX, offsetZ }:
+  { district: PlacedDistrict, offsetX: number, offsetZ: number }) {
 
   // O centro da placa e o centro das celulas que ela cobre, nao o canto.
-  const centerX = (startX + (cols - 1) / 2 + offsetX) * SCALE;
-  const centerZ = ((rows - 1) / 2 + offsetZ) * SCALE;
+  const centerX = (district.startX + (district.columns - 1) / 2 + offsetX) * SCALE;
+  const centerZ = ((district.rows - 1) / 2 + offsetZ) * SCALE;
+  const width = district.columns * SCALE;
+  const depth = district.rows * SCALE;
   const color = BAND_COLORS[district.band as keyof typeof BAND_COLORS] || BAND_COLORS.UNKNOWN;
 
   return (
     <group position={[centerX, 0, centerZ]}>
       <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[cols * SCALE, rows * SCALE]} />
+        <planeGeometry args={[width, depth]} />
         <meshBasicMaterial color={color} transparent opacity={0.06} depthWrite={false} />
       </mesh>
       <lineSegments position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <edgesGeometry args={[new THREE.PlaneGeometry(cols * SCALE, rows * SCALE)]} />
+        <edgesGeometry args={[new THREE.PlaneGeometry(width, depth)]} />
         <lineBasicMaterial color={color} transparent opacity={0.5} />
       </lineSegments>
     </group>
@@ -119,47 +118,16 @@ function DistrictPlate({ district, spacing, offsetX, offsetZ }:
 }
 
 export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: CityProps) {
-  // O backend ja entrega a cidade compactada: dentro de cada bairro as colunas e as
-  // linhas ocupadas vem encostadas, cada bairro ocupa so a largura de que precisa, e
-  // nunca ha dois hosts na mesma celula. Aqui so se converte a coordenada de mundo em
-  // indice de quarteirao.
-  //
-  // Nao voltar a compactar aqui. Arredondar para uma grelha mais apertada colapsa
-  // varios hosts na mesma celula e obriga a desempatar por varrimento, o que faz a
-  // posicao de um host depender de quais os outros hosts do scan e da ordem por que
-  // foram processados -- e ai um edificio que se mexe deixa de querer dizer alguma
-  // coisa. Se a cidade voltar a parecer vazia, o sitio de a apertar e o
-  // CityLayoutCalculator, onde e determinista e tem testes.
-  const spacing = scanData.layout?.spacing || 1.0;
-
-  const { processedHosts, processedRuins } = useMemo(() => {
-    const toCell = (host: any) => ({
-      ...host,
-      gridX: Math.round((host.position?.x ?? 0) / spacing),
-      gridZ: Math.round((host.position?.z ?? 0) / spacing),
-    });
-    return {
-      processedHosts: (scanData.hosts || []).map(toCell),
-      processedRuins: (scanData.ruins || []).map(toCell),
-    };
-  }, [scanData, spacing]);
-
-  // Dimensoes reais da cidade, em quarteiroes. Um scan sem layout (a listagem devolve
-  // os sumarios sem ele) da uma cidade vazia em vez de rebentar a cena.
-  const layoutW = (scanData.layout?.width ?? 0) / spacing;
-  const layoutD = (scanData.layout?.depth ?? 0) / spacing;
-
-  // O offset dos edificios DEVE ser o centro exato da bounding box deles
-  // para que a camara no (0,0) nasca sempre no meio da cidade!
-  const offsetX = -layoutW / 2;
-  const offsetZ = -layoutD / 2;
+  // Toda a traducao do layout do backend para a grelha vive no cityGrid, fora do
+  // React, para poder ser testada. Ver o aviso la sobre nao recompactar aqui.
+  const { hosts: processedHosts, ruins: processedRuins, districts,
+          layoutW, layoutD, offsetX, offsetZ } = useMemo(
+    () => buildCityGrid(scanData), [scanData]);
 
   // Forcamos o asfalto (chao) a ter pelo menos 16x16 quarteiroes
   // Mas ja nao usamos isto para mover os edificios!
   const gridWidth = Math.max(layoutW, 16);
   const gridDepth = Math.max(layoutD, 16);
-
-  const districts = scanData.layout?.districts ?? [];
 
   return (
     <>
@@ -174,11 +142,10 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: Ci
 
       {/* Placas de chao dos bairros: e o que torna o zonamento por risco legivel
           de relance, sem ser preciso ler a cor de cada edificio um a um. */}
-      {districts.map((district: any) => (
+      {districts.map((district) => (
         <DistrictPlate
           key={`${scanData.id}-district-${district.band}`}
           district={district}
-          spacing={spacing}
           offsetX={offsetX}
           offsetZ={offsetZ}
         />
