@@ -10,6 +10,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * @param portWeights        pontos por porta aberta, por numero de porta
  * @param defaultPortWeight  pontos de uma porta aberta que nao esta na tabela
+ * @param maxDefaultPortPoints tecto do somatorio das portas fora da tabela. Sem ele,
+ *                           dez portas banais valiam mais que um Telnet exposto e a
+ *                           cidade ficava vermelha por quantidade em vez de gravidade
  * @param cvssMultiplier     pontos por unidade de CVSS do pior CVE do host
  * @param extraSevereCvePoints pontos por cada CVE grave adicional
  * @param maxExtraSevereCvePoints tecto do somatorio anterior
@@ -25,6 +28,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record RiskProperties(
         Map<Integer, Integer> portWeights,
         Integer defaultPortWeight,
+        Integer maxDefaultPortPoints,
         Double cvssMultiplier,
         Integer extraSevereCvePoints,
         Integer maxExtraSevereCvePoints,
@@ -39,6 +43,7 @@ public record RiskProperties(
     public RiskProperties {
         portWeights = portWeights == null ? Map.of() : Map.copyOf(portWeights);
         defaultPortWeight = defaultPortWeight == null ? 8 : defaultPortWeight;
+        maxDefaultPortPoints = maxDefaultPortPoints == null ? 24 : maxDefaultPortPoints;
         cvssMultiplier = cvssMultiplier == null ? 4.0 : cvssMultiplier;
         extraSevereCvePoints = extraSevereCvePoints == null ? 3 : extraSevereCvePoints;
         maxExtraSevereCvePoints = maxExtraSevereCvePoints == null ? 15 : maxExtraSevereCvePoints;
@@ -53,5 +58,10 @@ public record RiskProperties(
 
     public int weightFor(int port) {
         return portWeights.getOrDefault(port, defaultPortWeight);
+    }
+
+    /** Se a porta tem um peso proprio, isto e, um juizo editorial explicito sobre ela. */
+    public boolean hasWeightFor(int port) {
+        return portWeights.containsKey(port);
     }
 }

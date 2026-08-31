@@ -86,6 +86,11 @@ portscape:
       8080: 5
     # Porta aberta que nao esta na tabela acima.
     default-port-weight: 8
+    # Tecto do somatorio dessas portas. Sem tecto, um NAS com dez portas banais somava
+    # 80 pontos e ficava CRITICAL -- exatamente o contrario do principio do projeto, que
+    # e "o que faz um edificio ficar vermelho e ter as portas erradas, nao ter muitas".
+    # As portas com peso proprio (tabela acima) continuam a somar sem limite.
+    max-default-port-points: 24
     # Pontos por unidade de CVSS do pior CVE do host (8.1 * 4 = 32 pontos).
     cvss-multiplier: 4.0
     severe-cvss-threshold: 7.0

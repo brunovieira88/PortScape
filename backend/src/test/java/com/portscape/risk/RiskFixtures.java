@@ -14,9 +14,12 @@ public final class RiskFixtures {
 
     /** Os mesmos pesos do application.yml, reduzidos ao que os testes precisam. */
     public static final RiskProperties PROPERTIES = new RiskProperties(
-            Map.of(23, 35, 21, 25, 445, 30, 3389, 30, 22, 5, 80, 5, 443, 2),
-            8, 4.0, 3, 15, 7.0, 25, 8, 24,
-            75, 50, 25);
+            // portWeights
+            Map.of(23, 35, 21, 25, 445, 30, 3389, 30, 5900, 25, 6379, 25, 22, 5, 80, 5, 443, 2),
+            8, 24,          // defaultPortWeight, maxDefaultPortPoints
+            4.0, 3, 15, 7.0, // cvssMultiplier, extraSevereCvePoints, maxExtra, severeThreshold
+            25, 8, 24,      // unknownHostPoints, newPortPoints, maxNewPortPoints
+            75, 50, 25);    // critical, high, medium
 
     private RiskFixtures() {
     }

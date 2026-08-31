@@ -2,7 +2,9 @@ package com.portscape.risk.rules;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
@@ -23,6 +25,12 @@ import com.portscape.risk.nvd.Cve;
  *
  * <p>CVEs sem CVSS publicado sao ignorados de proposito: nao ha base para lhes
  * atribuir peso, e inventar um seria pior do que nao contar.
+ *
+ * <p><b>Cada CVE conta uma vez por host, nao uma vez por porta.</b> O nmap costuma
+ * anexar o CPE do sistema operativo ({@code cpe:/o:linux:linux_kernel:5.15}) a
+ * varios servicos da mesma maquina; sem esta salvaguarda, uma falha do kernel
+ * pontuava no 22, no 80 e no 443 e triplicava-se sozinha. O CVE fica atribuido a
+ * primeira porta onde aparece, que e a que o painel de detalhes vai mostrar.
  */
 @Component
 public class VulnerableServiceRule implements RiskRule {
@@ -38,17 +46,31 @@ public class VulnerableServiceRule implements RiskRule {
     @Override
     public List<RiskReason> evaluate(RiskInput input) {
         List<RiskReason> reasons = new ArrayList<>();
+        Set<String> alreadyCounted = new HashSet<>();
+
         for (Port port : input.host().ports()) {
-            List<Cve> scored = input.cves().forCpes(port.cpes()).stream()
-                    .filter(Cve::hasScore)
-                    .sorted(Comparator.comparingDouble(Cve::cvssScore).reversed())
-                    .toList();
+            List<Cve> scored = uncountedCvesOf(port, input, alreadyCounted);
             if (scored.isEmpty()) {
                 continue;
             }
             reasons.add(reasonFor(port, scored));
         }
         return List.copyOf(reasons);
+    }
+
+    /**
+     * Os CVEs pontuaveis desta porta que ainda nao foram atribuidos a outra porta do
+     * mesmo host, do mais grave para o menos.
+     */
+    private static List<Cve> uncountedCvesOf(Port port, RiskInput input, Set<String> alreadyCounted) {
+        List<Cve> scored = new ArrayList<>();
+        for (Cve cve : input.cves().forCpes(port.cpes())) {
+            if (cve.hasScore() && alreadyCounted.add(cve.id())) {
+                scored.add(cve);
+            }
+        }
+        scored.sort(Comparator.comparingDouble(Cve::cvssScore).reversed());
+        return scored;
     }
 
     private RiskReason reasonFor(Port port, List<Cve> scored) {
