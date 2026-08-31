@@ -56,15 +56,13 @@ class ScanServiceTest {
     @Mock
     private BaselineResolver baselineResolver;
 
-    private ScanJobStore store;
+    private InMemoryScanJobStore store;
     private ScanService service;
     /** Executor sincrono: o scan corre dentro do startScan, o que torna o teste determinista. */
     private final Executor directExecutor = Runnable::run;
 
     @BeforeEach
     void setUp() {
-        NmapProperties properties = new NmapProperties(
-                List.of("/usr/bin/nmap"), "192.168.1.0/24", List.of("-sS"), null, null);
         // Por defeito, como se a maquina do teste nao tivesse rota por defeito:
         // os testes que nao mencionam deteccao caem sempre no default-target.
         when(localNetworkDetector.detectLocalSubnet()).thenReturn(Optional.empty());
@@ -72,8 +70,15 @@ class ScanServiceTest {
         when(cveLookupService.lookup(anyList())).thenReturn(CveLookupResult.empty());
         when(baselineResolver.resolveFor(any())).thenReturn(Optional.empty());
         store = new InMemoryScanJobStore();
-        service = new ScanService(
-                new TargetValidator(),
+        service = serviceUsing(directExecutor);
+    }
+
+    /** O mesmo servico, com outro pool -- serve para testar a fila cheia. */
+    private ScanService serviceUsing(Executor scanExecutor) {
+        NmapProperties properties = new NmapProperties(
+                List.of("/usr/bin/nmap"), "192.168.1.0/24", List.of("-sS"), null, null, null);
+        return new ScanService(
+                new TargetValidator(properties),
                 new NmapCommandBuilder(properties),
                 executor,
                 parser,
@@ -83,7 +88,7 @@ class ScanServiceTest {
                 cveLookupService,
                 new RiskScorer(List.of()),
                 baselineResolver,
-                directExecutor,
+                scanExecutor,
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
@@ -262,5 +267,99 @@ class ScanServiceTest {
         service.startScan("10.0.0.0/24");
 
         assertThat(store.findAll()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("um scan apagado antes da sua vez na fila nao rebenta no pool")
+    void ignoresAJobThatWasDeletedBeforeItRan() {
+        java.util.UUID id = java.util.UUID.randomUUID();
+
+        // Nao ha job nenhum com este id -- e o que acontece se o utilizador apagar o
+        // scan enquanto ele espera na fila.
+        service.runScan(id);
+
+        assertThat(store.find(id)).isEmpty();
+        verify(executor, never()).execute(anyList(), any());
+    }
+
+    @Test
+    @DisplayName("o progresso nunca anda para tras, mesmo com o nmap a recomecar a contar a cada tarefa")
+    void publishesProgressThatOnlyEverMovesForward() {
+        when(executor.execute(anyList(), any())).thenAnswer(invocation -> {
+            java.util.function.Consumer<Integer> listener = invocation.getArgument(1);
+            // Duas tarefas do nmap: a segunda comeca outra vez do principio.
+            List.of(10, 90, 5, 40).forEach(listener);
+            return "<nmaprun/>";
+        });
+        when(parser.parse(any())).thenReturn(List.of());
+
+        service.startScan("192.168.1.0/24");
+
+        assertThat(store.progressHistory())
+                .isSorted()
+                .allSatisfy(progress -> assertThat(progress).isLessThan(100));
+    }
+
+    @Test
+    @DisplayName("a fase 2 agrupa hosts com as mesmas portas e nao sonda portas que o host nao tem")
+    void groupsVersionDetectionByPortSet() {
+        Host web1 = new Host("192.168.1.10", null, null, null,
+                List.of(new Port(80, "tcp", "open", null, null, null)));
+        Host web2 = new Host("192.168.1.11", null, null, null,
+                List.of(new Port(80, "tcp", "open", null, null, null)));
+        Host database = new Host("192.168.1.12", null, null, null,
+                List.of(new Port(5432, "tcp", "open", null, null, null)));
+
+        when(executor.execute(anyList(), any())).thenReturn("discovery-xml");
+        when(parser.parse("discovery-xml")).thenReturn(List.of(web1, web2, database));
+
+        service.startScan("192.168.1.0/24");
+
+        ArgumentCaptor<List<String>> commands = ArgumentCaptor.forClass(List.class);
+        // Dois grupos: os dois servidores web partilham invocacao, a base de dados tem a sua.
+        verify(executor, times(2)).execute(commands.capture());
+
+        assertThat(commands.getAllValues()).anySatisfy(command -> assertThat(command)
+                .contains("80", "192.168.1.10", "192.168.1.11").doesNotContain("5432"));
+        assertThat(commands.getAllValues()).anySatisfy(command -> assertThat(command)
+                .contains("5432", "192.168.1.12").doesNotContain("80"));
+    }
+
+    @Test
+    @DisplayName("com a fila cheia, o pedido e recusado e o job nao fica preso em PENDING")
+    void failsTheJobWhenTheQueueRejectsIt() {
+        ScanService withFullQueue = serviceUsing(task -> {
+            throw new java.util.concurrent.RejectedExecutionException("fila cheia");
+        });
+
+        assertThatThrownBy(() -> withFullQueue.startScan("192.168.1.0/24"))
+                .isInstanceOf(com.portscape.scan.exception.ScanQueueFullException.class);
+
+        assertThat(store.findAll()).singleElement()
+                .extracting(ScanJob::status, ScanJob::errorCode)
+                .containsExactly(ScanStatus.FAILED, "SCAN_QUEUE_FULL");
+    }
+
+    @Test
+    @DisplayName("a barra continua a andar durante a deteccao de versao, em vez de parar nos 90")
+    void keepsReportingProgressThroughVersionDetection() {
+        Host web = new Host("192.168.1.10", null, null, null,
+                List.of(new Port(80, "tcp", "open", null, null, null)));
+        Host database = new Host("192.168.1.12", null, null, null,
+                List.of(new Port(5432, "tcp", "open", null, null, null)));
+
+        when(executor.execute(anyList(), any())).thenAnswer(invocation -> {
+            java.util.function.Consumer<Integer> listener = invocation.getArgument(1);
+            listener.accept(100);
+            return "discovery-xml";
+        });
+        when(parser.parse("discovery-xml")).thenReturn(List.of(web, database));
+
+        service.startScan("192.168.1.0/24");
+
+        // A descoberta chega ao tecto de 90; cada grupo da fase 2 empurra a partir dai.
+        assertThat(store.progressHistory()).isSorted().contains(90);
+        assertThat(store.progressHistory().get(store.progressHistory().size() - 1))
+                .isGreaterThan(90).isLessThan(100);
     }
 }

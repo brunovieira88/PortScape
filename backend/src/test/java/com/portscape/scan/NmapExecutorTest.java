@@ -26,7 +26,7 @@ class NmapExecutorTest {
     private static NmapExecutor executorWithTimeout(Duration timeout) {
         return new NmapExecutor(new NmapProperties(
                 List.of("/opt/homebrew/bin/nmap"), "192.168.1.0/24", List.of(),
-                timeout, Duration.ofSeconds(60)));
+                null, timeout, Duration.ofSeconds(60)));
     }
 
     private static NmapExecutor executor() {

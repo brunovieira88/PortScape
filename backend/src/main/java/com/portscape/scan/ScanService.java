@@ -1,11 +1,15 @@
 package com.portscape.scan;
 
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +26,7 @@ import com.portscape.risk.RiskScorer;
 import com.portscape.risk.nvd.CveLookupResult;
 import com.portscape.risk.nvd.CveLookupService;
 import com.portscape.scan.exception.ScanException;
+import com.portscape.scan.exception.ScanQueueFullException;
 
 /**
  * Orquestra um scan: valida o target, cria o job e entrega a execucao ao pool.
@@ -34,6 +39,22 @@ import com.portscape.scan.exception.ScanException;
 public class ScanService {
 
     private static final Logger log = LoggerFactory.getLogger(ScanService.class);
+
+    /**
+     * Tecto do progresso reportado pela fase de descoberta. Os pontos que sobram sao a
+     * deteccao de versao, a consulta de CVEs e o scoring -- trabalho real que acontece
+     * depois de o nmap dizer 100%. Uma barra que chega ao fim e fica la parada e pior
+     * do que uma barra que chega a 90 e acaba de vez.
+     */
+    private static final int DISCOVERY_PROGRESS_CEILING = 90;
+
+    /**
+     * Tecto do progresso durante a deteccao de versao. Os ultimos pontos ficam para a
+     * consulta de CVEs e o scoring; so o {@code done()} e que chega a 100.
+     */
+    private static final int VERSION_PROGRESS_CEILING = 99;
+
+    private static final String QUEUE_FULL_CODE = new ScanQueueFullException("").code();
 
     private final TargetValidator targetValidator;
     private final NmapCommandBuilder commandBuilder;
@@ -88,7 +109,17 @@ public class ScanService {
 
         ScanJob job = ScanJob.pending(UUID.randomUUID(), target, clock.instant());
         store.save(job);
-        scanExecutor.execute(() -> runScan(job.id()));
+        try {
+            scanExecutor.execute(() -> runScan(job.id()));
+        } catch (RejectedExecutionException e) {
+            // A fila encheu. Deixar o job em PENDING era o pior dos mundos: ninguem o ia
+            // correr e o frontend ficava a fazer polling de um scan que nunca comeca.
+            store.save(job.failed(QUEUE_FULL_CODE,
+                    "A fila de scans esta cheia; este pedido nao chegou a ser agendado.",
+                    clock.instant()));
+            throw new ScanQueueFullException(
+                    "Ja ha scans que cheguem em fila. Espera que os atuais terminem e tenta outra vez.");
+        }
 
         log.info("Scan {} agendado para {}", job.id(), target);
         return job;
@@ -135,13 +166,25 @@ public class ScanService {
      * si so, e nao vale a pena deitar fora so por faltar a versao do servico.
      */
     void runScan(UUID id) {
-        ScanJob job = store.find(id).orElseThrow();
-        job = job.running(clock.instant());
+        Optional<ScanJob> pending = store.find(id);
+        if (pending.isEmpty()) {
+            // Apagado entre o agendamento e a sua vez na fila. Nada a fazer -- e deixar
+            // rebentar aqui era pior: a excecao morria no pool, sem log nem estado.
+            log.warn("Scan {} ja nao existe; nada para executar", id);
+            return;
+        }
+
+        ScanJob job = pending.get().running(clock.instant());
         store.save(job);
 
+        AtomicInteger reported = new AtomicInteger();
         try {
-            List<Host> discovered = parser.parse(executor.execute(commandBuilder.buildDiscovery(job.target()), (p) -> store.updateProgress(id, p)));
-            ScoredHosts scored = withRiskScores(job.target(), withServiceVersions(id, discovered));
+            List<Host> discovered = parser.parse(executor.execute(
+                    commandBuilder.buildDiscovery(job.target()),
+                    taskPercent -> publishProgress(id, reported,
+                            Math.clamp(taskPercent, 0, 100) * DISCOVERY_PROGRESS_CEILING / 100)));
+            ScoredHosts scored = withRiskScores(job.target(),
+                    withServiceVersions(id, reported, discovered));
             store.save(job.done(scored.hosts(), clock.instant(), scored.cveLookupDegraded()));
             log.info("Scan {} concluido: {} host(s)", id, scored.hosts().size());
         } catch (ScanException e) {
@@ -151,6 +194,21 @@ public class ScanService {
             log.error("Scan {} falhou de forma inesperada", id, e);
             store.save(job.failed("UNEXPECTED_ERROR", e.toString(), clock.instant()));
         }
+    }
+
+    /**
+     * Traduz a percentagem de uma tarefa do nmap num progresso do scan.
+     *
+     * <p>E uma aproximacao assumida. O nmap reporta progresso <b>por tarefa</b> ("SYN
+     * Stealth Scan", "OS detection", ...) e nao diz quantas tarefas ainda faltam, por
+     * isso nao ha forma honesta de calcular uma percentagem global. O que se garante
+     * sao as duas propriedades que uma barra precisa mesmo de ter: <b>nunca anda para
+     * tras</b> -- sem isto o valor caia a zero a cada tarefa nova -- e <b>nunca chega
+     * ao fim antes do scan</b>.
+     */
+    private void publishProgress(UUID id, AtomicInteger reported, int globalPercent) {
+        int bounded = Math.clamp(globalPercent, 0, VERSION_PROGRESS_CEILING);
+        store.updateProgress(id, reported.accumulateAndGet(bounded, Math::max));
     }
 
     /**
@@ -180,28 +238,52 @@ public class ScanService {
     private record ScoredHosts(List<Host> hosts, boolean cveLookupDegraded) {
     }
 
-    private List<Host> withServiceVersions(UUID scanId, List<Host> discovered) {
-        List<String> hostIps = discovered.stream().map(Host::ip).toList();
-        List<Integer> ports = discovered.stream()
-                .flatMap(host -> host.ports().stream())
-                .map(Port::number)
-                .distinct()
-                .sorted()
-                .toList();
-
-        if (hostIps.isEmpty() || ports.isEmpty()) {
+    /**
+     * Segunda fase, agrupada por conjunto de portas.
+     *
+     * <p>Uma unica invocacao com a uniao de todas as portas de todos os hosts seria mais
+     * simples, mas obrigava o nmap a sondar cada porta em cada maquina: numa rede com 20
+     * hosts e 30 portas distintas sao 600 sondas para obter as ~60 que interessam, e as
+     * portas filtradas pagam-se em timeout. Agrupar hosts com exatamente as mesmas
+     * portas abertas -- coisa comum numa rede real, onde metade dos aparelhos so tem 80
+     * e 443 -- sonda apenas o que existe, sem cair no extremo oposto de um processo do
+     * nmap por maquina.
+     *
+     * <p>Um grupo que falhe nao leva os outros atras: os hosts desse grupo ficam com o
+     * que a descoberta encontrou, os restantes ficam com a versao.
+     */
+    private List<Host> withServiceVersions(UUID scanId, AtomicInteger reported, List<Host> discovered) {
+        Map<List<Integer>, List<String>> hostsByPortSet = new LinkedHashMap<>();
+        for (Host host : discovered) {
+            List<Integer> ports = host.ports().stream()
+                    .map(Port::number).distinct().sorted().toList();
+            if (ports.isEmpty()) {
+                continue;
+            }
+            hostsByPortSet.computeIfAbsent(ports, key -> new ArrayList<>()).add(host.ip());
+        }
+        if (hostsByPortSet.isEmpty()) {
             // Nada para inquirir sobre versao -- sem hosts up ou sem portas abertas.
             return discovered;
         }
 
-        try {
-            List<Host> versionInfo = parser.parse(
-                    executor.execute(commandBuilder.buildVersionDetection(hostIps, ports)));
-            return ScanResultMerger.merge(discovered, versionInfo);
-        } catch (ScanException e) {
-            log.warn("Scan {}: deteccao de versao falhou [{}], a manter so portas+OS: {}",
-                    scanId, e.code(), e.getMessage());
-            return discovered;
+        List<Host> versionInfo = new ArrayList<>();
+        int groupsDone = 0;
+        for (Map.Entry<List<Integer>, List<String>> group : hostsByPortSet.entrySet()) {
+            try {
+                versionInfo.addAll(parser.parse(executor.execute(
+                        commandBuilder.buildVersionDetection(group.getValue(), group.getKey()))));
+            } catch (ScanException e) {
+                log.warn("Scan {}: deteccao de versao falhou para {} [{}], esses hosts ficam so com portas+OS: {}",
+                        scanId, group.getValue(), e.code(), e.getMessage());
+            }
+            // Um grupo terminado e a unica unidade de progresso honesta desta fase: o
+            // nmap nao reporta nada util aqui e sem isto a barra parava nos 90 ate ao fim.
+            groupsDone++;
+            publishProgress(scanId, reported, DISCOVERY_PROGRESS_CEILING
+                    + (VERSION_PROGRESS_CEILING - DISCOVERY_PROGRESS_CEILING)
+                    * groupsDone / hostsByPortSet.size());
         }
+        return ScanResultMerger.merge(discovered, versionInfo);
     }
 }

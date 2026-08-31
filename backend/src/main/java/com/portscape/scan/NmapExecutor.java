@@ -1,12 +1,16 @@
 package com.portscape.scan;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -17,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.portscape.config.NmapProperties;
+import com.portscape.scan.exception.ScanException;
 import com.portscape.scan.exception.NmapExecutionException;
 import com.portscape.scan.exception.NmapNotFoundException;
 import com.portscape.scan.exception.NmapPrivilegeException;
@@ -40,8 +45,24 @@ public class NmapExecutor {
 
     /** Quanto do stderr do nmap vai para a mensagem de erro. */
     private static final int STDERR_EXCERPT_LIMIT = 2000;
+    private static final String PERCENT_ATTRIBUTE = "percent=\"";
 
     private final NmapProperties properties;
+
+    /**
+     * Threads dedicados a drenar os pipes do processo.
+     *
+     * <p>Nao usa o {@code ForkJoinPool} comum (o que o {@code supplyAsync} sem
+     * executor usaria): estas tarefas sao I/O bloqueante do principio ao fim, e o
+     * pool comum e dimensionado para trabalho de CPU e partilhado com o resto da
+     * JVM -- dois scans a ler pipes chegavam para o esfomear. Threads daemon, para
+     * nao segurarem o encerramento da aplicacao.
+     */
+    private final ExecutorService pipeReaders = Executors.newCachedThreadPool(runnable -> {
+        Thread thread = new Thread(runnable, "nmap-pipe-reader");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     public NmapExecutor(NmapProperties properties) {
         this.properties = properties;
@@ -71,6 +92,7 @@ public class NmapExecutor {
 
         CompletableFuture<String> stdout = readAsync(process.getInputStream(), progressListener);
         CompletableFuture<String> stderr = readAsync(process.getErrorStream(), null);
+
 
         try {
             boolean finished = process.waitFor(properties.timeout().toMillis(), TimeUnit.MILLISECONDS);
@@ -106,9 +128,10 @@ public class NmapExecutor {
         }
     }
 
-    private NmapExecutionException toFailure(int exitCode, String stderr) {
+    /** Devolve sempre, nunca lanca -- quem chama e que decide, com {@code throw toFailure(...)}. */
+    private ScanException toFailure(int exitCode, String stderr) {
         if (requiresRoot(stderr)) {
-            throw new NmapPrivilegeException(privilegeHelp(stderr));
+            return new NmapPrivilegeException(privilegeHelp(stderr));
         }
         return new NmapExecutionException(
                 "O nmap terminou com codigo " + exitCode + ". stderr: " + excerpt(stderr));
@@ -135,6 +158,29 @@ public class NmapExecutor {
                 .formatted(properties.binary(), properties.binary(), excerpt(stderr));
     }
 
+    /**
+     * O {@code percent="43.21"} de uma linha {@code <taskprogress>}. Vazio se a linha
+     * nao o trouxer ou nao for um numero -- uma barra de progresso nao e razao para
+     * reprovar um scan que esta a correr bem.
+     */
+    private static Optional<Integer> percentOf(String line) {
+        int start = line.indexOf(PERCENT_ATTRIBUTE);
+        if (start < 0) {
+            return Optional.empty();
+        }
+        start += PERCENT_ATTRIBUTE.length();
+        int end = line.indexOf('"', start);
+        if (end <= start) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of((int) Double.parseDouble(line.substring(start, end)));
+        } catch (NumberFormatException e) {
+            log.debug("percent nao numerico em <taskprogress>: {}", line);
+            return Optional.empty();
+        }
+    }
+
     private static String excerpt(String text) {
         String trimmed = text == null ? "" : text.strip();
         if (trimmed.isEmpty()) {
@@ -145,22 +191,14 @@ public class NmapExecutor {
                 : trimmed.substring(0, STDERR_EXCERPT_LIMIT) + "... (truncado)";
     }
 
-    private static CompletableFuture<String> readAsync(InputStream stream, Consumer<Integer> progressListener) {
+    private CompletableFuture<String> readAsync(InputStream stream, Consumer<Integer> progressListener) {
         return CompletableFuture.supplyAsync(() -> {
             StringBuilder sb = new StringBuilder();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     if (progressListener != null && line.contains("<taskprogress")) {
-                        try {
-                            int start = line.indexOf("percent=\"") + 9;
-                            int end = line.indexOf("\"", start);
-                            if (start > 8 && end > start) {
-                                String pctStr = line.substring(start, end);
-                                progressListener.accept((int) Double.parseDouble(pctStr));
-                            }
-                        } catch (Exception ignored) {
-                        }
+                        percentOf(line).ifPresent(progressListener::accept);
                     }
                     
                     // O --stats-every 1s injeta <taskprogress> e outras tags no meio da lista de <host>.
@@ -174,9 +212,9 @@ public class NmapExecutor {
                     sb.append(line).append("\n");
                 }
             } catch (IOException e) {
-                throw new java.io.UncheckedIOException(e);
+                throw new UncheckedIOException(e);
             }
             return sb.toString();
-        });
+        }, pipeReaders);
     }
 }

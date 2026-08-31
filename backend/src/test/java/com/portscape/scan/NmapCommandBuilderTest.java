@@ -14,7 +14,7 @@ class NmapCommandBuilderTest {
 
     private static NmapCommandBuilder builderWith(List<String> command, List<String> arguments) {
         return new NmapCommandBuilder(new NmapProperties(
-                command, "192.168.1.0/24", arguments, Duration.ofMinutes(10), Duration.ofSeconds(60)));
+                command, "192.168.1.0/24", arguments, null, Duration.ofMinutes(10), Duration.ofSeconds(60)));
     }
 
     @Test

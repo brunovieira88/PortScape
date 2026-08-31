@@ -83,4 +83,26 @@ class ScanResultMergerTest {
     void handlesEmptyInputs() {
         assertThat(ScanResultMerger.merge(List.of(), List.of())).isEmpty();
     }
+
+    @Test
+    @DisplayName("a fase 2 nao apaga o servico da descoberta quando nao identifica nada")
+    void keepsTheDiscoveryServiceWhenVersionDetectionFindsNothing() {
+        List<Host> discovered = List.of(host("192.168.1.1", new Port(22, "tcp", "open", "ssh", null, null)));
+        List<Host> versionInfo = List.of(host("192.168.1.1", new Port(22, "tcp", "open", null, null, null)));
+
+        Port merged = ScanResultMerger.merge(discovered, versionInfo).get(0).ports().get(0);
+
+        assertThat(merged.service()).isEqualTo("ssh");
+    }
+
+    @Test
+    @DisplayName("tcpwrapped nao e um servico: vale menos que o palpite da descoberta")
+    void doesNotLetTcpwrappedOverwriteAKnownService() {
+        List<Host> discovered = List.of(host("192.168.1.1", new Port(22, "tcp", "open", "ssh", null, null)));
+        List<Host> versionInfo = List.of(host("192.168.1.1", new Port(22, "tcp", "open", "tcpwrapped", null, null)));
+
+        Port merged = ScanResultMerger.merge(discovered, versionInfo).get(0).ports().get(0);
+
+        assertThat(merged.service()).isEqualTo("ssh");
+    }
 }

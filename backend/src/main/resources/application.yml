@@ -36,6 +36,11 @@ portscape:
       - -O
       - --open
       - -T4
+    # Prefixo mais largo aceite num target. /16 sao 65 mil enderecos e nunca acaba
+    # dentro do timeout; /22 (1024) ja e um scan que termina. Apertar a vontade -- o
+    # codigo nao deixa alargar abaixo de 16, porque e ai que assenta a garantia de so
+    # se fazer scan a redes privadas (ver TargetValidator).
+    min-prefix: 16
     timeout: 10m
     host-timeout: 60s
 

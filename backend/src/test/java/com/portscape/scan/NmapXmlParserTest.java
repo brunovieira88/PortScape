@@ -158,4 +158,15 @@ class NmapXmlParserTest {
                 .flatExtracting(Host::ports)
                 .allSatisfy(port -> assertThat(port.cpes()).isNotNull());
     }
+
+    @Test
+    @DisplayName("XML valido que nao e um nmaprun da erro, nao um scan vazio")
+    void rejectsXmlThatIsNotAnNmapRun() {
+        // Ex: a pagina de erro de um proxy. O Jackson desserializava isto sem se queixar.
+        String notNmap = "<html><body>502 Bad Gateway</body></html>";
+
+        assertThatThrownBy(() -> parser.parse(notNmap))
+                .isInstanceOf(NmapXmlParseException.class)
+                .hasMessageContaining("nmaprun");
+    }
 }

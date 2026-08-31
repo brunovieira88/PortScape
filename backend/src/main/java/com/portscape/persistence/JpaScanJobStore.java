@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.portscape.domain.ScanStatus;
+
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +17,7 @@ import com.portscape.scan.ScanJobStore;
  *
  * <p>Na fase 1 isto era um {@code ConcurrentHashMap} e o historico morria a cada
  * restart. Sem historico nao ha comparacao com baseline, que e a base do
- * "dispositivo novo destaca-se" do produto -- daí a mudanca.
+ * "dispositivo novo destaca-se" do produto -- dai a mudanca.
  */
 @Component
 public class JpaScanJobStore implements ScanJobStore {
@@ -59,6 +61,14 @@ public class JpaScanJobStore implements ScanJobStore {
     @Transactional(readOnly = true)
     public List<ScanJob> findAll() {
         return repository.findAllByOrderByCreatedAtDesc().stream()
+                .map(ScanEntityMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ScanJob> findUnfinished() {
+        return repository.findAllByStatusIn(List.of(ScanStatus.PENDING, ScanStatus.RUNNING)).stream()
                 .map(ScanEntityMapper::toDomain)
                 .toList();
     }

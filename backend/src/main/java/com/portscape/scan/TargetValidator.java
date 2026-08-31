@@ -4,6 +4,7 @@ import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
+import com.portscape.config.NmapProperties;
 import com.portscape.scan.exception.InvalidTargetException;
 
 /**
@@ -26,14 +27,23 @@ public class TargetValidator {
     private static final Pattern IPV4_CIDR =
             Pattern.compile("^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})(?:/(\\d{1,2}))?$");
 
+    private static final int MAX_PREFIX = 32;
+
     /**
-     * Prefixo minimo aceite. Alem de evitar scans absurdamente largos, garante a
+     * Prefixo mais largo aceite, de {@code portscape.nmap.min-prefix}.
+     *
+     * <p>Alem de evitar scans absurdamente largos, e este limite que garante a
      * verificacao de privacidade abaixo: todos os blocos privados tem prefixo <= 16,
      * logo qualquer rede /16 ou mais estreita cuja base caia num bloco privado esta
-     * inteiramente contida nesse bloco.
+     * inteiramente contida nesse bloco. Por isso a configuracao pode <i>apertar</i>
+     * o limite mas nunca alarga-lo abaixo de 16 -- ver
+     * {@link NmapProperties#ABSOLUTE_MIN_PREFIX}.
      */
-    private static final int MIN_PREFIX = 16;
-    private static final int MAX_PREFIX = 32;
+    private final int minPrefix;
+
+    public TargetValidator(NmapProperties properties) {
+        this.minPrefix = properties.minPrefix();
+    }
 
     /**
      * Valida o target e devolve-o normalizado (endereco de rede + prefixo), para
@@ -65,9 +75,9 @@ public class TargetValidator {
         }
 
         int prefix = matcher.group(5) == null ? MAX_PREFIX : Integer.parseInt(matcher.group(5));
-        if (prefix < MIN_PREFIX || prefix > MAX_PREFIX) {
+        if (prefix < minPrefix || prefix > MAX_PREFIX) {
             throw new InvalidTargetException(
-                    "Prefixo invalido: /" + prefix + ". Permitido /" + MIN_PREFIX + " a /" + MAX_PREFIX);
+                    "Prefixo invalido: /" + prefix + ". Permitido /" + minPrefix + " a /" + MAX_PREFIX);
         }
 
         int network = address & maskOf(prefix);
