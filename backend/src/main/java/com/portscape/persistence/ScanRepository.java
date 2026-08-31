@@ -1,5 +1,7 @@
 package com.portscape.persistence;
 
+import java.time.Instant;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -34,11 +36,27 @@ public interface ScanRepository extends JpaRepository<ScanEntity, UUID> {
     List<ScanEntity> findAllByStatusIn(Collection<ScanStatus> statuses);
 
     /**
-     * Baseline implicito: o ultimo scan concluido desta rede.
+     * Baseline implicito de um scan <b>em curso</b>: o ultimo concluido desta rede.
      *
-     * <p>Quando isto e chamado durante um scan, o scan em curso ainda esta RUNNING e
-     * por isso nunca se compara consigo proprio.
+     * <p>O scan em curso ainda esta RUNNING, por isso nunca se compara consigo proprio.
      */
     Optional<ScanEntity> findFirstByTargetAndStatusAndIdNotOrderByFinishedAtDesc(
             String target, ScanStatus status, UUID excludedId);
+
+    /**
+     * Baseline implicito de um scan <b>ja gravado</b>: o ultimo concluido desta rede
+     * que terminou antes dele.
+     *
+     * <p>O filtro pelo instante nao e um detalhe. Sem ele, abrir um scan antigo no
+     * historico devolvia como baseline o scan mais recente da rede -- um scan
+     * posterior a ele -- e o diff saia invertido: um host que existia na altura e
+     * desapareceu depois aparecia marcado como novo. O ultimo scan nunca dava por isso,
+     * porque para ele "o mais recente tirando eu" ja e o anterior.
+     *
+     * <p>O {@code idNot} e redundante face ao {@code finishedAtBefore} -- um scan nao
+     * termina antes de si proprio -- mas cobre o empate de dois scans com o mesmo
+     * instante.
+     */
+    Optional<ScanEntity> findFirstByTargetAndStatusAndIdNotAndFinishedAtBeforeOrderByFinishedAtDesc(
+            String target, ScanStatus status, UUID excludedId, Instant before);
 }

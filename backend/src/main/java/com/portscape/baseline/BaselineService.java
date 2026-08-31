@@ -101,7 +101,7 @@ public class BaselineService {
             if (scan.status() != ScanStatus.DONE) {
                 return ScanDiff.none();
             }
-            return ScanDiffer.diff(scan, resolver.resolveFor(scan.target(), scanId).orElse(null));
+            return ScanDiffer.diff(scan, resolver.resolveFor(scan).orElse(null));
         });
     }
 
@@ -111,7 +111,7 @@ public class BaselineService {
         if (scan.status() != ScanStatus.DONE) {
             return ScanDiff.none();
         }
-        return ScanDiffer.diff(scan, resolver.resolveFor(scan.target(), scan.id()).orElse(null));
+        return ScanDiffer.diff(scan, resolver.resolveFor(scan).orElse(null));
     }
 
     private static Baseline toDomain(BaselineEntity entity) {

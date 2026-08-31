@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -68,7 +69,7 @@ class ScanServiceTest {
         when(localNetworkDetector.detectLocalSubnet()).thenReturn(Optional.empty());
         // O scoring e o baseline sao testados a parte; aqui interessa a orquestracao.
         when(cveLookupService.lookup(anyList())).thenReturn(CveLookupResult.empty());
-        when(baselineResolver.resolveFor(any())).thenReturn(Optional.empty());
+        when(baselineResolver.resolveFor(anyString())).thenReturn(Optional.empty());
         store = new InMemoryScanJobStore();
         service = serviceUsing(directExecutor);
     }

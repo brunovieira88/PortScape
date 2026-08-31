@@ -45,21 +45,47 @@ public class BaselineResolver {
     }
 
     /**
-     * @param excludeScanId scan a excluir da procura -- ao comparar um scan ja gravado
-     *                      com o anterior, ele proprio nao pode ser o seu baseline
+     * Baseline de um scan ja gravado: o que o <b>precedeu</b>, nao o mais recente da
+     * rede. Para o ultimo scan da uma coisa e outra, mas para um scan do historico nao:
+     * comparar o scan de segunda-feira com o de quarta invertia o diff.
+     *
+     * <p>O baseline <b>fixado</b> nao leva este filtro de proposito. Fixar um scan e
+     * dizer "medir tudo contra isto"; descarta-lo para os scans anteriores ao que foi
+     * fixado esvaziava a escolha. Um baseline fixado aplica-se a rede toda, em qualquer
+     * ponto do historico -- so nao se aplica a si proprio.
      */
     @Transactional(readOnly = true)
-    public Optional<ScanJob> resolveFor(String target, UUID excludeScanId) {
-        Optional<ScanJob> pinned = baselineRepository.findById(target)
-                .map(baseline -> baseline.getScan().getId())
-                .filter(id -> !id.equals(excludeScanId))
-                .flatMap(scanRepository::findById)
+    public Optional<ScanJob> resolveFor(ScanJob scan) {
+        Optional<ScanJob> pinned = pinnedFor(scan.target(), scan.id());
+        if (pinned.isPresent()) {
+            log.debug("Baseline fixado para {}: scan {}", scan.target(), pinned.get().id());
+            return pinned;
+        }
+        if (scan.finishedAt() == null) {
+            // Ainda nao terminou: nao ha "antes dele", o anterior e o mais recente.
+            return previousScan(scan.target(), scan.id());
+        }
+        return scanRepository
+                .findFirstByTargetAndStatusAndIdNotAndFinishedAtBeforeOrderByFinishedAtDesc(
+                        scan.target(), ScanStatus.DONE, scan.id(), scan.finishedAt())
                 .map(ScanEntityMapper::toDomain);
+    }
+
+    private Optional<ScanJob> resolveFor(String target, UUID excludeScanId) {
+        Optional<ScanJob> pinned = pinnedFor(target, excludeScanId);
         if (pinned.isPresent()) {
             log.debug("Baseline fixado para {}: scan {}", target, pinned.get().id());
             return pinned;
         }
         return previousScan(target, excludeScanId);
+    }
+
+    private Optional<ScanJob> pinnedFor(String target, UUID excludeScanId) {
+        return baselineRepository.findById(target)
+                .map(baseline -> baseline.getScan().getId())
+                .filter(id -> !id.equals(excludeScanId))
+                .flatMap(scanRepository::findById)
+                .map(ScanEntityMapper::toDomain);
     }
 
     private Optional<ScanJob> previousScan(String target, UUID excludeScanId) {

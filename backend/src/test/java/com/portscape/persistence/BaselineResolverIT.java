@@ -102,7 +102,66 @@ class BaselineResolverIT extends PostgresTestBase {
     void neverComparesAScanWithItself() {
         ScanJob only = doneScan(TARGET, NOW, host("192.168.1.1", 80));
 
-        assertThat(resolver.resolveFor(TARGET, only.id())).isEmpty();
+        assertThat(resolver.resolveFor(only)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("um scan do historico compara com o que o precedeu, nao com o mais recente")
+    void comparesAHistoricalScanWithTheOneBeforeIt() {
+        ScanJob first = doneScan(TARGET, NOW.minusSeconds(600), host("192.168.1.1", 80));
+        ScanJob middle = doneScan(TARGET, NOW.minusSeconds(300), host("192.168.1.1", 80));
+        doneScan(TARGET, NOW.minusSeconds(60), host("192.168.1.1", 80));
+
+        // Sem o filtro pelo instante, o do meio recebia o mais recente -- um scan
+        // posterior a ele -- e o diff saia invertido.
+        assertThat(resolver.resolveFor(middle)).get()
+                .extracting(ScanJob::id).isEqualTo(first.id());
+    }
+
+    @Test
+    @DisplayName("o scan mais recente continua a comparar com o anterior")
+    void stillComparesTheNewestScanWithThePreviousOne() {
+        doneScan(TARGET, NOW.minusSeconds(600), host("192.168.1.1", 80));
+        ScanJob middle = doneScan(TARGET, NOW.minusSeconds(300), host("192.168.1.1", 80));
+        ScanJob newest = doneScan(TARGET, NOW.minusSeconds(60), host("192.168.1.1", 80));
+
+        assertThat(resolver.resolveFor(newest)).get()
+                .extracting(ScanJob::id).isEqualTo(middle.id());
+    }
+
+    @Test
+    @DisplayName("o primeiro scan de uma rede nao tem nada antes dele")
+    void givesTheOldestScanNoBaseline() {
+        ScanJob first = doneScan(TARGET, NOW.minusSeconds(600), host("192.168.1.1", 80));
+        doneScan(TARGET, NOW.minusSeconds(60), host("192.168.1.1", 80));
+
+        assertThat(resolver.resolveFor(first)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("o baseline fixado aplica-se tambem aos scans anteriores a ele")
+    void appliesThePinnedBaselineToHistoricalScansToo() {
+        ScanJob first = doneScan(TARGET, NOW.minusSeconds(600), host("192.168.1.1", 80));
+        ScanJob middle = doneScan(TARGET, NOW.minusSeconds(300), host("192.168.1.1", 80));
+        ScanJob newest = doneScan(TARGET, NOW.minusSeconds(60), host("192.168.1.1", 80));
+        baselineService.pin(newest.id());
+
+        // Fixar e dizer "medir tudo contra isto", inclusive o que veio antes.
+        assertThat(resolver.resolveFor(middle)).get()
+                .extracting(ScanJob::id).isEqualTo(newest.id());
+        assertThat(resolver.resolveFor(first)).get()
+                .extracting(ScanJob::id).isEqualTo(newest.id());
+    }
+
+    @Test
+    @DisplayName("nem o baseline fixado se aplica a si proprio")
+    void neverPinsAScanAgainstItself() {
+        ScanJob first = doneScan(TARGET, NOW.minusSeconds(600), host("192.168.1.1", 80));
+        ScanJob pinned = doneScan(TARGET, NOW.minusSeconds(60), host("192.168.1.1", 80));
+        baselineService.pin(pinned.id());
+
+        assertThat(resolver.resolveFor(pinned)).get()
+                .extracting(ScanJob::id).isEqualTo(first.id());
     }
 
     @Test
