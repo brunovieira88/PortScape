@@ -25,6 +25,10 @@ import com.portscape.config.NvdProperties;
  * ferramenta nao pode cometer. Por isso primeiro resolve-se o nome no dicionario
  * ({@code /cpes/2.0}) e so depois se pedem os CVEs ({@code /cves/2.0}).
  *
+ * <p>Os timeouts nao estao aqui: vivem no
+ * {@link com.portscape.config.NvdHttpConfig}, que os aplica ao {@code RestClient}
+ * a partir de {@code portscape.nvd.timeout}.
+ *
  * <p><b>Nunca lanca por si.</b> Qualquer falha -- rede em baixo, 429, 5xx, JSON
  * inesperado -- vira {@link NvdUnavailableException}, que o {@link CveLookupService}
  * transforma em "resultado incompleto". O NVD e um enriquecimento do scan, nao uma

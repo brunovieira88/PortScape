@@ -1,5 +1,6 @@
 package com.portscape.risk.nvd;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -22,6 +23,9 @@ import com.portscape.domain.Port;
 public class CveLookupService {
 
     private static final Logger log = LoggerFactory.getLogger(CveLookupService.class);
+
+    /** O {@link NvdClient} faz dois pedidos por CPE: dicionario e depois CVEs. */
+    private static final int REQUESTS_PER_CPE = 2;
 
     private final NvdClient client;
     private final CveCache cache;
@@ -51,13 +55,14 @@ public class CveLookupService {
         }
 
         Map<String, List<Cve>> byCpe = new HashMap<>();
-        boolean degraded = false;
+        List<String> toFetch = new ArrayList<>();
         for (String cpe : cpes) {
-            var cached = cache.get(cpe);
-            if (cached.isPresent()) {
-                byCpe.put(cpe, cached.get());
-                continue;
-            }
+            cache.get(cpe).ifPresentOrElse(cves -> byCpe.put(cpe, cves), () -> toFetch.add(cpe));
+        }
+        announce(cpes.size(), byCpe.size(), toFetch.size());
+
+        boolean degraded = false;
+        for (String cpe : toFetch) {
             try {
                 List<Cve> cves = client.findCves(cpe);
                 cache.put(cpe, cves);
@@ -74,6 +79,25 @@ public class CveLookupService {
                 byCpe.values().stream().filter(list -> !list.isEmpty()).count(),
                 degraded ? " (resultado incompleto)" : "");
         return new CveLookupResult(byCpe, degraded);
+    }
+
+    /**
+     * Diz de antemao quanto tempo isto vai levar.
+     *
+     * <p>Cada CPE por consultar custa dois pedidos ao NVD (resolver o nome no
+     * dicionario e depois pedir os CVEs) e o limitador espaca-os pelo intervalo
+     * minimo, por isso uma cache fria pode significar minutos parada aqui. Sem esta
+     * linha nos logs, quem esta a ver a barra do scan nao tem forma de saber que a
+     * espera e o rate limit do NIST e nao um bloqueio.
+     */
+    private void announce(int total, int cached, int toFetch) {
+        if (toFetch == 0) {
+            log.info("NVD: os {} CPE(s) deste scan vieram todos da cache", total);
+            return;
+        }
+        long seconds = toFetch * REQUESTS_PER_CPE * properties.minRequestInterval().toSeconds();
+        log.info("NVD: {} de {} CPE(s) em cache; faltam {}, o que leva cerca de {}s a respeitar o rate limit",
+                cached, total, toFetch, seconds);
     }
 
     private static Set<String> distinctCpes(List<Host> hosts) {
