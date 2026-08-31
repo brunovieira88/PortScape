@@ -112,11 +112,16 @@ portscape:
     medium-threshold: 25
 
   layout:
-    # Geometria da cidade 3D. A coluna de cada host e o resto da divisao do seu indice
-    # por grid-width, por isso mexer neste valor muda a coluna de todos os hosts.
+    # Geometria da cidade 3D. O indice de cada host quebra de linha ao fim de
+    # grid-width colunas; depois disso, so as colunas e linhas ocupadas contam -- o
+    # CityLayoutCalculator encosta-as, para um scan de cinco maquinas nao dar uma
+    # grelha de 254 lugares quase toda vazia.
     grid-width: 16
     spacing: 4.0
-    district-gap: 4
+    # Intervalo entre bairros, em colunas. Baixo de proposito: como os bairros sao
+    # compactados, um bairro tipico tem 1 a 3 colunas e um intervalo maior do que isso
+    # devolvia a cidade ao deserto que a compactacao veio resolver.
+    district-gap: 2
 
 logging:
   level:

@@ -2,7 +2,7 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useMemo } from 'react';
-import { Building } from './Building';
+import { Building, BAND_COLORS } from './Building';
 import { StreetControls } from './StreetControls';
 import { StreetLayout } from './StreetLayout';
 
@@ -86,68 +86,80 @@ function CrescentMoon() {
   );
 }
 
+
+/**
+ * A placa de chao de um bairro. As dimensoes vem do backend (District) em vez de
+ * serem reconstituidas a partir das posicoes dos hosts -- e para isso que o record
+ * viaja no JSON.
+ */
+function DistrictPlate({ district, spacing, offsetX, offsetZ }:
+  { district: any, spacing: number, offsetX: number, offsetZ: number }) {
+
+  const cols = Math.max(1, Math.round(district.width / spacing));
+  const rows = Math.max(1, Math.round(district.depth / spacing));
+  const startX = Math.round(district.x / spacing);
+
+  // O centro da placa e o centro das celulas que ela cobre, nao o canto.
+  const centerX = (startX + (cols - 1) / 2 + offsetX) * SCALE;
+  const centerZ = ((rows - 1) / 2 + offsetZ) * SCALE;
+  const color = BAND_COLORS[district.band as keyof typeof BAND_COLORS] || BAND_COLORS.UNKNOWN;
+
+  return (
+    <group position={[centerX, 0, centerZ]}>
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[cols * SCALE, rows * SCALE]} />
+        <meshBasicMaterial color={color} transparent opacity={0.06} depthWrite={false} />
+      </mesh>
+      <lineSegments position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <edgesGeometry args={[new THREE.PlaneGeometry(cols * SCALE, rows * SCALE)]} />
+        <lineBasicMaterial color={color} transparent opacity={0.5} />
+      </lineSegments>
+    </group>
+  );
+}
+
 export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: CityProps) {
-  const backendSpacing = scanData.layout?.spacing || 1.0;
-  
-  // COMPACT_FACTOR (Ex: 2.0): Força as coordenadas flutuantes do backend a dividirem-se
-  // por um número maior, o que resulta em menos "blocos vazios" (lotes) de alcatrão entre os hosts.
-  const COMPACT_FACTOR = 4.0;
-  const effectiveSpacing = backendSpacing * COMPACT_FACTOR;
-  
-  // Anti-collision Grid Packer
+  // O backend ja entrega a cidade compactada: dentro de cada bairro as colunas e as
+  // linhas ocupadas vem encostadas, cada bairro ocupa so a largura de que precisa, e
+  // nunca ha dois hosts na mesma celula. Aqui so se converte a coordenada de mundo em
+  // indice de quarteirao.
+  //
+  // Nao voltar a compactar aqui. Arredondar para uma grelha mais apertada colapsa
+  // varios hosts na mesma celula e obriga a desempatar por varrimento, o que faz a
+  // posicao de um host depender de quais os outros hosts do scan e da ordem por que
+  // foram processados -- e ai um edificio que se mexe deixa de querer dizer alguma
+  // coisa. Se a cidade voltar a parecer vazia, o sitio de a apertar e o
+  // CityLayoutCalculator, onde e determinista e tem testes.
+  const spacing = scanData.layout?.spacing || 1.0;
+
   const { processedHosts, processedRuins } = useMemo(() => {
-    const occupied = new Set<string>();
-    
-    const findEmptyCell = (startX: number, startZ: number) => {
-      if (!occupied.has(`${startX},${startZ}`)) return { x: startX, z: startZ };
-      let radius = 1;
-      while (radius < 50) {
-        for (let dx = -radius; dx <= radius; dx++) {
-          for (let dz = -radius; dz <= radius; dz++) {
-            if (Math.abs(dx) === radius || Math.abs(dz) === radius) {
-              const nx = startX + dx;
-              const nz = startZ + dz;
-              if (!occupied.has(`${nx},${nz}`)) return { x: nx, z: nz };
-            }
-          }
-        }
-        radius++;
-      }
-      return { x: startX, z: startZ };
+    const toCell = (host: any) => ({
+      ...host,
+      gridX: Math.round((host.position?.x ?? 0) / spacing),
+      gridZ: Math.round((host.position?.z ?? 0) / spacing),
+    });
+    return {
+      processedHosts: (scanData.hosts || []).map(toCell),
+      processedRuins: (scanData.ruins || []).map(toCell),
     };
+  }, [scanData, spacing]);
 
-    const hosts = (scanData.hosts || []).map((h: any) => {
-      const gx = Math.round(h.position.x / effectiveSpacing);
-      const gz = Math.round(h.position.z / effectiveSpacing);
-      const cell = findEmptyCell(gx, gz);
-      occupied.add(`${cell.x},${cell.z}`);
-      return { ...h, gridX: cell.x, gridZ: cell.z };
-    });
+  // Dimensoes reais da cidade, em quarteiroes. Um scan sem layout (a listagem devolve
+  // os sumarios sem ele) da uma cidade vazia em vez de rebentar a cena.
+  const layoutW = (scanData.layout?.width ?? 0) / spacing;
+  const layoutD = (scanData.layout?.depth ?? 0) / spacing;
 
-    const ruins = (scanData.ruins || []).map((r: any) => {
-      const gx = Math.round(r.position.x / effectiveSpacing);
-      const gz = Math.round(r.position.z / effectiveSpacing);
-      const cell = findEmptyCell(gx, gz);
-      occupied.add(`${cell.x},${cell.z}`);
-      return { ...r, gridX: cell.x, gridZ: cell.z };
-    });
-
-    return { processedHosts: hosts, processedRuins: ruins };
-  }, [scanData, effectiveSpacing]);
-
-  // Tamanho real dos edifícios calculados pelo backend
-  const layoutW = scanData.layout.width / effectiveSpacing;
-  const layoutD = scanData.layout.depth / effectiveSpacing;
-  
-  // O offset dos edifícios DEVE ser o centro exato da bounding box deles
-  // para que a câmara no (0,0) nasça sempre no meio da cidade!
+  // O offset dos edificios DEVE ser o centro exato da bounding box deles
+  // para que a camara no (0,0) nasca sempre no meio da cidade!
   const offsetX = -layoutW / 2;
   const offsetZ = -layoutD / 2;
 
-  // Forçamos o asfalto (chão) a ter pelo menos 16x16 quarteirões
-  // Mas já não usamos isto para mover os edifícios!
+  // Forcamos o asfalto (chao) a ter pelo menos 16x16 quarteiroes
+  // Mas ja nao usamos isto para mover os edificios!
   const gridWidth = Math.max(layoutW, 16);
   const gridDepth = Math.max(layoutD, 16);
+
+  const districts = scanData.layout?.districts ?? [];
 
   return (
     <>
@@ -159,6 +171,18 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: Ci
 
       {/* Ruas, Passeios, Linhas e Candeeiros 100% Enquadrados */}
       <StreetLayout offsetX={offsetX} offsetZ={offsetZ} gridWidth={gridWidth} gridDepth={gridDepth} />
+
+      {/* Placas de chao dos bairros: e o que torna o zonamento por risco legivel
+          de relance, sem ser preciso ler a cor de cada edificio um a um. */}
+      {districts.map((district: any) => (
+        <DistrictPlate
+          key={`${scanData.id}-district-${district.band}`}
+          district={district}
+          spacing={spacing}
+          offsetX={offsetX}
+          offsetZ={offsetZ}
+        />
+      ))}
 
       {/* Edifícios Host (Hosts Ativos) */}
       {processedHosts.map((host: any) => (

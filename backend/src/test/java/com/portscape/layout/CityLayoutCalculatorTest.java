@@ -35,8 +35,8 @@ class CityLayoutCalculatorTest {
 
     /**
      * O bairro de uma faixa <b>nesta</b> cidade. Nao ha formula fechada: as faixas sem
-     * hosts sao saltadas e as restantes encostam-se, por isso o x depende da composicao
-     * do scan.
+     * hosts sao saltadas e cada bairro ocupa so a largura de que precisa, por isso o x
+     * depende da composicao do scan.
      */
     private static District districtOf(CityLayout city, RiskBand band) {
         return city.districts().stream()
@@ -48,12 +48,12 @@ class CityLayoutCalculatorTest {
     @Test
     @DisplayName("a faixa da o bairro e o IP da o lugar dentro dele")
     void placesAHostInItsBandDistrictAtItsOwnCell() {
-        CityLayout city = layoutOf(host("192.168.1.254", 100));
+        CityLayout city = layoutOf(host("192.168.1.254", 100), host("192.168.1.1", 100));
         HostPosition position = city.positionOf("192.168.1.254");
 
         assertThat(position.band()).isEqualTo(RiskBand.CRITICAL);
-        // 254 % 16 = 14 -> coluna 14 dentro do bairro CRITICAL
-        assertThat(position.x()).isEqualTo(districtOf(city, RiskBand.CRITICAL).x() + 14 * 4.0);
+        // 254 % 16 = 14 e 1 % 16 = 1: duas colunas ocupadas, o .254 fica na segunda.
+        assertThat(position.x()).isEqualTo(districtOf(city, RiskBand.CRITICAL).x() + 4.0);
     }
 
     @Test
@@ -65,15 +65,74 @@ class CityLayoutCalculatorTest {
     }
 
     @Test
-    @DisplayName("a coluna de um host nunca muda, mesmo quando ele muda de bairro")
-    void keepsTheColumnEvenWhenTheBandChanges() {
-        CityLayout low = layoutOf(host("192.168.1.254", 10));
-        CityLayout critical = layoutOf(host("192.168.1.254", 100));
+    @DisplayName("a ordem dos hosts pela grelha e sempre a mesma, seja qual for a ordem da lista")
+    void doesNotDependOnTheOrderOfTheInputList() {
+        Host a = host("192.168.1.1", 90);
+        Host b = host("192.168.1.130", 90);
+        Host c = host("192.168.1.40", 90);
 
-        // A coluna e o que e estavel: o x absoluto do bairro muda com a composicao do scan.
-        assertThat(low.positionOf("192.168.1.254").x() - districtOf(low, RiskBand.LOW).x())
-                .isEqualTo(critical.positionOf("192.168.1.254").x()
-                        - districtOf(critical, RiskBand.CRITICAL).x());
+        CityLayout one = calculator.calculate(TARGET, List.of(a, b, c), List.of());
+        CityLayout other = calculator.calculate(TARGET, List.of(c, a, b), List.of());
+
+        assertThat(one.positions()).isEqualTo(other.positions());
+    }
+
+    @Test
+    @DisplayName("compactar encosta as colunas ocupadas sem trocar a ordem entre elas")
+    void compactsOccupiedColumnsWithoutReorderingThem() {
+        // Colunas de origem: .1 -> 1, .130 -> 2, .40 -> 8. Tres colunas ocupadas em 16.
+        CityLayout city = layoutOf(host("192.168.1.1", 90), host("192.168.1.130", 90),
+                host("192.168.1.40", 90));
+
+        double first = city.positionOf("192.168.1.1").x();
+        double second = city.positionOf("192.168.1.130").x();
+        double third = city.positionOf("192.168.1.40").x();
+
+        // Encostadas: 0, 4, 8 -- e nao 4, 8, 32 como as colunas de origem dariam.
+        assertThat(first).isEqualTo(districtOf(city, RiskBand.CRITICAL).x());
+        assertThat(second).isEqualTo(first + 4.0);
+        assertThat(third).isEqualTo(second + 4.0);
+        assertThat(districtOf(city, RiskBand.CRITICAL).width()).isEqualTo(3 * 4.0);
+    }
+
+    @Test
+    @DisplayName("um scan com poucos hosts da uma cidade pequena, nao uma grelha vazia")
+    void keepsTheCityTightWhenThereAreFewHosts() {
+        // Quatro hosts espalhados por um /24: sem compactar davam 60x52 unidades de
+        // cidade quase toda vazia.
+        CityLayout city = layoutOf(host("192.168.1.1", 90), host("192.168.1.40", 90),
+                host("192.168.1.130", 90), host("192.168.1.200", 90));
+
+        assertThat(city.width()).isEqualTo(3 * 4.0);
+        assertThat(city.depth()).isEqualTo(4 * 4.0);
+    }
+
+    @Test
+    @DisplayName("uma rede cheia nao e compactada -- nao ha nada para encostar")
+    void leavesADenseNetworkUntouched() {
+        List<Host> hosts = IntStream.rangeClosed(1, 254)
+                .mapToObj(octet -> host("192.168.1." + octet, 90))
+                .toList();
+
+        CityLayout city = calculator.calculate(TARGET, hosts, List.of());
+
+        // Todas as 16 colunas e as 16 linhas estao ocupadas: a compactacao e um no-op.
+        assertThat(districtOf(city, RiskBand.CRITICAL).width()).isEqualTo(16 * 4.0);
+        assertThat(districtOf(city, RiskBand.CRITICAL).depth()).isEqualTo(16 * 4.0);
+    }
+
+    @Test
+    @DisplayName("um bairro ocupa a largura que precisa, e o seguinte encosta-se a ele")
+    void sizesEachDistrictToItsOwnContent() {
+        CityLayout city = layoutOf(host("192.168.1.1", 90), host("192.168.1.5", 10));
+
+        District critical = districtOf(city, RiskBand.CRITICAL);
+        District low = districtOf(city, RiskBand.LOW);
+
+        assertThat(critical.x()).isZero();
+        assertThat(critical.width()).isEqualTo(4.0);
+        // Um bairro de uma coluna mais as 4 colunas de intervalo.
+        assertThat(low.x()).isEqualTo(4.0 + 4 * 4.0);
     }
 
     @Test
@@ -95,9 +154,9 @@ class CityLayoutCalculatorTest {
     }
 
     @Test
-    @DisplayName("as linhas sao aparadas: o host mais acima do bairro fica em z=0")
-    void trimsEmptyRowsAtTheTopOfEachDistrict() {
-        // .200 e .210 estao nas linhas 12 e 13 de um /24; sem aparar, z seria 48 e 52.
+    @DisplayName("as linhas sao encostadas: o host mais acima do bairro fica em z=0")
+    void pullsEveryDistrictUpToTheTop() {
+        // .200 e .210 estao nas linhas 12 e 13 de um /24; sem compactar, z seria 48 e 52.
         CityLayout city = layoutOf(host("192.168.1.200", 90), host("192.168.1.210", 90));
 
         assertThat(city.positionOf("192.168.1.200").z()).isZero();
@@ -105,8 +164,8 @@ class CityLayoutCalculatorTest {
     }
 
     @Test
-    @DisplayName("cada bairro e aparado por si -- um nao empurra o outro")
-    void trimsEachDistrictIndependently() {
+    @DisplayName("cada bairro e compactado por si -- um nao empurra o outro")
+    void compactsEachDistrictIndependently() {
         CityLayout city = layoutOf(host("192.168.1.200", 90), host("192.168.1.5", 10));
 
         assertThat(city.positionOf("192.168.1.200").z()).isZero();
@@ -119,8 +178,8 @@ class CityLayoutCalculatorTest {
         CityLayout onlyLow = layoutOf(host("192.168.1.5", 10));
 
         assertThat(onlyLow.districts()).extracting(District::band).containsExactly(RiskBand.LOW);
-        // Sem faixas povoadas a esquerda, o bairro LOW encosta a origem.
-        assertThat(onlyLow.positionOf("192.168.1.5").x()).isEqualTo(5 * 4.0);
+        // Sem faixas povoadas a esquerda e sem colunas vazias, o host encosta a origem.
+        assertThat(onlyLow.positionOf("192.168.1.5").x()).isZero();
     }
 
     @Test
@@ -142,6 +201,29 @@ class CityLayoutCalculatorTest {
 
         assertThat(city.positionOf("192.168.1.5"))
                 .isNotEqualTo(city.positionOf("192.168.2.5"));
+    }
+
+    @Test
+    @DisplayName("num /16 esparso a cidade nao fica com quilometros de vazio pelo meio")
+    void staysSmallOnAWideButSparseNetwork() {
+        // Sem compactar, .1.5 e .200.5 ficavam a 3184 linhas de distancia.
+        CityLayout city = calculator.calculate("192.168.0.0/16",
+                List.of(host("192.168.1.5", 90), host("192.168.200.5", 90)), List.of());
+
+        assertThat(city.depth()).isEqualTo(2 * 4.0);
+        assertThat(city.width()).isEqualTo(4.0);
+    }
+
+    @Test
+    @DisplayName("um target nao normalizado nao manda hosts para o overflow")
+    void masksTheTargetToItsNetworkAddress() {
+        CityLayout city = calculator.calculate("192.168.1.5/24",
+                List.of(host("192.168.1.1", 90), host("192.168.1.9", 90)), List.of());
+
+        // Sem mascarar, o .1 caia abaixo da rede e ia parar a zona de overflow.
+        assertThat(districtOf(city, RiskBand.CRITICAL).width()).isEqualTo(2 * 4.0);
+        assertThat(city.positionOf("192.168.1.1").x())
+                .isLessThan(city.positionOf("192.168.1.9").x());
     }
 
     @Test
@@ -199,6 +281,23 @@ class CityLayoutCalculatorTest {
             assertThat(position.z()).isBetween(0.0, city.depth());
         });
         assertThat(city.spacing()).isEqualTo(4.0);
+    }
+
+    @Test
+    @DisplayName("cada bairro cobre os seus proprios hosts, para a placa de chao assentar")
+    void reportsDistrictBoundsThatContainTheirOwnHosts() {
+        CityLayout city = layoutOf(host("192.168.1.1", 90), host("192.168.1.40", 90),
+                host("192.168.1.5", 10));
+
+        for (District district : city.districts()) {
+            assertThat(city.positions().values())
+                    .filteredOn(position -> position.band() == district.band())
+                    .allSatisfy(position -> {
+                        assertThat(position.x()).isBetween(district.x(),
+                                district.x() + district.width() - city.spacing());
+                        assertThat(position.z()).isBetween(0.0, district.depth() - city.spacing());
+                    });
+        }
     }
 
     @Test

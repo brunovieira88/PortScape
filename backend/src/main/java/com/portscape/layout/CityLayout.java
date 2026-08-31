@@ -7,9 +7,11 @@ import java.util.Map;
  * A cidade calculada: onde cada host fica e que forma tem o conjunto.
  *
  * @param positions posicao por IP -- inclui os hosts vivos e as ruinas
- * @param districts bairros por ordem, incluindo os vazios
+ * @param districts bairros por ordem de gravidade, da esquerda para a direita. So
+ *                  os povoados: uma faixa sem hosts nao chega a ter bairro
  * @param spacing   distancia entre celulas, para o frontend dimensionar os edificios
- * @param width     extensao em X, do inicio do primeiro bairro ao fim do ultimo
+ * @param width     extensao em X, do inicio do primeiro bairro ao fim do ultimo --
+ *                  ja compactada, portanto e a largura real ocupada, nao a da grelha
  * @param depth     extensao em Z, a profundidade do bairro mais fundo
  */
 public record CityLayout(

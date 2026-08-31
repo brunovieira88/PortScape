@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isHidden }: { scanData: any, onOpenDetails?: (host: any) => void, isOpen: boolean, onToggle: () => void, isHidden?: boolean }) {
   const activeHosts = scanData?.hosts || [];
   const ruins = scanData?.ruins || [];

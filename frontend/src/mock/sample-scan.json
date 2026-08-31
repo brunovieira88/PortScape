@@ -1,63 +1,256 @@
 {
   "id": "11111111-2222-3333-4444-555555555555",
+  "target": "192.168.1.0/24",
   "status": "DONE",
+  "createdAt": "2026-08-28T15:00:00Z",
   "startedAt": "2026-08-28T15:00:00Z",
+  "finishedAt": "2026-08-28T15:00:42Z",
+  "durationMs": 42000,
+  "hostsUp": 4,
+  "baselineScanId": "99999999-8888-7777-6666-555555555555",
+  "cveLookupDegraded": false,
+  "progress": 100,
   "layout": {
-    "width": 16.0,
-    "depth": 16.0
+    "spacing": 4.0,
+    "width": 44.0,
+    "depth": 8.0,
+    "districts": [
+      {
+        "band": "CRITICAL",
+        "x": 0.0,
+        "width": 4.0,
+        "depth": 4.0,
+        "hostCount": 1
+      },
+      {
+        "band": "HIGH",
+        "x": 12.0,
+        "width": 4.0,
+        "depth": 4.0,
+        "hostCount": 1
+      },
+      {
+        "band": "MEDIUM",
+        "x": 24.0,
+        "width": 8.0,
+        "depth": 8.0,
+        "hostCount": 2
+      },
+      {
+        "band": "LOW",
+        "x": 40.0,
+        "width": 4.0,
+        "depth": 4.0,
+        "hostCount": 1
+      }
+    ]
   },
   "hosts": [
     {
       "ip": "192.168.1.1",
-      "status": "UP",
+      "hostname": "router.lan",
+      "osGuess": "Linux 4.x",
+      "osAccuracy": 94,
       "riskScore": 12,
       "riskBand": "LOW",
-      "isNew": false,
-      "isChanged": false,
       "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "nginx",
+          "version": "1.24.0",
+          "cpes": [
+            "cpe:/a:nginx:nginx:1.24.0"
+          ]
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 12
+        }
+      ],
+      "position": {
+        "x": 40.0,
+        "z": 0.0
+      },
       "portCount": 1,
-      "position": { "x": 1.0, "z": 1.0 }
+      "isNew": false,
+      "isChanged": false
     },
     {
       "ip": "192.168.1.10",
-      "status": "UP",
+      "hostname": "nas.lan",
+      "osGuess": "Linux 3.2",
+      "osAccuracy": 88,
       "riskScore": 95,
       "riskBand": "CRITICAL",
+      "change": "CHANGED",
+      "ports": [
+        {
+          "number": 23,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "telnet",
+          "product": "Dropbear sshd",
+          "version": "2017.75",
+          "cpes": [
+            "cpe:/a:dropbear_ssh_project:dropbear_ssh:2017.75"
+          ]
+        },
+        {
+          "number": 445,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "microsoft-ds",
+          "product": "Samba smbd",
+          "version": "4.6.2",
+          "cpes": []
+        },
+        {
+          "number": 21,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ftp",
+          "product": "vsftpd",
+          "version": "2.3.4",
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "Telnet (23/tcp) expoe credenciais em texto limpo",
+          "points": 40
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "SMB (445/tcp) exposto na rede",
+          "points": 25
+        },
+        {
+          "code": "VULNERABLE_SERVICE",
+          "description": "Dropbear 2017.75: CVE-2020-36254",
+          "points": 30
+        }
+      ],
+      "position": {
+        "x": 0.0,
+        "z": 0.0
+      },
+      "portCount": 3,
       "isNew": false,
-      "isChanged": true,
-      "change": "MODIFIED",
-      "portCount": 10,
-      "position": { "x": 5.0, "z": 10.0 }
+      "isChanged": true
     },
     {
       "ip": "192.168.1.42",
-      "status": "UP",
+      "osGuess": "Raspberry Pi OS",
+      "osAccuracy": 71,
       "riskScore": 60,
       "riskBand": "HIGH",
-      "isNew": true,
-      "isChanged": false,
       "change": "NEW",
-      "portCount": 5,
-      "position": { "x": 12.0, "z": 8.0 }
+      "ports": [
+        {
+          "number": 22,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ssh",
+          "product": "OpenSSH",
+          "version": "8.4p1",
+          "cpes": []
+        },
+        {
+          "number": 3389,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ms-wbt-server",
+          "product": null,
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "RDP (3389/tcp) exposto na rede",
+          "points": 35
+        },
+        {
+          "code": "NOT_IN_BASELINE",
+          "description": "Host novo, nao visto em scans anteriores",
+          "points": 25
+        }
+      ],
+      "position": {
+        "x": 12.0,
+        "z": 0.0
+      },
+      "portCount": 2,
+      "isNew": true,
+      "isChanged": false
     },
     {
       "ip": "192.168.1.100",
-      "status": "UP",
+      "hostname": "printer.lan",
       "riskScore": 35,
       "riskBand": "MEDIUM",
-      "isNew": false,
-      "isChanged": false,
       "change": "UNCHANGED",
-      "portCount": 3,
-      "position": { "x": 8.0, "z": 4.0 }
+      "ports": [
+        {
+          "number": 631,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ipp",
+          "product": "CUPS",
+          "version": "2.3",
+          "cpes": []
+        },
+        {
+          "number": 9100,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "jetdirect",
+          "product": null,
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "UNWEIGHTED_PORTS",
+          "description": "2 portas comuns expostas (631, 9100)",
+          "points": 35
+        }
+      ],
+      "position": {
+        "x": 24.0,
+        "z": 0.0
+      },
+      "portCount": 2,
+      "isNew": false,
+      "isChanged": false
     }
   ],
   "ruins": [
     {
       "ip": "192.168.1.200",
+      "hostname": "laptop.lan",
+      "riskScore": 35,
       "riskBand": "MEDIUM",
-      "position": { "x": 15.0, "z": 15.0 },
-      "change": "DISAPPEARED"
+      "change": "DISAPPEARED",
+      "ports": [],
+      "riskReasons": [],
+      "position": {
+        "x": 28.0,
+        "z": 4.0
+      },
+      "portCount": 0,
+      "isNew": false,
+      "isChanged": false
     }
   ]
 }

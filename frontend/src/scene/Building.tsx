@@ -22,7 +22,7 @@ interface BuildingProps {
   isChanged?: boolean;
 }
 
-const BAND_COLORS = {
+export const BAND_COLORS = {
   CRITICAL: '#ff003c', // Cyberpunk Red
   HIGH: '#ff8a00',     // Neon Orange
   MEDIUM: '#fcee0a',   // Electric Yellow

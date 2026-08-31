@@ -7,6 +7,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
+import java.util.function.LongUnaryOperator;
 
 import org.springframework.stereotype.Component;
 
@@ -18,21 +20,29 @@ import com.portscape.risk.RiskBand;
 /**
  * Calcula onde cada edificio fica na cidade.
  *
- * <p><b>A faixa de risco escolhe o bairro; o IP escolhe o lugar dentro dele.</b> A
- * coluna sai de {@code indiceDoHost % larguraDaGrelha} e por isso nunca muda: o
- * {@code .254} esta sempre na coluna 14 do seu bairro, em todos os scans. Ver uma
- * maquina migrar para o bairro vermelho e informacao, nao ruido.
+ * <p><b>A faixa de risco escolhe o bairro; o IP escolhe o lugar dentro dele.</b> Ver
+ * uma maquina migrar para o bairro vermelho e informacao, nao ruido.
  *
- * <p><b>Bairros vazios nao existem.</b> As faixas sem hosts sao saltadas e as
- * restantes encostam-se umas as outras. E uma decisao de cena, nao de dados: uma
- * cidade com quatro quarteiroes desertos entre duas casas nao se le nem se percorre.
- * O preco e que a coordenada absoluta de um bairro depende de quais as faixas
- * povoadas -- se uma faixa a esquerda ficar vazia, os bairros a direita encostam.
- * A posicao <i>relativa</i> dentro do bairro e que e estavel.
+ * <p><b>A cidade e compactada, e a compactacao e feita aqui.</b> Uma rede /24 tem 254
+ * lugares e um scan tipico enche cinco. Desenhar a grelha toda dava uma cidade que e
+ * quase so alcatrao, com os edificios longe demais uns dos outros para se lerem como
+ * um conjunto. Por isso, dentro de cada bairro, as colunas e as linhas <i>ocupadas</i>
+ * sao numeradas por ordem e encostadas: quatro colunas ocupadas ficam nas posicoes 0 a
+ * 3, independentemente de terem saido dos IPs .1, .40, .130 e .200. O mesmo para as
+ * linhas, e o mesmo para os bairros entre si -- cada um ocupa a largura de que precisa,
+ * nao uma fatia fixa.
  *
- * <p>As linhas sao <b>aparadas</b> por bairro (o host mais acima fica em {@code z=0}),
- * senao um /24 com seis maquinas seria um deserto de 254 lugares. O preco assumido:
- * a linha de um host pode deslizar se o bairro passar a ocupar uma zona diferente.
+ * <p>O que isto <b>preserva</b> e a ordem: dois hosts na mesma coluna continuam na
+ * mesma coluna, e um host a esquerda de outro continua a esquerda dele. O que isto
+ * <b>custa</b> e a coordenada absoluta -- o .254 nao esta sempre na coluna 14, esta na
+ * ultima coluna ocupada do seu bairro. E o mesmo compromisso ja assumido para os
+ * bairros vazios, que tambem sao saltados: a posicao <i>relativa</i> e que e estavel.
+ *
+ * <p>A alternativa -- compactar no frontend, ao arredondar as coordenadas para uma
+ * grelha mais apertada -- parece equivalente e nao e: colapsa varios hosts na mesma
+ * celula e obriga a desempatar por varrimento, o que faz a posicao de um host depender
+ * de quais os outros hosts do scan e da ordem por que foram processados. Feita aqui, a
+ * compactacao e injetiva (dois hosts nunca partilham celula), determinista e testavel.
  *
  * <p>Puro e determinista de proposito -- sem estado, sem BD, sem relogio. E a parte
  * do projeto mais facil de testar isoladamente.
@@ -71,39 +81,65 @@ public class CityLayoutCalculator {
             // Uma faixa sem hosts nao ganha bairro nenhum. Reservar-lhe o espaco
             // deixava buracos do tamanho de um bairro inteiro entre zonas habitadas,
             // e uma cidade com mais vazio do que edificios nao se le nem se percorre.
-            // O preco esta assumido no javadoc da classe.
             if (members.isEmpty()) {
                 continue;
             }
 
-            double districtX = nextDistrictX;
-            nextDistrictX += layout.districtStride() * layout.spacing();
+            // Coluna e linha vem do indice do host; o rank denso encosta as ocupadas.
+            Map<Long, Integer> columns = denseRank(members, indexByIp, this::columnOf);
+            Map<Long, Integer> rows = denseRank(members, indexByIp, this::rowOf);
 
-            long minRow = members.stream()
-                    .mapToLong(host -> indexByIp.get(host.ip()) / layout.gridWidth())
-                    .min().orElse(0L);
-            long maxRow = members.stream()
-                    .mapToLong(host -> indexByIp.get(host.ip()) / layout.gridWidth())
-                    .max().orElse(-1L);
+            double districtX = nextDistrictX;
+            double districtWidth = columns.size() * layout.spacing();
+            double districtDepth = rows.size() * layout.spacing();
+            // O bairro seguinte comeca a seguir a este, nao numa grelha fixa: um bairro
+            // com tres colunas ocupa tres colunas.
+            nextDistrictX += districtWidth + layout.districtGap() * layout.spacing();
 
             for (Host host : members) {
                 long index = indexByIp.get(host.ip());
-                long column = index % layout.gridWidth();
-                long row = index / layout.gridWidth() - minRow;
                 positions.put(host.ip(), new HostPosition(host.ip(), band,
-                        districtX + column * layout.spacing(),
-                        row * layout.spacing()));
+                        districtX + columns.get(columnOf(index)) * layout.spacing(),
+                        rows.get(rowOf(index)) * layout.spacing()));
             }
 
-            double depth = members.isEmpty() ? 0 : (maxRow - minRow + 1) * layout.spacing();
-            districts.add(new District(band, districtX,
-                    layout.gridWidth() * layout.spacing(), depth, members.size()));
+            districts.add(new District(band, districtX, districtWidth, districtDepth, members.size()));
         }
 
-        double width = districts.isEmpty() ? 0
-                : districts.get(districts.size() - 1).x() + layout.gridWidth() * layout.spacing();
+        District last = districts.isEmpty() ? null : districts.get(districts.size() - 1);
+        double width = last == null ? 0 : last.x() + last.width();
         double depth = districts.stream().mapToDouble(District::depth).max().orElse(0);
         return new CityLayout(positions, districts, layout.spacing(), width, depth);
+    }
+
+    private long columnOf(long index) {
+        return index % layout.gridWidth();
+    }
+
+    private long rowOf(long index) {
+        return index / layout.gridWidth();
+    }
+
+    /**
+     * Numera por ordem os valores <i>usados</i> de uma coordenada: {@code {1, 40, 130}}
+     * da {@code {1->0, 40->1, 130->2}}. E o que encosta os edificios sem os reordenar.
+     *
+     * <p>Aplicar isto as colunas e as linhas de forma independente continua a nao
+     * gerar colisoes: os pares (coluna, linha) sao unicos a partida -- vem do indice
+     * do host, que e unico -- e numerar cada eixo separadamente e injetivo em cada
+     * eixo, logo o par continua unico.
+     */
+    private static Map<Long, Integer> denseRank(List<Host> members, Map<String, Long> indexByIp,
+            LongUnaryOperator coordinate) {
+        Map<Long, Integer> ranks = new TreeMap<>();
+        for (Host host : members) {
+            ranks.put(coordinate.applyAsLong(indexByIp.get(host.ip())), 0);
+        }
+        int rank = 0;
+        for (Map.Entry<Long, Integer> entry : ranks.entrySet()) {
+            entry.setValue(rank++);
+        }
+        return ranks;
     }
 
     private Map<RiskBand, List<Host>> groupByBand(List<Host> hosts) {
@@ -149,8 +185,16 @@ public class CityLayoutCalculator {
         return indexes;
     }
 
+    /**
+     * Endereco de rede do target. O {@link com.portscape.scan.TargetValidator} ja
+     * normaliza o que entra pela API, mas mascarar aqui tambem mantem a classe correta
+     * por si so -- sem isto, um {@code 192.168.1.5/24} vindo de um teste ou de outro
+     * chamador mandava os hosts .1 a .4 para o overflow.
+     */
     private static long networkAddressOf(String target) {
-        return ipv4ToLong(addressPart(target)).orElse(0L);
+        long address = ipv4ToLong(addressPart(target)).orElse(0L);
+        long size = networkSizeOf(target);
+        return address - Math.floorMod(address, size);
     }
 
     private static long networkSizeOf(String target) {
