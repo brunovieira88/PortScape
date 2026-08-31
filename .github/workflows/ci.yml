@@ -1,0 +1,76 @@
+# Corre os testes em cada push e pull request.
+#
+# Existe por causa de um bug concreto: a inversao Asc/Desc na resolucao do baseline
+# entrou num commit de progress tracking, dois testes de integracao apanharam-na nesse
+# mesmo dia, e ninguem viu -- a suite ja estava vermelha por outras razoes, e uma suite
+# que ja falha deixa de dar sinal. O bug ficou dias. Isto torna "a suite esta vermelha"
+# uma coisa que bloqueia em vez de uma coisa invisivel.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# Um push novo cancela a run anterior do mesmo ramo -- nao vale a pena esperar por
+# resultados de codigo que ja foi substituido.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (mvn verify)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      # verify e nao test: os testes de integracao (*IT) correm na fase failsafe e sao
+      # eles que cobrem a persistencia e a resolucao do baseline. Os runners ubuntu ja
+      # trazem Docker, que e o que os Testcontainers precisam -- nao ha nada a instalar.
+      - name: Build and test
+        working-directory: backend
+        run: mvn --batch-mode --no-transfer-progress verify
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            backend/target/surefire-reports/
+            backend/target/failsafe-reports/
+          retention-days: 7
+
+  frontend:
+    name: Frontend (tsc + vitest + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Test
+        working-directory: frontend
+        run: npm test
+
+      # build corre o tsc antes do bundle, portanto cobre tambem os erros de tipos.
+      - name: Build
+        working-directory: frontend
+        run: npm run build
