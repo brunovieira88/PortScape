@@ -33,18 +33,27 @@ class CityLayoutCalculatorTest {
         return calculator.calculate(TARGET, List.of(hosts), List.of());
     }
 
-    private static double districtX(RiskBand band) {
-        return band.ordinal() * (16 + 4) * 4.0;
+    /**
+     * O bairro de uma faixa <b>nesta</b> cidade. Nao ha formula fechada: as faixas sem
+     * hosts sao saltadas e as restantes encostam-se, por isso o x depende da composicao
+     * do scan.
+     */
+    private static District districtOf(CityLayout city, RiskBand band) {
+        return city.districts().stream()
+                .filter(district -> district.band() == band)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("sem bairro para a faixa " + band));
     }
 
     @Test
     @DisplayName("a faixa da o bairro e o IP da o lugar dentro dele")
     void placesAHostInItsBandDistrictAtItsOwnCell() {
-        HostPosition position = layoutOf(host("192.168.1.254", 100)).positionOf("192.168.1.254");
+        CityLayout city = layoutOf(host("192.168.1.254", 100));
+        HostPosition position = city.positionOf("192.168.1.254");
 
         assertThat(position.band()).isEqualTo(RiskBand.CRITICAL);
-        // 254 % 16 = 14 -> coluna 14 dentro do bairro CRITICAL (que comeca em x=0)
-        assertThat(position.x()).isEqualTo(districtX(RiskBand.CRITICAL) + 14 * 4.0);
+        // 254 % 16 = 14 -> coluna 14 dentro do bairro CRITICAL
+        assertThat(position.x()).isEqualTo(districtOf(city, RiskBand.CRITICAL).x() + 14 * 4.0);
     }
 
     @Test
@@ -58,17 +67,27 @@ class CityLayoutCalculatorTest {
     @Test
     @DisplayName("a coluna de um host nunca muda, mesmo quando ele muda de bairro")
     void keepsTheColumnEvenWhenTheBandChanges() {
-        double low = layoutOf(host("192.168.1.254", 10)).positionOf("192.168.1.254").x();
-        double critical = layoutOf(host("192.168.1.254", 100)).positionOf("192.168.1.254").x();
+        CityLayout low = layoutOf(host("192.168.1.254", 10));
+        CityLayout critical = layoutOf(host("192.168.1.254", 100));
 
-        assertThat(low - districtX(RiskBand.LOW)).isEqualTo(critical - districtX(RiskBand.CRITICAL));
+        // A coluna e o que e estavel: o x absoluto do bairro muda com a composicao do scan.
+        assertThat(low.positionOf("192.168.1.254").x() - districtOf(low, RiskBand.LOW).x())
+                .isEqualTo(critical.positionOf("192.168.1.254").x()
+                        - districtOf(critical, RiskBand.CRITICAL).x());
     }
 
     @Test
     @DisplayName("um host que piora de score muda de bairro -- e isso ve-se")
     void movesToAnotherDistrictWhenItsRiskChanges() {
-        HostPosition before = layoutOf(host("192.168.1.50", 30)).positionOf("192.168.1.50");
-        HostPosition after = layoutOf(host("192.168.1.50", 90)).positionOf("192.168.1.50");
+        // A maquina critica fixa garante que o bairro vermelho existe nos dois cenarios:
+        // o que se quer ver e o .50 a mudar de bairro, nao a cidade a compactar-se.
+        Host anchor = host("192.168.1.1", 90);
+        HostPosition before = calculator
+                .calculate(TARGET, List.of(anchor, host("192.168.1.50", 30)), List.of())
+                .positionOf("192.168.1.50");
+        HostPosition after = calculator
+                .calculate(TARGET, List.of(anchor, host("192.168.1.50", 90)), List.of())
+                .positionOf("192.168.1.50");
 
         assertThat(before.band()).isEqualTo(RiskBand.MEDIUM);
         assertThat(after.band()).isEqualTo(RiskBand.CRITICAL);
@@ -95,18 +114,24 @@ class CityLayoutCalculatorTest {
     }
 
     @Test
-    @DisplayName("um bairro vazio mantem o seu espaco -- os outros nao deslizam")
-    void keepsEmptyDistrictsInPlace() {
+    @DisplayName("faixas sem hosts nao ganham bairro -- a cidade fica densa, nao um deserto")
+    void dropsEmptyDistrictsSoTheCityStaysDense() {
         CityLayout onlyLow = layoutOf(host("192.168.1.5", 10));
 
-        assertThat(onlyLow.districts()).extracting(District::band)
-                .containsExactly(RiskBand.CRITICAL, RiskBand.HIGH, RiskBand.MEDIUM,
-                        RiskBand.LOW, RiskBand.UNKNOWN);
-        assertThat(onlyLow.districts().get(0).hostCount()).isZero();
-        assertThat(onlyLow.districts().get(0).depth()).isZero();
-        // O bairro LOW esta onde estaria se houvesse hosts em todos os outros.
-        assertThat(onlyLow.positionOf("192.168.1.5").x())
-                .isEqualTo(districtX(RiskBand.LOW) + 5 * 4.0);
+        assertThat(onlyLow.districts()).extracting(District::band).containsExactly(RiskBand.LOW);
+        // Sem faixas povoadas a esquerda, o bairro LOW encosta a origem.
+        assertThat(onlyLow.positionOf("192.168.1.5").x()).isEqualTo(5 * 4.0);
+    }
+
+    @Test
+    @DisplayName("os bairros que sobram mantem a ordem das faixas, da mais grave para a menos")
+    void keepsBandOrderWhenCompacting() {
+        CityLayout city = layoutOf(host("192.168.1.1", 90), host("192.168.1.5", 10));
+
+        assertThat(city.districts()).extracting(District::band)
+                .containsExactly(RiskBand.CRITICAL, RiskBand.LOW);
+        assertThat(districtOf(city, RiskBand.CRITICAL).x())
+                .isLessThan(districtOf(city, RiskBand.LOW).x());
     }
 
     @Test
@@ -161,7 +186,7 @@ class CityLayoutCalculatorTest {
 
         assertThat(city.positionOf("192.168.1.42")).isNotNull();
         assertThat(city.positionOf("192.168.1.42").band()).isEqualTo(RiskBand.LOW);
-        assertThat(city.districts().get(RiskBand.LOW.ordinal()).hostCount()).isEqualTo(1);
+        assertThat(districtOf(city, RiskBand.LOW).hostCount()).isEqualTo(1);
     }
 
     @Test
@@ -182,6 +207,7 @@ class CityLayoutCalculatorTest {
 
         assertThat(city.positions()).isEmpty();
         assertThat(city.depth()).isZero();
-        assertThat(city.districts()).hasSize(RiskBand.values().length);
+        assertThat(city.width()).isZero();
+        assertThat(city.districts()).isEmpty();
     }
 }

@@ -20,9 +20,15 @@ import com.portscape.risk.RiskBand;
  *
  * <p><b>A faixa de risco escolhe o bairro; o IP escolhe o lugar dentro dele.</b> A
  * coluna sai de {@code indiceDoHost % larguraDaGrelha} e por isso nunca muda: o
- * {@code .254} esta sempre na coluna 14, em todos os scans e em qualquer bairro. Um
- * host so se desloca quando muda de faixa de risco -- e numa auditoria ver uma
+ * {@code .254} esta sempre na coluna 14 do seu bairro, em todos os scans. Ver uma
  * maquina migrar para o bairro vermelho e informacao, nao ruido.
+ *
+ * <p><b>Bairros vazios nao existem.</b> As faixas sem hosts sao saltadas e as
+ * restantes encostam-se umas as outras. E uma decisao de cena, nao de dados: uma
+ * cidade com quatro quarteiroes desertos entre duas casas nao se le nem se percorre.
+ * O preco e que a coordenada absoluta de um bairro depende de quais as faixas
+ * povoadas -- se uma faixa a esquerda ficar vazia, os bairros a direita encostam.
+ * A posicao <i>relativa</i> dentro do bairro e que e estavel.
  *
  * <p>As linhas sao <b>aparadas</b> por bairro (o host mais acima fica em {@code z=0}),
  * senao um /24 com seis maquinas seria um deserto de 254 lugares. O preco assumido:
@@ -58,15 +64,21 @@ public class CityLayoutCalculator {
         Map<String, HostPosition> positions = new LinkedHashMap<>();
         List<District> districts = new ArrayList<>();
 
-        double currentDistrictX = 0;
+        double nextDistrictX = 0;
 
         for (RiskBand band : RiskBand.values()) {
             List<Host> members = byBand.getOrDefault(band, List.of());
+            // Uma faixa sem hosts nao ganha bairro nenhum. Reservar-lhe o espaco
+            // deixava buracos do tamanho de um bairro inteiro entre zonas habitadas,
+            // e uma cidade com mais vazio do que edificios nao se le nem se percorre.
+            // O preco esta assumido no javadoc da classe.
             if (members.isEmpty()) {
                 continue;
             }
 
-            double districtX = currentDistrictX;
+            double districtX = nextDistrictX;
+            nextDistrictX += layout.districtStride() * layout.spacing();
+
             long minRow = members.stream()
                     .mapToLong(host -> indexByIp.get(host.ip()) / layout.gridWidth())
                     .min().orElse(0L);
@@ -86,9 +98,6 @@ public class CityLayoutCalculator {
             double depth = members.isEmpty() ? 0 : (maxRow - minRow + 1) * layout.spacing();
             districts.add(new District(band, districtX,
                     layout.gridWidth() * layout.spacing(), depth, members.size()));
-            
-            // Avança para o próximo bairro
-            currentDistrictX += layout.districtStride() * layout.spacing();
         }
 
         double width = districts.isEmpty() ? 0

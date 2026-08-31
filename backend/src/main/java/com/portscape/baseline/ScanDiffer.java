@@ -1,6 +1,5 @@
 package com.portscape.baseline;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,9 +40,9 @@ public final class ScanDiffer {
         }
 
         Set<String> present = current.hosts().stream().map(Host::ip).collect(Collectors.toSet());
-        List<Host> disappeared = new ArrayList<>(baseline.hosts().stream()
+        List<Host> disappeared = baseline.hosts().stream()
                 .filter(host -> !present.contains(host.ip()))
-                .toList());
+                .toList();
 
         return new ScanDiff(baseline.id(), changes, disappeared);
     }
@@ -51,7 +50,7 @@ public final class ScanDiffer {
     /**
      * Mudou se as portas abertas ou o palpite de OS forem diferentes.
      *
-     * <p>Nao se compara a versao do serviço: e informacao que o nmap acerta de forma
+     * <p>Nao se compara a versao do servico: e informacao que o nmap acerta de forma
      * intermitente, e trata-la como mudanca encheria a cidade de falsos alarmes.
      */
     private static boolean hasChanged(Host current, Host baseline) {

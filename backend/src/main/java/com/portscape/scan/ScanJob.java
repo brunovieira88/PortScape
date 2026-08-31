@@ -31,12 +31,6 @@ public record ScanJob(
         hosts = hosts == null ? List.of() : List.copyOf(hosts);
     }
 
-    /** Construtor da fase 1, sem a flag de degradacao -- usado por testes e leitura antiga. */
-    public ScanJob(UUID id, String target, ScanStatus status, Instant createdAt, Instant startedAt,
-                   Instant finishedAt, List<Host> hosts, String errorCode, String errorMessage) {
-        this(id, target, status, createdAt, startedAt, finishedAt, hosts, errorCode, errorMessage, false, 0);
-    }
-
     public static ScanJob pending(UUID id, String target, Instant now) {
         return new ScanJob(id, target, ScanStatus.PENDING, now, null, null, List.of(), null, null, false, 0);
     }

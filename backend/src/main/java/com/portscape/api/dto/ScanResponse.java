@@ -3,12 +3,14 @@ package com.portscape.api.dto;
 import java.time.Instant;
 import java.util.List;
 
+import java.util.Objects;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.portscape.baseline.HostChange;
 import com.portscape.baseline.ScanDiff;
 import com.portscape.domain.ScanStatus;
-import com.portscape.scan.ScanJob;
-
 import com.portscape.layout.CityLayout;
+import com.portscape.scan.ScanJob;
 
 /**
  * Envelope canonico de um scan.
@@ -62,9 +64,11 @@ public record ScanResponse(
                 layout == null ? List.of() : diff.disappeared().stream()
                         .map(host -> {
                             var position = layout.positions().get(host.ip());
-                            return position == null ? null : HostDto.from(host, com.portscape.baseline.HostChange.DISAPPEARED, position.band(), new PositionDto(position.x(), position.z()));
+                            return position == null ? null : HostDto.from(host,
+                                    HostChange.DISAPPEARED, position.band(),
+                                    new PositionDto(position.x(), position.z()));
                         })
-                        .filter(java.util.Objects::nonNull)
+                        .filter(Objects::nonNull)
                         .toList(),
                 job.errorCode() == null ? null : new ScanErrorDto(job.errorCode(), job.errorMessage()));
     }

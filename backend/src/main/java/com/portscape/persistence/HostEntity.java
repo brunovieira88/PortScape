@@ -51,15 +51,15 @@ public class HostEntity {
     @OrderBy("number ASC")
     private List<PortEntity> ports = new ArrayList<>();
 
-    protected HostEntity() {
-        // exigido pelo JPA
-    }
-
     @OneToMany(mappedBy = "host", cascade = CascadeType.ALL, orphanRemoval = true,
             fetch = FetchType.LAZY)
     @BatchSize(size = 64)
     @OrderBy("id ASC")
     private List<RiskReasonEntity> riskReasons = new ArrayList<>();
+
+    protected HostEntity() {
+        // exigido pelo JPA
+    }
 
     public HostEntity(String ip, String hostname, String osGuess, Integer osAccuracy) {
         this.ip = ip;
