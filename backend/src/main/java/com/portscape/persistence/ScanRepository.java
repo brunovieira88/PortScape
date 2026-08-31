@@ -25,7 +25,4 @@ public interface ScanRepository extends JpaRepository<ScanEntity, UUID> {
      */
     Optional<ScanEntity> findFirstByTargetAndStatusAndIdNotOrderByFinishedAtDesc(
             String target, ScanStatus status, UUID excludedId);
-
-    Optional<ScanEntity> findFirstByTargetAndStatusAndIdNotOrderByFinishedAtAsc(
-            String target, ScanStatus status, UUID excludedId);
 }

@@ -64,7 +64,7 @@ public class BaselineResolver {
 
     private Optional<ScanJob> previousScan(String target, UUID excludeScanId) {
         return scanRepository
-                .findFirstByTargetAndStatusAndIdNotOrderByFinishedAtAsc(
+                .findFirstByTargetAndStatusAndIdNotOrderByFinishedAtDesc(
                         target, ScanStatus.DONE, excludeScanId == null ? ZERO_UUID : excludeScanId)
                 .map(ScanEntityMapper::toDomain);
     }
