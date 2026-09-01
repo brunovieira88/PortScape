@@ -89,7 +89,12 @@ public class NmapXmlParser {
                 // Sem endereco nao ha nada de util a mostrar na cidade.
                 continue;
             }
-            hosts.add(new Host(ip, hostnameOf(xmlHost), osNameOf(xmlHost), osAccuracyOf(xmlHost), openPortsOf(xmlHost)));
+            XmlAddress mac = macOf(xmlHost);
+            hosts.add(new Host(ip,
+                    mac == null ? null : mac.addr,
+                    mac == null ? null : mac.vendor,
+                    hostnameOf(xmlHost), osNameOf(xmlHost), osAccuracyOf(xmlHost),
+                    openPortsOf(xmlHost), null));
         }
         return List.copyOf(hosts);
     }
@@ -141,7 +146,27 @@ public class NmapXmlParser {
         return host.status != null && "up".equalsIgnoreCase(host.status.state);
     }
 
-    /** Prefere IPv4; cai para IPv6 se for o unico. Ignora o endereco MAC. */
+    /**
+     * O endereco fisico, se o nmap o resolveu.
+     *
+     * <p>So vem quando o alvo esta no mesmo segmento de rede e o scan corre com
+     * privilegios -- e o nmap que o obtem por ARP. Nao vem para a propria maquina que
+     * corre o scan nem para loopback, e por isso a ausencia e normal e nao um erro.
+     * E daqui que sai a identidade estavel de um dispositivo (ver {@link Host#identity()}).
+     */
+    private static XmlAddress macOf(XmlHost host) {
+        if (host.addresses == null) {
+            return null;
+        }
+        for (XmlAddress address : host.addresses) {
+            if ("mac".equalsIgnoreCase(address.addrtype) && address.addr != null) {
+                return address;
+            }
+        }
+        return null;
+    }
+
+    /** Prefere IPv4; cai para IPv6 se for o unico. O MAC vem por {@link #macOf}. */
     private static String ipOf(XmlHost host) {
         if (host.addresses == null) {
             return null;
