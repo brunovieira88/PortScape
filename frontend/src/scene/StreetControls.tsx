@@ -1,6 +1,7 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { buildCityGrid, collidesAt } from './cityGrid';
 
 export function StreetControls({ scanData }: { scanData: any }) {
   const { camera, gl } = useThree();
@@ -8,6 +9,9 @@ export function StreetControls({ scanData }: { scanData: any }) {
   
   const velocity = useRef(new THREE.Vector3());
   const direction = useRef(new THREE.Vector3());
+  // Reutilizados a cada frame em vez de realocados -- ver o mesmo motivo no Building.
+  const movement = useRef(new THREE.Vector3());
+  const UP = useRef(new THREE.Vector3(0, 1, 0));
   const targetRotation = useRef(new THREE.Euler(0, 0, 0, 'YXZ'));
 
   const STREET_Y = 1.7;
@@ -79,39 +83,12 @@ export function StreetControls({ scanData }: { scanData: any }) {
     isIntroPlaying.current = true;
   }, [scanData.id, camera]);
 
-  const SCALE = 13;
-  const backendSpacing = scanData.layout?.spacing || 1.0;
-  const gridWidth = Math.max(scanData.layout.width / backendSpacing, 16);
-  const gridDepth = Math.max(scanData.layout.depth / backendSpacing, 16);
-  
-  const offsetX = -gridWidth / 2;
-  const offsetZ = -gridDepth / 2;
-  const minCityX = (0 + offsetX) * SCALE - SCALE/2;
-  const maxCityX = (gridWidth - 1 + offsetX) * SCALE + SCALE/2;
-  const minCityZ = (0 + offsetZ) * SCALE - SCALE/2;
-  const maxCityZ = (gridDepth - 1 + offsetZ) * SCALE + SCALE/2;
-
-  const checkCollision = (posX: number, posZ: number) => {
-    if (posX < minCityX || posX > maxCityX || posZ < minCityZ || posZ > maxCityZ) return true;
-    const gridX = posX / SCALE - offsetX;
-    const gridZ = posZ / SCALE - offsetZ;
-    const cellsToCheck = [
-      [Math.floor(gridX), Math.floor(gridZ)],
-      [Math.ceil(gridX), Math.floor(gridZ)],
-      [Math.floor(gridX), Math.ceil(gridZ)],
-      [Math.ceil(gridX), Math.ceil(gridZ)],
-    ];
-    for (let [gx, gz] of cellsToCheck) {
-      const hasBuilding = scanData.hosts.some((h: any) => (h.position.x / backendSpacing) === gx && (h.position.z / backendSpacing) === gz);
-      if (hasBuilding) {
-        const centerX = (gx + offsetX) * SCALE;
-        const centerZ = (gz + offsetZ) * SCALE;
-        const bound = 6.0; 
-        if (Math.abs(posX - centerX) < bound && Math.abs(posZ - centerZ) < bound) return true;
-      }
-    }
-    return false;
-  };
+  // A grelha vem do cityGrid, a mesma que desenha os edificios. Recalcula-la aqui foi
+  // durante toda a fase 4 a razao de se atravessarem os predios e bater em paredes
+  // invisiveis: este ficheiro usava SCALE 13 e centrava pela largura minima, enquanto a
+  // cidade era desenhada a 22 e centrada pela largura real.
+  const grid = useMemo(() => buildCityGrid(scanData), [scanData]);
+  const checkCollision = (posX: number, posZ: number) => collidesAt(grid, posX, posZ);
 
   useFrame((_state, delta) => {
     if (isIntroPlaying.current) {
@@ -164,8 +141,9 @@ export function StreetControls({ scanData }: { scanData: any }) {
     if (Math.abs(velocity.current.x) < 0.001) velocity.current.x = 0;
     if (Math.abs(velocity.current.z) < 0.001) velocity.current.z = 0;
 
-    const localMovement = new THREE.Vector3(velocity.current.x * delta, 0, velocity.current.z * delta);
-    localMovement.applyAxisAngle(new THREE.Vector3(0, 1, 0), camera.rotation.y);
+    const localMovement = movement.current
+      .set(velocity.current.x * delta, 0, velocity.current.z * delta)
+      .applyAxisAngle(UP.current, camera.rotation.y);
 
     let nextX = camera.position.x + localMovement.x;
     let nextZ = camera.position.z + localMovement.z;

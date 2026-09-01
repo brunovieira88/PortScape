@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildCityGrid } from './cityGrid';
+import { buildCityGrid, collidesAt, walkableBounds, worldX, worldZ,
+         BLOCK_SCALE, BUILDING_HALF_WIDTH } from './cityGrid';
 import sampleScan from '../mock/sample-scan.json';
 
 /** Um scan minimo com o layout no formato que o backend serve. */
@@ -104,5 +105,81 @@ describe('buildCityGrid', () => {
       expect(grid.districts[i].startX)
         .toBeGreaterThanOrEqual(anterior.startX + anterior.columns);
     }
+  });
+
+
+  it('marca como ocupadas as celulas dos hosts e das ruinas', () => {
+    const grid = buildCityGrid(sampleScan);
+
+    expect(grid.occupied.size).toBe(grid.hosts.length + grid.ruins.length);
+    for (const h of [...grid.hosts, ...grid.ruins]) {
+      expect(grid.occupied.has(`${h.gridX},${h.gridZ}`)).toBe(true);
+    }
+  });
+});
+
+describe('collidesAt', () => {
+
+  it('a caixa de colisao fica em cima do edificio que ela protege', () => {
+    // A regressao: as colisoes eram calculadas a SCALE 13 e centradas pela largura
+    // minima, enquanto os edificios eram desenhados a SCALE 22 e centrados pela largura
+    // real -- o que punha as paredes ate 73 unidades ao lado do predio.
+    const grid = buildCityGrid(sampleScan);
+
+    for (const host of grid.hosts) {
+      expect(collidesAt(grid, worldX(grid, host.gridX), worldZ(grid, host.gridZ))).toBe(true);
+    }
+  });
+
+  it('a rua entre dois edificios e atravessavel', () => {
+    const grid = buildCityGrid(sampleScan);
+    const [first, second] = grid.hosts;
+    const meio = (worldX(grid, first.gridX) + worldX(grid, second.gridX)) / 2;
+
+    // Os dois estao a mais de um quarteirao de distancia, logo ha rua pelo meio.
+    expect(Math.abs(first.gridX - second.gridX)).toBeGreaterThan(1);
+    expect(collidesAt(grid, meio, worldZ(grid, first.gridZ))).toBe(false);
+  });
+
+  it('as ruinas tambem sao solidas', () => {
+    const grid = buildCityGrid(sampleScan);
+    const ruin = grid.ruins[0];
+
+    expect(collidesAt(grid, worldX(grid, ruin.gridX), worldZ(grid, ruin.gridZ))).toBe(true);
+  });
+
+  it('sair do alcatrao conta como bater', () => {
+    const grid = buildCityGrid(sampleScan);
+    const bounds = walkableBounds(grid);
+
+    expect(collidesAt(grid, bounds.maxX + 1, 0)).toBe(true);
+    expect(collidesAt(grid, bounds.minX - 1, 0)).toBe(true);
+    expect(collidesAt(grid, 0, bounds.maxZ + 1)).toBe(true);
+    expect(collidesAt(grid, 0, bounds.minZ - 1)).toBe(true);
+  });
+
+  it('o chao estende-se para la dos edificios de uma cidade pequena', () => {
+    const grid = buildCityGrid(sampleScan);
+
+    // Nao se anda dentro de um selo do tamanho exato dos predios.
+    expect(grid.groundW).toBeGreaterThanOrEqual(16);
+    expect(walkableBounds(grid).maxX).toBeGreaterThan(worldX(grid, grid.layoutW - 1));
+  });
+
+  it('encosta-se ao edificio ate a margem da caixa, e nao mais', () => {
+    const grid = buildCityGrid(sampleScan);
+    const host = grid.hosts[0];
+    const centro = worldX(grid, host.gridX);
+    const z = worldZ(grid, host.gridZ);
+
+    expect(collidesAt(grid, centro + BUILDING_HALF_WIDTH - 0.1, z)).toBe(true);
+    expect(collidesAt(grid, centro + BUILDING_HALF_WIDTH + 0.1, z)).toBe(false);
+  });
+
+  it('uma cidade sem hosts e toda atravessavel', () => {
+    const grid = buildCityGrid({ layout: { spacing: 4.0, width: 0, depth: 0, districts: [] } });
+
+    expect(collidesAt(grid, 0, 0)).toBe(false);
+    expect(walkableBounds(grid).maxX).toBe(8 * BLOCK_SCALE);
   });
 });
