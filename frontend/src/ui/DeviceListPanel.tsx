@@ -95,7 +95,7 @@ export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isH
                     </span>
                   </div>
                   <div className="text-xs text-gray-400 truncate">
-                    {host.hostname?.replace(/\.(home|lan|local)$/i, '') || 'Unknown Host'}
+                    {host.hostname?.replace(/\.(home|lan|local)$/i, '') || host.vendor || 'Unknown Host'}
                   </div>
                   <div className="text-[10px] text-gray-500 mt-2 font-mono flex gap-2">
                     <span className="bg-white/5 px-1 py-0.5 rounded">PORTS: <span className="text-gray-300">{host.portCount}</span></span>

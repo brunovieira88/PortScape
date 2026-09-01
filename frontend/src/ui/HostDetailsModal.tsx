@@ -37,6 +37,16 @@ export function HostDetailsModal({ host, onClose }: { host: any, onClose: () => 
             <div className="text-sm font-mono text-gray-400">
               HOSTNAME: <span className="text-white">{host.hostname?.replace(/\.(home|lan|local)$/i, '') || 'UNKNOWN'}</span>
             </div>
+            {/* O fabricante e a unica coisa que diz o QUE a maquina e; o IP so diz
+                onde esta. Vem a null quando o nmap nao resolveu o MAC. */}
+            {host.vendor && (
+              <div className="text-sm font-mono text-gray-400 mt-1">
+                VENDOR: <span className="text-white">{host.vendor}</span>
+              </div>
+            )}
+            {host.mac && (
+              <div className="text-[11px] font-mono text-gray-600 mt-1 tracking-wider">{host.mac}</div>
+            )}
           </div>
           
           <button 
