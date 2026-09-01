@@ -51,7 +51,8 @@ public final class ScanEntityMapper {
 
     private static HostEntity toEntity(Host host) {
         HostEntity entity = new HostEntity(
-                host.ip(), host.hostname(), host.osGuess(), host.osAccuracy());
+                host.ip(), host.mac(), host.vendor(),
+                host.hostname(), host.osGuess(), host.osAccuracy());
         for (Port port : host.ports()) {
             entity.addPort(new PortEntity(port.number(), port.protocol(), port.state(),
                     port.service(), port.product(), port.version(), port.cpes()));
@@ -77,7 +78,7 @@ public final class ScanEntityMapper {
                         .map(reason -> new RiskReason(
                                 reason.getCode(), reason.getDescription(), reason.getPoints()))
                         .toList());
-        return new Host(entity.getIp(), entity.getHostname(),
-                entity.getOsGuess(), entity.getOsAccuracy(), ports, risk);
+        return new Host(entity.getIp(), entity.getMac(), entity.getVendor(),
+                entity.getHostname(), entity.getOsGuess(), entity.getOsAccuracy(), ports, risk);
     }
 }

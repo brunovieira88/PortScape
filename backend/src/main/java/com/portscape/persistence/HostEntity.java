@@ -33,6 +33,12 @@ public class HostEntity {
     @Column(nullable = false)
     private String ip;
 
+    /** Identidade fisica, quando o nmap a resolveu. Ver {@link com.portscape.domain.Host#identity()}. */
+    private String mac;
+
+    /** Fabricante deduzido do prefixo do MAC. */
+    private String vendor;
+
     private String hostname;
 
     @Column(name = "os_guess")
@@ -61,6 +67,13 @@ public class HostEntity {
         // exigido pelo JPA
     }
 
+    public HostEntity(String ip, String mac, String vendor, String hostname,
+            String osGuess, Integer osAccuracy) {
+        this(ip, hostname, osGuess, osAccuracy);
+        this.mac = mac;
+        this.vendor = vendor;
+    }
+
     public HostEntity(String ip, String hostname, String osGuess, Integer osAccuracy) {
         this.ip = ip;
         this.hostname = hostname;
@@ -82,6 +95,14 @@ public class HostEntity {
 
     public String getIp() {
         return ip;
+    }
+
+    public String getMac() {
+        return mac;
+    }
+
+    public String getVendor() {
+        return vendor;
     }
 
     public String getHostname() {
