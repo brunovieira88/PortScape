@@ -22,6 +22,10 @@ export default function App() {
   const [scanError, setScanError] = useState<string | null>(null);
   const [targetIp, setTargetIp] = useState<string>('');
   const [showMenu, setShowMenu] = useState(true); // Menu no centro do ecrã
+  // Enquanto nao se sabe se ha um scan guardado, nao se desenha cidade nenhuma. Sem
+  // isto o voo de chegada corria primeiro sobre o cenario de exemplo e reiniciava
+  // meio segundo depois, quando o scan real chegava -- duas aterragens seguidas.
+  const [isBooting, setIsBooting] = useState(true);
 
   // Sondagem e temporizadores em curso, para poderem ser cancelados no desmonte.
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -49,7 +53,8 @@ export default function App() {
       .then(scans => (scans?.length ? getScan(scans[0].id) : null))
       .then(latest => { if (latest) setScanData(latest); })
       // Sem backend fica-se no cenario de exemplo, que e o comportamento util aqui.
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setIsBooting(false));
     return stopPolling;
   }, []);
 
@@ -303,12 +308,12 @@ export default function App() {
       <ErrorBoundary>
         <Canvas gl={{ antialias: true, toneMapping: 0 }} camera={{ near: 0.5, far: 2000, fov: 60 }}>
           <Suspense fallback={null}>
-            <City 
+            {!isBooting && <City 
               
               selectedHost={selectedHost} onSelectHost={setSelectedHost} 
               scanData={scanData} 
               onOpenDetails={setDetailedHost} 
-            />
+            />}
           </Suspense>
         </Canvas>
       </ErrorBoundary>
