@@ -99,7 +99,9 @@ export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isH
                   </div>
                   <div className="text-[10px] text-gray-500 mt-2 font-mono flex gap-2">
                     <span className="bg-white/5 px-1 py-0.5 rounded">PORTS: <span className="text-gray-300">{host.portCount}</span></span>
-                    <span className="bg-white/5 px-1 py-0.5 rounded">OS: <span className="text-gray-300">{host.osGuess || 'UNKNOWN'}</span></span>
+                    {/* "~" porque isto e o palpite do nmap por assinatura, nao uma
+                        leitura do sistema. Ver a nota no HostDetailsModal. */}
+                    <span className="bg-white/5 px-1 py-0.5 rounded truncate">OS ~ <span className="text-gray-300">{host.osGuess || 'UNKNOWN'}</span></span>
                   </div>
                 </div>
               ))}

@@ -82,13 +82,27 @@ export function HostDetailsModal({ host, onClose }: { host: any, onClose: () => 
               <h3 className="text-xs font-bold text-gray-500 tracking-[0.2em] uppercase mb-4">System Identity</h3>
               <div className="space-y-4">
                 <div>
-                  <div className="text-[10px] text-gray-600 mb-1">OPERATING SYSTEM</div>
-                  <div className="text-sm font-mono text-[#00f0ff]">{host.osGuess || 'UNKNOWN OS'}</div>
+                  <div className="text-[10px] text-gray-600 mb-1">OS FINGERPRINT</div>
+                  <div className="text-sm font-mono text-[#00f0ff]/90 italic">{host.osGuess || 'UNKNOWN OS'}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] text-gray-600 mb-1">CONFIDENCE</div>
+                  <div className="text-[10px] text-gray-600 mb-1">FINGERPRINT MATCH</div>
                   <div className="text-sm font-mono text-gray-300">{host.osAccuracy ? `${host.osAccuracy}%` : 'N/A'}</div>
                 </div>
+                {/* Sem esta nota, um palpite errado a 97% le-se como um facto. O nmap
+                    compara a assinatura da pilha TCP com a sua base de dados e devolve
+                    o vizinho mais proximo: um dispositivo que nao esteja la sai sempre
+                    como outra coisa qualquer, e com confianca alta. O fabricante, esse,
+                    vem do prefixo do MAC e e verificavel -- por isso e ele que manda
+                    quando os dois discordam. */}
+                {host.osGuess && (
+                  <div className="text-[10px] text-gray-600 leading-relaxed border-t border-white/5 pt-3">
+                    Assinatura da pilha TCP comparada com a base do nmap — é o
+                    dispositivo <span className="text-gray-500">mais parecido</span> que
+                    ela conhece, não uma leitura do sistema. Quando discordar do
+                    fabricante{host.vendor && <span className="text-gray-400"> ({host.vendor})</span>}, é o fabricante que vale.
+                  </div>
+                )}
               </div>
             </div>
             

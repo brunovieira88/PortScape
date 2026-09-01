@@ -239,11 +239,17 @@ export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onC
                     <div className="text-[10px] text-gray-400 tracking-wide mt-0.5">{hostData.vendor}</div>
                   )}
                 </div>
-                {/* OS ICON / BADGE */}
+                {/* O nmap nao deteta o sistema operativo: compara a assinatura da
+                    pilha TCP com uma base de dados e devolve o vizinho mais parecido.
+                    Uma TV Xiaomi que nao esteja la sai como "Nintendo Switch" a 97% --
+                    e os 97% sao a confianca do nmap na semelhanca, nao na resposta.
+                    Dizer "OS DETECTED" a isto e afirmar um facto que nao se tem. */}
                 {(hostData.osGuess && typeof hostData.osGuess === 'string' && hostData.osGuess.trim().toLowerCase() !== 'null') && (
                   <div className="text-right">
-                    <div className="text-[10px] text-gray-500 uppercase tracking-widest">OS DETECTED</div>
-                    <div className="text-sm text-white font-mono">{hostData.osGuess}</div>
+                    <div className="text-[10px] text-gray-500 uppercase tracking-widest">
+                      OS Fingerprint{hostData.osAccuracy ? ` ~${hostData.osAccuracy}%` : ''}
+                    </div>
+                    <div className="text-sm text-white/80 font-mono italic">{hostData.osGuess}</div>
                   </div>
                 )}
                 <button 
