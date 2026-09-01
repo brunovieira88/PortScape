@@ -1,4 +1,5 @@
 import { Edges } from '@react-three/drei';
+import type { DeviceKind } from './deviceKind';
 import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
@@ -63,14 +64,14 @@ const HOUSE_ROOF_HEIGHT = 3;
  * <p>Nao inclui os adereços condicionais (antena, drone), que sao decoracao e podem
  * passar acima disto de proposito.
  */
-export function buildingHeight(portCount: number, seed = 0): number {
-  if (portCount <= 3) {
+export function buildingHeight(portCount: number, seed = 0, kind: DeviceKind = 'GENERIC'): number {
+  if (portCount <= 3 && kind === 'GENERIC') {
     return HOUSE_HEIGHT + HOUSE_ROOF_HEIGHT;
   }
-  const floors = Math.min(portCount, MAX_FLOORS);
+  const floors = Math.max(1, Math.min(portCount, MAX_FLOORS));
   // O coroamento varia com o arquetipo -- uma agulha remata muito acima de uma laje --
   // por isso a altura tem de sair da mesma forma que desenha o edificio.
-  return floors * FLOOR_HEIGHT + towerForm(seed, floors, FLOOR_HEIGHT).crown;
+  return floors * FLOOR_HEIGHT + towerForm(seed, floors, FLOOR_HEIGHT, kind).crown;
 }
 
 /**
@@ -228,7 +229,8 @@ interface TowerForm {
  * portas que a manda, e isso e informacao, nao decoracao. O que a forma varia e a
  * <i>planta</i> e a silhueta, nunca a altura.
  */
-function towerForm(seed: number, floors: number, floorHeight: number): TowerForm {
+function towerForm(seed: number, floors: number, floorHeight: number,
+    kind: DeviceKind = 'GENERIC'): TowerForm {
   const rng = rngFrom(seed);
   const H = floors * floorHeight;
 
@@ -236,9 +238,14 @@ function towerForm(seed: number, floors: number, floorHeight: number): TowerForm
   // chapeu. Tudo o resto esta disponivel em qualquer altura, porque uma rede domestica
   // tem hosts de 4 a 6 portas e e nessa gama que a variedade tem de se ver.
   const roll = rng();
-  const style: TowerStyle = floors >= 9
-    ? (roll < 0.34 ? 'SETBACK' : roll < 0.60 ? 'SPIRE' : roll < 0.82 ? 'PRISM' : 'SLAB')
-    : (roll < 0.36 ? 'SLAB' : roll < 0.68 ? 'PRISM' : 'SETBACK');
+  // Um gateway e sempre uma agulha: numa rede domestica ha tipicamente um so, e a
+  // antena no topo torna-o o marco que se procura primeiro ao olhar para a cidade.
+  // Um dispositivo embebido e sempre um prisma compacto -- nao tem porte para mais.
+  const style: TowerStyle = kind === 'GATEWAY' ? 'SPIRE'
+    : kind === 'IOT' ? 'PRISM'
+    : floors >= 9
+      ? (roll < 0.34 ? 'SETBACK' : roll < 0.60 ? 'SPIRE' : roll < 0.82 ? 'PRISM' : 'SLAB')
+      : (roll < 0.36 ? 'SLAB' : roll < 0.68 ? 'PRISM' : 'SETBACK');
 
   const rotation = (rng() < 0.5 ? 0 : Math.PI / 2) + (rng() - 0.5) * 0.12;
   const wide = 8 + rng() * 6;
@@ -262,10 +269,12 @@ function towerForm(seed: number, floors: number, floorHeight: number): TowerForm
     tiers.push({ base: H * cuts[1], width: base * 0.48, depth: base * 0.42, height: H * (1 - cuts[1]) });
     crown = 3;
   } else {
-    const base = 7 + rng() * 2;
+    // O mastro do gateway e mais alto e mais fino: e decoracao, nao altura -- a
+    // altura da estrutura continua a ser floors x floorHeight.
+    const base = (kind === 'GATEWAY' ? 5.5 : 7) + rng() * 2;
     tiers.push({ base: 0, width: base, depth: base * 0.9, height: H * 0.78 });
     tiers.push({ base: H * 0.78, width: base * 0.55, depth: base * 0.5, height: H * 0.22 });
-    crown = 8 + rng() * 6;
+    crown = kind === 'GATEWAY' ? 14 + rng() * 4 : 8 + rng() * 6;
   }
 
   return { style, windows: style === 'SLAB' ? 'RIBBON' : 'STRIP', tiers, rotation, crown };
@@ -368,12 +377,14 @@ interface Props {
   color: string;
   isRuin: boolean;
   riskBand: string;
+  /** O tipo de maquina, do fabricante do MAC. Escolhe a forma, nunca a altura. */
+  kind?: DeviceKind;
   detail?: DetailLevel;
   /** Semente estavel do host (o IP), para a variacao nao mudar entre scans. */
   seed?: number;
 }
 
-export function Architecture({ portCount, color, isRuin, riskBand, detail = DETAIL.FULL, seed = 0 }: Props) {
+export function Architecture({ portCount, color, isRuin, riskBand, kind = 'GENERIC', detail = DETAIL.FULL, seed = 0 }: Props) {
   // Se for ruína, usamos uma cor mais visível e opacidade média para parecer um "fantasma"
   // mas sem ficar invisível no ecrã preto!
   const activeColor = isRuin ? '#666666' : color;
@@ -391,7 +402,10 @@ export function Architecture({ portCount, color, isRuin, riskBand, detail = DETA
   // ==========================================
   // MODELO 1: CASA DE SUBÚRBIO DETALHADA (portCount 1-3)
   // ==========================================
-  if (portCount <= 3) {
+  // A vivenda e para maquinas pequenas que nao sabemos o que sao. Uma coisa que
+  // sabemos ser um router ou um sensor tem forma propria por pouca porta que tenha --
+  // cai no modelo da torre, que a esta altura da uma capsula ou um mastro.
+  if (portCount <= 3 && kind === 'GENERIC') {
     const H = HOUSE_HEIGHT;
     
     if (!isRuin) {
@@ -473,10 +487,13 @@ export function Architecture({ portCount, color, isRuin, riskBand, detail = DETA
   // ==========================================
   // MODELO 2: TORRE (portCount > 3)
   // ==========================================
-  const floorsCount = Math.min(portCount, MAX_FLOORS);
+  // Pelo menos um andar. Um host pode responder ao ping sem ter uma unica porta
+  // aberta, e antes do tipo de dispositivo esse caso caia sempre na vivenda; agora um
+  // sensor sem portas vem parar aqui e um edificio de altura zero nao e um edificio.
+  const floorsCount = Math.max(1, Math.min(portCount, MAX_FLOORS));
   const floorH = FLOOR_HEIGHT;
   const H = floorsCount * floorH;
-  const form = towerForm(seed, floorsCount, floorH);
+  const form = towerForm(seed, floorsCount, floorH, kind);
   const base = form.tiers[0];
   const towerW = base.width;
   const towerD = base.depth;

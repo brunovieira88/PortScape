@@ -151,6 +151,7 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: Ci
           z={(host.gridZ + offsetZ) * SCALE}
           portCount={host.portCount}
           riskBand={host.riskBand as any}
+          vendor={host.vendor}
           isRuin={false}
           hostData={host}
           isSelected={selectedHost?.ip === host.ip}
@@ -171,6 +172,7 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: Ci
           z={(ruin.gridZ + offsetZ) * SCALE}
           portCount={ruin.portCount || 2} 
           riskBand={ruin.riskBand as any}
+          vendor={ruin.vendor}
           isRuin={true}
           onClick={() => onSelectHost(ruin)}
           hostData={ruin}

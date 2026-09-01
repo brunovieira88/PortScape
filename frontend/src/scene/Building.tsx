@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { Architecture, buildingHeight, DETAIL, type DetailLevel } from './buildings/ArchitectureBuilder';
+import { deviceKindOf } from './buildings/deviceKind';
 import { NewHostHighlight } from './highlights/NewHostHighlight';
 import { ChangedHostHighlight } from './highlights/ChangedHostHighlight';
 
@@ -12,6 +13,7 @@ interface BuildingProps {
   z: number;
   portCount: number;
   riskBand: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
+  vendor?: string | null;
   isRuin: boolean;
   onClick: () => void;
   isSelected?: boolean;
@@ -68,7 +70,7 @@ function seedOf(ip: string): number {
   return hash;
 }
 
-export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, isSelected, hostData, onClose, onOpenDetails, isNew, isChanged }: BuildingProps) {
+export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onClick, isSelected, hostData, onClose, onOpenDetails, isNew, isChanged }: BuildingProps) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
   
@@ -135,7 +137,8 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
   const color = shadeFor(riskBand, seed);
   // A altura vem do ArchitectureBuilder, que e quem desenha o edificio. Duplicar a
   // formula aqui punha a etiqueta cinco unidades acima do telhado de todas as casas.
-  const height = buildingHeight(portCount, seed);
+  const kind = deviceKindOf(vendor);
+  const height = buildingHeight(portCount, seed, kind);
   const waypointY = height + 2;
 
   const handleClick = (e: any) => {
@@ -184,6 +187,7 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
         color={color} 
         isRuin={isRuin} 
         riskBand={riskBand}
+        kind={kind}
         detail={detail}
         seed={seed}
       />
@@ -233,6 +237,9 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
                     {hostData.ip || 'Target IP'}
                   </div>
                   <div className="text-xl font-bold tracking-wider">{cleanHostname || hostData.ip}</div>
+                  {hostData.vendor && (
+                    <div className="text-[10px] text-gray-400 tracking-wide mt-0.5">{hostData.vendor}</div>
+                  )}
                 </div>
                 {/* OS ICON / BADGE */}
                 {(hostData.osGuess && typeof hostData.osGuess === 'string' && hostData.osGuess.trim().toLowerCase() !== 'null') && (

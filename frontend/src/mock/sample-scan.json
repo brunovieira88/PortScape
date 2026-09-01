@@ -48,6 +48,8 @@
   "hosts": [
     {
       "ip": "192.168.1.1",
+      "mac": "68:aa:c4:f8:93:9f",
+      "vendor": "Sagemcom Broadband SAS",
       "hostname": "router.lan",
       "osGuess": "Linux 4.x",
       "osAccuracy": 94,
@@ -84,6 +86,8 @@
     },
     {
       "ip": "192.168.1.10",
+      "mac": "5c:91:75:9e:c3:b6",
+      "vendor": "Synology Incorporated",
       "hostname": "nas.lan",
       "osGuess": "Linux 3.2",
       "osAccuracy": 88,
@@ -148,6 +152,8 @@
     },
     {
       "ip": "192.168.1.42",
+      "mac": "b8:27:eb:1c:61:a1",
+      "vendor": "Raspberry Pi Foundation",
       "osGuess": "Raspberry Pi OS",
       "osAccuracy": 71,
       "riskScore": 60,
@@ -195,6 +201,8 @@
     },
     {
       "ip": "192.168.1.100",
+      "mac": "c0:9a:d0:b0:b9:b0",
+      "vendor": "Brother Industries, Ltd.",
       "hostname": "printer.lan",
       "riskScore": 35,
       "riskBand": "MEDIUM",
@@ -238,6 +246,8 @@
   "ruins": [
     {
       "ip": "192.168.1.200",
+      "mac": "b8:52:e0:2a:60:f7",
+      "vendor": "Espressif Inc.",
       "hostname": "laptop.lan",
       "riskScore": 35,
       "riskBand": "MEDIUM",
