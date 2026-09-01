@@ -201,4 +201,63 @@ class ScanDifferTest {
         assertThat(diff.changeFor("192.168.1.68")).isEqualTo(HostChange.NEW);
         assertThat(diff.disappeared()).hasSize(1);
     }
+
+    @Test
+    @DisplayName("um registo antigo sem MAC emparelha pelo endereco quando o scan novo ja o resolve")
+    void matchesAMaclessBaselineRecordByItsAddress() {
+        // A regressao real: a leitura do MAC so passou a funcionar a meio da vida da
+        // base de dados. No primeiro scan em que funcionou, cada maquina deixou de
+        // bater com o seu proprio registo antigo -- aparecia como host novo E como
+        // ruina no mesmo endereco, ou seja, duas construcoes no mesmo lote da cidade.
+        ScanJob antes = scanWith(host("192.168.1.73", 22));
+        ScanJob agora = scanWith(device("B8:52:E0:2A:60:F7", "192.168.1.73", 22));
+
+        ScanDiff diff = ScanDiffer.diff(agora, inventoryOf(antes));
+
+        assertThat(diff.changeFor("192.168.1.73")).isEqualTo(HostChange.UNCHANGED);
+        assertThat(diff.disappeared()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("emparelhar pelo endereco nao esconde uma mudanca real")
+    void stillReportsChangesWhenMatchingByAddress() {
+        ScanJob antes = scanWith(host("192.168.1.73", 22));
+        ScanJob agora = scanWith(device("B8:52:E0:2A:60:F7", "192.168.1.73", 22, 23));
+
+        assertThat(ScanDiffer.diff(agora, inventoryOf(antes)).changeFor("192.168.1.73"))
+                .isEqualTo(HostChange.CHANGED);
+    }
+
+    @Test
+    @DisplayName("o recurso ao endereco nao vale quando o registo antigo ja tinha MAC")
+    void doesNotFallBackToTheAddressWhenTheBaselineKnewTheDevice() {
+        // E a fronteira toda: sabia-se qual era a maquina naquele endereco, e agora ha
+        // outra la. Isso e a tomada de um endereco, e tem de continuar a levantar as
+        // duas bandeiras.
+        ScanJob antes = scanWith(device("AA:BB:CC:00:11:22", "192.168.1.68", 22));
+        ScanJob agora = scanWith(device("FF:EE:DD:99:88:77", "192.168.1.68", 22));
+
+        ScanDiff diff = ScanDiffer.diff(agora, inventoryOf(antes));
+
+        assertThat(diff.changeFor("192.168.1.68")).isEqualTo(HostChange.NEW);
+        assertThat(diff.disappeared()).extracting(Host::mac).containsExactly("AA:BB:CC:00:11:22");
+    }
+
+    @Test
+    @DisplayName("nenhum host aparece ao mesmo tempo vivo e desaparecido no mesmo endereco")
+    void neverReportsTheSameAddressAsBothLiveAndGone() {
+        // A propriedade que a cidade precisa: dois edificios no mesmo lote sao sempre
+        // um erro, porque a posicao sai do IP.
+        ScanJob antes = scanWith(host("192.168.1.67", 80), host("192.168.1.73", 22),
+                host("192.168.1.99", 443));
+        ScanJob agora = scanWith(device("2C:95:69:C8:C3:7D", "192.168.1.67", 80),
+                device("B8:52:E0:2A:60:F7", "192.168.1.73", 22));
+
+        ScanDiff diff = ScanDiffer.diff(agora, inventoryOf(antes));
+
+        assertThat(diff.disappeared()).extracting(Host::ip)
+                .doesNotContainAnyElementsOf(agora.hosts().stream().map(Host::ip).toList())
+                // o .99 esse desapareceu mesmo, e continua a ser reportado
+                .containsExactly("192.168.1.99");
+    }
 }
