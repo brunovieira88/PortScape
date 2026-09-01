@@ -59,4 +59,20 @@ public interface ScanRepository extends JpaRepository<ScanEntity, UUID> {
      */
     Optional<ScanEntity> findFirstByTargetAndStatusAndIdNotAndFinishedAtBeforeOrderByFinishedAtDesc(
             String target, ScanStatus status, UUID excludedId, Instant before);
+
+    /**
+     * Os scans concluidos desta rede dentro da janela do inventario, do mais antigo
+     * para o mais recente.
+     *
+     * <p>A ordem importa: o inventario e construido por cima destes por ordem, e o
+     * ultimo estado conhecido de cada dispositivo e o que fica.
+     *
+     * <p>O limite superior e exclusivo, para um scan nao entrar no seu proprio
+     * inventario. O inferior e inclusivo.
+     */
+    @Query("SELECT s FROM ScanEntity s WHERE s.target = :target"
+            + " AND s.status = com.portscape.domain.ScanStatus.DONE"
+            + " AND s.finishedAt >= :from AND s.finishedAt < :before"
+            + " ORDER BY s.finishedAt ASC")
+    List<ScanEntity> findInventoryWindow(String target, Instant from, Instant before);
 }

@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import com.portscape.baseline.BaselineResolver;
+import com.portscape.baseline.BaselineSnapshot;
 import com.portscape.config.AsyncConfig;
 import com.portscape.config.NmapProperties;
 import com.portscape.domain.Host;
@@ -225,7 +226,7 @@ public class ScanService {
         }
         CveLookupResult cves = cveLookupService.lookup(hosts);
         List<Host> baseline = baselineResolver.resolveFor(target)
-                .map(ScanJob::hosts)
+                .map(BaselineSnapshot::hosts)
                 .orElse(null);
 
         Map<String, RiskScore> scores = riskScorer.score(hosts, cves, baseline);

@@ -25,7 +25,7 @@ public final class ScanDiffer {
     private ScanDiffer() {
     }
 
-    public static ScanDiff diff(ScanJob current, ScanJob baseline) {
+    public static ScanDiff diff(ScanJob current, BaselineSnapshot baseline) {
         if (baseline == null) {
             return ScanDiff.none();
         }
@@ -48,7 +48,7 @@ public final class ScanDiffer {
                 .filter(host -> !present.contains(host.identity()))
                 .toList();
 
-        return new ScanDiff(baseline.id(), changes, disappeared);
+        return new ScanDiff(baseline.scanId(), changes, disappeared);
     }
 
     /**

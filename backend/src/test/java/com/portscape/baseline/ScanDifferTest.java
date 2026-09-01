@@ -40,10 +40,15 @@ class ScanDifferTest {
         return scan(UUID.randomUUID(), hosts);
     }
 
+    /** O inventario que um scan por si so representaria. */
+    private static BaselineSnapshot inventoryOf(ScanJob scan) {
+        return new BaselineSnapshot(scan.id(), scan.hosts());
+    }
+
     private static ScanDiff diff(List<Host> current, List<Host> baseline) {
         return ScanDiffer.diff(
                 scan(UUID.randomUUID(), current.toArray(Host[]::new)),
-                scan(BASELINE_ID, baseline.toArray(Host[]::new)));
+                inventoryOf(scan(BASELINE_ID, baseline.toArray(Host[]::new))));
     }
 
     @Test
@@ -142,7 +147,7 @@ class ScanDifferTest {
         ScanJob antes = scanWith(device("AA:BB:CC:00:11:22", "192.168.1.68", 22));
         ScanJob agora = scanWith(device("AA:BB:CC:00:11:22", "192.168.1.70", 22));
 
-        ScanDiff diff = ScanDiffer.diff(agora, antes);
+        ScanDiff diff = ScanDiffer.diff(agora, inventoryOf(antes));
 
         // Com a comparacao por IP isto dava NEW no .70 e o .68 como desaparecido --
         // dois falsos alarmes por cada renovacao de aluguer de DHCP.
@@ -156,7 +161,7 @@ class ScanDifferTest {
         ScanJob antes = scanWith(device("AA:BB:CC:00:11:22", "192.168.1.68", 22));
         ScanJob agora = scanWith(device("FF:EE:DD:99:88:77", "192.168.1.68", 22));
 
-        ScanDiff diff = ScanDiffer.diff(agora, antes);
+        ScanDiff diff = ScanDiffer.diff(agora, inventoryOf(antes));
 
         // E este o caso que interessa a uma auditoria: alguem ocupou o endereco.
         assertThat(diff.changeFor("192.168.1.68")).isEqualTo(HostChange.NEW);
@@ -169,7 +174,7 @@ class ScanDifferTest {
         ScanJob antes = scanWith(device("AA:BB:CC:00:11:22", "192.168.1.68", 22));
         ScanJob agora = scanWith(device("AA:BB:CC:00:11:22", "192.168.1.70", 22, 23));
 
-        assertThat(ScanDiffer.diff(agora, antes).changeFor("192.168.1.70"))
+        assertThat(ScanDiffer.diff(agora, inventoryOf(antes)).changeFor("192.168.1.70"))
                 .isEqualTo(HostChange.CHANGED);
     }
 
@@ -179,7 +184,7 @@ class ScanDifferTest {
         ScanJob antes = scanWith(host("192.168.1.68", 22));
         ScanJob agora = scanWith(host("192.168.1.68", 22));
 
-        assertThat(ScanDiffer.diff(agora, antes).changeFor("192.168.1.68"))
+        assertThat(ScanDiffer.diff(agora, inventoryOf(antes)).changeFor("192.168.1.68"))
                 .isEqualTo(HostChange.UNCHANGED);
     }
 
@@ -192,7 +197,7 @@ class ScanDifferTest {
         // O scan novo nao conseguiu resolver o MAC, portanto o .68 identifica-se pelo
         // IP e nao bate com "AA:BB:...". E o comportamento conservador certo: sinaliza
         // em vez de assumir que e o mesmo.
-        ScanDiff diff = ScanDiffer.diff(agora, antes);
+        ScanDiff diff = ScanDiffer.diff(agora, inventoryOf(antes));
         assertThat(diff.changeFor("192.168.1.68")).isEqualTo(HostChange.NEW);
         assertThat(diff.disappeared()).hasSize(1);
     }

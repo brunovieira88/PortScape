@@ -111,6 +111,13 @@ portscape:
     high-threshold: 50
     medium-threshold: 25
 
+  baseline:
+    # Janela do inventario de dispositivos conhecidos desta rede. Um dispositivo visto
+    # nos ultimos 7 dias continua a aparecer como offline quando nao responde, e nao e
+    # assinalado como novo quando volta. Passado esse tempo sem dar sinal, sai da
+    # cidade -- e o que impede o telemovel de uma visita de ficar la para sempre.
+    window: 7d
+
   layout:
     # Geometria da cidade 3D. Cada bairro e um bloco quase quadrado preenchido por
     # ordem de IP, para um scan de cinco maquinas nao dar uma grelha de 254 lugares
