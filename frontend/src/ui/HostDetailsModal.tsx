@@ -1,4 +1,9 @@
 import { useEffect } from 'react';
+import { BAND_COLORS } from '../scene/Building';
+
+function bandColor(band: string): string {
+  return BAND_COLORS[band as keyof typeof BAND_COLORS] || BAND_COLORS.UNKNOWN;
+}
 
 export function HostDetailsModal({ host, onClose }: { host: any, onClose: () => void }) {
   // Fecha com a tecla ESC
@@ -25,7 +30,7 @@ export function HostDetailsModal({ host, onClose }: { host: any, onClose: () => 
           <div>
             <div className="flex items-center gap-3 mb-2">
               <h2 className="text-3xl font-mono text-[#00f0ff] font-bold tracking-wider">{host.ip}</h2>
-              {host.isRuin && (
+              {host.change === 'DISAPPEARED' && (
                 <span className="bg-gray-800 text-gray-300 text-xs px-2 py-1 rounded tracking-widest uppercase border border-gray-600">Offline Relic</span>
               )}
             </div>
@@ -51,24 +56,14 @@ export function HostDetailsModal({ host, onClose }: { host: any, onClose: () => 
             <div className="bg-black/40 border border-white/5 rounded-lg p-5">
               <h3 className="text-xs font-bold text-gray-500 tracking-[0.2em] uppercase mb-4">Risk Profile</h3>
               <div className="flex items-end gap-3 mb-2">
-                <span className={`text-4xl font-mono font-bold
-                  ${host.riskBand === 'CRITICAL' ? 'text-red-500' : 
-                    host.riskBand === 'HIGH' ? 'text-orange-500' :
-                    host.riskBand === 'MEDIUM' ? 'text-yellow-500' :
-                    host.riskBand === 'LOW' ? 'text-green-500' :
-                    'text-gray-400'}
-                `}>
-                  {host.riskScore || 0}
+                <span className="text-4xl font-mono font-bold" style={{ color: bandColor(host.riskBand) }}>
+                  {host.riskScore ?? 0}
                 </span>
                 <span className="text-sm text-gray-500 mb-1">/ 100</span>
               </div>
-              <div className={`text-sm font-bold tracking-widest uppercase
-                  ${host.riskBand === 'CRITICAL' ? 'text-red-500' : 
-                    host.riskBand === 'HIGH' ? 'text-orange-500' :
-                    host.riskBand === 'MEDIUM' ? 'text-yellow-500' :
-                    host.riskBand === 'LOW' ? 'text-green-500' :
-                    'text-gray-400'}
-              `}>
+              {/* A mesma cor que pinta o edificio na cidade -- ver o BAND_COLORS. */}
+              <div className="text-sm font-bold tracking-widest uppercase"
+                   style={{ color: bandColor(host.riskBand) }}>
                 BAND: {host.riskBand || 'UNKNOWN'}
               </div>
             </div>

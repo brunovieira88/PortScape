@@ -1,3 +1,9 @@
+import { BAND_COLORS } from '../scene/Building';
+
+function bandColor(band: string): string {
+  return BAND_COLORS[band as keyof typeof BAND_COLORS] || BAND_COLORS.UNKNOWN;
+}
+
 export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isHidden }: { scanData: any, onOpenDetails?: (host: any) => void, isOpen: boolean, onToggle: () => void, isHidden?: boolean }) {
   const activeHosts = scanData?.hosts || [];
   const ruins = scanData?.ruins || [];
@@ -74,13 +80,17 @@ export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isH
                   
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-[#00f0ff] font-mono font-bold">{host.ip}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold
-                      ${host.riskBand === 'CRITICAL' ? 'bg-red-500/20 text-red-500' : 
-                        host.riskBand === 'HIGH' ? 'bg-orange-500/20 text-orange-500' :
-                        host.riskBand === 'MEDIUM' ? 'bg-yellow-500/20 text-yellow-500' :
-                        host.riskBand === 'LOW' ? 'bg-green-500/20 text-green-500' :
-                        'bg-gray-500/20 text-gray-400'}
-                    `}>
+                    {/* A cor sai do BAND_COLORS, a mesma que pinta o edificio na
+                        cidade. Esta lista tinha uma paleta propria, e o LOW aparecia
+                        verde aqui e ciano na cena -- duas linguagens de cor para a
+                        mesma informacao, o que obriga a reaprender o mapa. */}
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold"
+                      style={{
+                        color: bandColor(host.riskBand),
+                        backgroundColor: `${bandColor(host.riskBand)}22`,
+                      }}
+                    >
                       {host.riskBand}
                     </span>
                   </div>
