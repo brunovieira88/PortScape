@@ -1,8 +1,8 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useMemo, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { Architecture } from './buildings/ArchitectureBuilder';
+import { Architecture, buildingHeight, DETAIL, type DetailLevel } from './buildings/ArchitectureBuilder';
 import { NewHostHighlight } from './highlights/NewHostHighlight';
 import { ChangedHostHighlight } from './highlights/ChangedHostHighlight';
 
@@ -22,43 +22,103 @@ interface BuildingProps {
   isChanged?: boolean;
 }
 
+/**
+ * A paleta das faixas de risco.
+ *
+ * <p>Os valores estao equilibrados por <b>luminancia percebida</b>, nao escolhidos a
+ * olho. Um amarelo saturado e cerca de quatro vezes mais luminoso do que um vermelho
+ * saturado -- isso e perceptual, nao e afinacao -- e com o bloom a partir de 0.2 o
+ * amarelo ultrapassava o limiar em 39 vezes o que o vermelho ultrapassava. O resultado
+ * era a hierarquia ao contrario: o MEDIUM dominava a cidade e o CRITICAL desaparecia.
+ *
+ * <p>O CRITICAL e o HIGH ficam nos tons originais; o MEDIUM e o LOW foram descidos ate
+ * onde ainda se leem como amarelo e ciano. Nao da para os igualar ao vermelho sem os
+ * transformar em azeitona e petroleo, por isso o amarelo continua a ser o mais claro --
+ * so que por uma margem que ja nao rouba a cena ao vermelho.
+ */
 export const BAND_COLORS = {
-  CRITICAL: '#ff003c', // Cyberpunk Red
-  HIGH: '#ff8a00',     // Neon Orange
-  MEDIUM: '#fcee0a',   // Electric Yellow
-  LOW: '#00f0ff',      // Cyan
-  UNKNOWN: '#808080'   // Dim Gray
+  CRITICAL: '#ff003c', // vermelho — luminancia 0.22
+  HIGH: '#ff8a00',     // laranja   — 0.39
+  MEDIUM: '#c1b602',   // amarelo   — 0.45, era 0.82
+  LOW: '#00b7c3',      // ciano     — 0.38, era 0.70
+  UNKNOWN: '#595959'   // cinzento  — 0.10, era 0.22: "nao avaliado" nao deve chamar
 };
+
+/**
+ * A cor da faixa, afastada um pouco consoante o host.
+ *
+ * <p>Todos os edificios de uma faixa partilhavam o mesmo hexadecimal exato, o que faz
+ * um bairro ler como uma mancha unica de cor em vez de um conjunto de edificios. O
+ * desvio e pequeno de proposito -- tem de continuar a ser obvio a que faixa pertence,
+ * porque a cor e informacao. Muda o tom e o brilho, nunca ao ponto de trocar de faixa.
+ */
+function shadeFor(band: keyof typeof BAND_COLORS, seed: number): string {
+  const base = new THREE.Color(BAND_COLORS[band] || BAND_COLORS.UNKNOWN);
+  const hueShift = ((seed % 1000) / 1000 - 0.5) * 0.035;
+  const lightShift = (((seed >> 10) % 1000) / 1000 - 0.5) * 0.22;
+  return base.offsetHSL(hueShift, 0, lightShift).getStyle();
+}
+
+/** Semente estavel a partir do IP -- o mesmo host tem sempre o mesmo aspecto. */
+function seedOf(ip: string): number {
+  let hash = 0;
+  for (let i = 0; i < ip.length; i++) {
+    hash = (hash * 31 + ip.charCodeAt(i)) & 0x7fffffff;
+  }
+  return hash;
+}
 
 export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, isSelected, hostData, onClose, onOpenDetails, isNew, isChanged }: BuildingProps) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
   
   const [isNear, setIsNear] = useState(false);
+  const [detail, setDetail] = useState<DetailLevel>(DETAIL.FULL);
   const [forceClosed, setForceClosed] = useState(false); 
   const [spawnOffset, setSpawnOffset] = useState<[number, number]>([0, 6]); // [x, z] offset
   
   const targetScale = 1;
+
+  // A posicao do edificio nao muda: alocar um Vector3 por frame para a mesma conta
+  // punha ~30 mil objetos por segundo no colector de lixo, num /24.
+  const anchor = useMemo(() => new THREE.Vector3(x, 0, z), [x, z]);
   
   useEffect(() => {
-    console.log(`Building mounted: ${label} at x:${x}, z:${z}, isRuin:${isRuin}`);
+    // Nasce achatado e cresce -- ver o lerp da escala no useFrame.
     if (groupRef.current) groupRef.current.scale.y = 0.01;
   }, []);
 
   const MAX_INTERACT_DISTANCE = 45; 
   const AUTO_SPAWN_ENTER = 18; 
   const AUTO_SPAWN_LEAVE = 22; 
+
+  // Distancias a que o edificio ganha e perde detalhe. A margem entre entrar e sair
+  // evita que um edificio a oscilar sobre o limiar remonte a geometria a cada frame.
+  const FULL_DETAIL_IN = 120;
+  const FULL_DETAIL_OUT = 150;
+  const STRUCTURE_IN = 300;
+  const STRUCTURE_OUT = 350;
   
   useFrame((_state, delta) => {
     if (groupRef.current) {
       groupRef.current.scale.y = THREE.MathUtils.lerp(groupRef.current.scale.y, targetScale, 4 * delta);
     }
 
-    const dist = camera.position.distanceTo(new THREE.Vector3(x, 0, z));
+    const dist = camera.position.distanceTo(anchor);
+
+    // So se escreve no estado quando o nivel muda mesmo -- um setState por frame
+    // recriava a geometria toda continuamente, que era pior do que nao ter LOD.
+    const next: DetailLevel =
+      dist < (detail >= DETAIL.FULL ? FULL_DETAIL_OUT : FULL_DETAIL_IN) ? DETAIL.FULL
+        : dist < (detail >= DETAIL.STRUCTURE ? STRUCTURE_OUT : STRUCTURE_IN) ? DETAIL.STRUCTURE
+          : DETAIL.SILHOUETTE;
+    if (next !== detail) {
+      setDetail(next);
+    }
 
     if (!isNear && dist < AUTO_SPAWN_ENTER) {
       // Quando abre por proximidade, calcula o lado virado para o jogador
-      const dir = camera.position.clone().sub(new THREE.Vector3(x, 0, z)).setY(0).normalize();
+      const dir = camera.position.clone().sub(anchor).setY(0).normalize();
       setSpawnOffset([dir.x * 6, dir.z * 6]);
       setIsNear(true);
     } else if (isNear && dist > AUTO_SPAWN_LEAVE) {
@@ -71,18 +131,19 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
     }
   });
 
-  const isTower = portCount > 3;
-  const baseH = isTower ? Math.min(portCount, 25) * 3 : 8;
-  const roofExtra = isTower ? (portCount >= 8 ? 18 : 5) : 4;
-  const waypointY = baseH + roofExtra + 2; 
-  const color = BAND_COLORS[riskBand] || BAND_COLORS.UNKNOWN;
+  const seed = seedOf(label);
+  const color = shadeFor(riskBand, seed);
+  // A altura vem do ArchitectureBuilder, que e quem desenha o edificio. Duplicar a
+  // formula aqui punha a etiqueta cinco unidades acima do telhado de todas as casas.
+  const height = buildingHeight(portCount, seed);
+  const waypointY = height + 2;
 
   const handleClick = (e: any) => {
     e.stopPropagation();
-    const dist = camera.position.distanceTo(new THREE.Vector3(x, 0, z));
+    const dist = camera.position.distanceTo(anchor);
     if (dist <= MAX_INTERACT_DISTANCE) {
       // Quando abre por clique, calcula o lado onde o utilizador está
-      const dir = camera.position.clone().sub(new THREE.Vector3(x, 0, z)).setY(0).normalize();
+      const dir = camera.position.clone().sub(anchor).setY(0).normalize();
       setSpawnOffset([dir.x * 6, dir.z * 6]);
       onClick();
     }
@@ -90,7 +151,7 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
 
   const handlePointerOver = (e: any) => {
     e.stopPropagation();
-    const dist = camera.position.distanceTo(new THREE.Vector3(x, 0, z));
+    const dist = camera.position.distanceTo(anchor);
     document.body.style.cursor = dist <= MAX_INTERACT_DISTANCE ? 'pointer' : 'not-allowed';
   };
 
@@ -123,9 +184,11 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
         color={color} 
         isRuin={isRuin} 
         riskBand={riskBand}
+        detail={detail}
+        seed={seed}
       />
       {isNew && !isRuin && <NewHostHighlight />}
-      {isChanged && !isRuin && <ChangedHostHighlight height={baseH + roofExtra + 5} />}
+      {isChanged && !isRuin && <ChangedHostHighlight height={height + 5} />}
       
       {showUI && (
         <>
@@ -228,7 +291,9 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
       )}
 
       {/* Waypoint DOM (Imune ao Bloom/Luzes do ambiente 3D) */}
-      {!showUI && (
+      {/* A etiqueta e um no de DOM que o drei reposiciona a cada frame. Uma por
+          edificio de um /24 sao 254 divs a competir com a cena; longe nem se le. */}
+      {!showUI && detail >= DETAIL.STRUCTURE && (
         <Html key={`html-waypoint-${label}`} position={[0, waypointY, 0]} center zIndexRange={[50, 0]}>
           <div 
             className="flex flex-col items-center justify-center pointer-events-none select-none text-center whitespace-nowrap"

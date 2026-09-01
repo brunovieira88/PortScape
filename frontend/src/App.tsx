@@ -33,7 +33,6 @@ export default function App() {
           // Removido o setShowMenu(false) a pedido do utilizador
         }
       } catch (e) {
-        console.log("No real scans available yet, using mockData.");
       }
     };
     fetchLatest();

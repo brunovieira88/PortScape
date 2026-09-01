@@ -2,15 +2,14 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useMemo } from 'react';
-import { Building, BAND_COLORS } from './Building';
-import { buildCityGrid, type PlacedDistrict } from './cityGrid';
+import { Building } from './Building';
+import { buildCityGrid, BLOCK_SCALE as SCALE } from './cityGrid';
 import { StreetControls } from './StreetControls';
 import { StreetLayout } from './StreetLayout';
 
 
 
-// SCALE define a distância total entre os edifícios. Baixado de 13 para 11.5 para aproximar mais os bairros.
-const SCALE = 22; 
+
 
 import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
@@ -21,6 +20,10 @@ interface CityProps {
   onSelectHost: (host: any) => void;
   onOpenDetails: (host: any) => void;
 }
+
+/** Azul-noite quase preto. E o horizonte e o nevoeiro ao mesmo tempo. */
+const HORIZON = '#070a14';
+
 
 function Skybox() {
   const skyRef = useRef<THREE.Group>(null);
@@ -78,6 +81,7 @@ function CrescentMoon() {
           map={moonTexture} 
           transparent={true} 
           toneMapped={false} 
+          fog={false}
           color="#ffffff" 
           depthWrite={false}
           depthTest={false}
@@ -88,51 +92,43 @@ function CrescentMoon() {
 }
 
 
-/**
- * A placa de chao de um bairro. As dimensoes vem do backend (District) em vez de
- * serem reconstituidas a partir das posicoes dos hosts -- e para isso que o record
- * viaja no JSON.
- */
-function DistrictPlate({ district, offsetX, offsetZ }:
-  { district: PlacedDistrict, offsetX: number, offsetZ: number }) {
-
-  // O centro da placa e o centro das celulas que ela cobre, nao o canto.
-  const centerX = (district.startX + (district.columns - 1) / 2 + offsetX) * SCALE;
-  const centerZ = ((district.rows - 1) / 2 + offsetZ) * SCALE;
-  const width = district.columns * SCALE;
-  const depth = district.rows * SCALE;
-  const color = BAND_COLORS[district.band as keyof typeof BAND_COLORS] || BAND_COLORS.UNKNOWN;
-
-  return (
-    <group position={[centerX, 0, centerZ]}>
-      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[width, depth]} />
-        <meshBasicMaterial color={color} transparent opacity={0.06} depthWrite={false} />
-      </mesh>
-      <lineSegments position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <edgesGeometry args={[new THREE.PlaneGeometry(width, depth)]} />
-        <lineBasicMaterial color={color} transparent opacity={0.5} />
-      </lineSegments>
-    </group>
-  );
-}
-
 export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: CityProps) {
   // Toda a traducao do layout do backend para a grelha vive no cityGrid, fora do
   // React, para poder ser testada. Ver o aviso la sobre nao recompactar aqui.
-  const { hosts: processedHosts, ruins: processedRuins, districts,
-          layoutW, layoutD, offsetX, offsetZ } = useMemo(
+  // O chao (groundW/groundD) e maior do que a cidade de proposito, para uma rede
+  // pequena nao ficar sobre um selo. Vem do cityGrid, que e tambem quem limita para
+  // onde a camara pode andar -- se fossem calculados a parte, voltavam a divergir.
+  const { hosts: processedHosts, ruins: processedRuins,
+          offsetX, offsetZ, groundW: gridWidth, groundD: gridDepth } = useMemo(
     () => buildCityGrid(scanData), [scanData]);
-
-  // Forcamos o asfalto (chao) a ter pelo menos 16x16 quarteiroes
-  // Mas ja nao usamos isto para mover os edificios!
-  const gridWidth = Math.max(layoutW, 16);
-  const gridDepth = Math.max(layoutD, 16);
 
   return (
     <>
       <StreetControls scanData={scanData} />
-      <ambientLight intensity={0.1} />
+
+      {/* A cor do horizonte e o nevoeiro sao a mesma: e isso que faz a cidade
+          desvanecer-se ao longe em vez de terminar num corte seco.
+
+          Sem nevoeiro, um edificio a 500 unidades e exatamente tao vivo como um a 20 e
+          a cena fica plana -- nao ha nenhuma outra pista de profundidade, porque nao ha
+          um unico material com sombreado em toda a cidade. */}
+      <color attach="background" args={[HORIZON]} />
+      <fog attach="fog" args={[HORIZON, 90, 620]} />
+
+      {/* Luz do ceu: azul por cima, quase nada por baixo. Da a queda natural de cima
+          para baixo sem precisar de candeeiros. E deliberadamente mais clara do que o
+          HORIZON -- a cor do nevoeiro serve para o ar, nao para encher as sombras, e
+          com ela as faces viradas ao contrario da lua ficavam pretas puras. */}
+      <hemisphereLight args={['#2a3558', '#05060a', 1.2]} />
+
+      {/* A lua e a unica fonte direccional, e vem do sitio onde ela esta desenhada --
+          se viesse de outro lado, as faces iluminadas contradiziam o ceu.
+
+          Sem castShadow de proposito: a passagem de sombra re-renderiza todos os
+          projectores uma vez por frame, e num /24 sao umas 700 caixas. O que da forma
+          aos edificios e a luz direccional em si, nao a sombra projectada -- esta
+          custava a parte mais cara para o ganho mais pequeno numa cena quase preta. */}
+      <directionalLight position={[300, 200, -800]} intensity={1.1} color="#9fb4ff" />
 
       {/* Céu Cyberpunk: Estrelas e Lua infinitas e perfeitamente estáticas */}
       <Skybox />
@@ -140,16 +136,11 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: Ci
       {/* Ruas, Passeios, Linhas e Candeeiros 100% Enquadrados */}
       <StreetLayout offsetX={offsetX} offsetZ={offsetZ} gridWidth={gridWidth} gridDepth={gridDepth} />
 
-      {/* Placas de chao dos bairros: e o que torna o zonamento por risco legivel
-          de relance, sem ser preciso ler a cor de cada edificio um a um. */}
-      {districts.map((district) => (
-        <DistrictPlate
-          key={`${scanData.id}-district-${district.band}`}
-          district={district}
-          offsetX={offsetX}
-          offsetZ={offsetZ}
-        />
-      ))}
+      {/* Os bairros nao levam nenhuma marca no chao. Ja foram placas translucidas e
+          depois faixas na fronteira, e ambas liam como overlay de interface caido
+          dentro da cena. O zonamento continua legivel sem isso: cada edificio ja tem a
+          cor da sua faixa e os bairros ja estao fisicamente separados pelo intervalo
+          entre eles. O District continua a viajar no JSON para quem o queira usar. */}
 
       {/* Edifícios Host (Hosts Ativos) */}
       {processedHosts.map((host: any) => (
@@ -189,10 +180,12 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: Ci
         />
       ))}
 
-      {/* Efeitos Especiais: O Bloom é vital para o estilo Cyberpunk Neon */}
-      {/* LuminanceThreshold alto para afetar APENAS cores puras e preservar a escuridão geral (não fica "baço") */}
+      {/* O bloom e o que da o neon. O limiar fica em 0.2 de proposito -- subi-lo
+          domava o amarelo mas punha o vermelho do CRITICAL abaixo da linha, e a faixa
+          mais grave deixava de brilhar de todo. O que se dosea e a intensidade, que
+          afecta as faixas todas por igual em vez de castigar so a mais luminosa. */}
       <EffectComposer>
-        <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} intensity={2.0} />
+        <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} intensity={1.4} />
       </EffectComposer>
     </>
   );
