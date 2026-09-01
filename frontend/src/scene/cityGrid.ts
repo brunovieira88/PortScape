@@ -5,6 +5,8 @@
  * um bug passou despercebido durante toda a fase 3 -- o frontend recompactava as
  * coordenadas e desfazia o trabalho do CityLayoutCalculator. Fora do React, testa-se.
  */
+import { deviceKindOf } from './buildings/deviceKind';
+import { footprintHalfWidth, seedOf } from './buildings/towerForm';
 
 /**
  * Distancia em unidades de mundo entre os centros de dois quarteiroes vizinhos.
@@ -17,11 +19,16 @@
 export const BLOCK_SCALE = 22;
 
 /**
- * Meia-largura da caixa de colisao de um edificio. A pegada de um edificio e de 10
- * unidades, portanto 6 deixa uma margem pequena para nao se ficar preso a raspar nas
- * paredes.
+ * Folga entre a fachada e a parede invisivel, para nao se ficar preso a raspar.
+ *
+ * <p>A meia-largura de cada edificio ja nao e uma constante: vem do
+ * {@link footprintHalfWidth}, a mesma conta que desenha a planta. Era 6 fixo para
+ * todos, herdado de quando todos os edificios eram a mesma caixa de 10x10 -- depois
+ * dos arquetipos da fase 4 uma laje chega a 17 unidades de largura, e 38% dos
+ * edificios de um /24 ficaram mais largos do que a parede que os protegia. Entrava-se
+ * pela fachada dentro.
  */
-export const BUILDING_HALF_WIDTH = 6;
+export const COLLISION_MARGIN = 1;
 
 /** Minimo de quarteiroes de alcatrao, para uma cidade pequena nao ficar sobre um selo. */
 export const MIN_GROUND_BLOCKS = 16;
@@ -40,8 +47,11 @@ export interface CityGrid {
   /** Extensao do chao desenhado, em quarteiroes -- e o que limita para onde se anda. */
   groundW: number;
   groundD: number;
-  /** Celulas com edificio, como "gridX,gridZ". As ruinas contam: sao solidas na cena. */
-  occupied: Set<string>;
+  /**
+   * Celulas com edificio, como "gridX,gridZ", e a meia-largura de cada um. As ruinas
+   * contam: sao solidas na cena, e bate-se nelas como nas outras.
+   */
+  occupied: Map<string, number>;
 }
 
 export interface PlacedHost {
@@ -104,8 +114,25 @@ export function buildCityGrid(scanData: any): CityGrid {
     offsetZ: -layoutD / 2,
     groundW: Math.max(layoutW, MIN_GROUND_BLOCKS),
     groundD: Math.max(layoutD, MIN_GROUND_BLOCKS),
-    occupied: new Set([...hosts, ...ruins].map(h => `${h.gridX},${h.gridZ}`)),
+    // A meia-largura tem de sair do mesmo numero de portas com que o edificio e
+    // desenhado -- incluindo o minimo de 2 que a cena da as ruinas, que de outra
+    // forma ficavam com a caixa de um edificio que ninguem ve.
+    occupied: new Map([
+      ...hosts.map(h => cellFootprint(h, h.portCount ?? 0)),
+      ...ruins.map(h => cellFootprint(h, h.portCount || RUIN_MIN_PORTS)),
+    ]),
   };
+}
+
+/**
+ * Portas com que se desenha uma ruina que ja nao responde a nenhuma. Um edificio de
+ * altura zero nao e um edificio, e a ruina continua a ter de se ver.
+ */
+export const RUIN_MIN_PORTS = 2;
+
+function cellFootprint(host: PlacedHost, portCount: number): [string, number] {
+  const half = footprintHalfWidth(portCount, seedOf(host.ip ?? ''), deviceKindOf(host.vendor));
+  return [`${host.gridX},${host.gridZ}`, half + COLLISION_MARGIN];
 }
 
 /** Onde o centro de um quarteirao fica no mundo. */
@@ -145,9 +172,9 @@ export function collidesAt(grid: CityGrid, x: number, z: number): boolean {
 
   for (const gx of [Math.floor(gridX), Math.ceil(gridX)]) {
     for (const gz of [Math.floor(gridZ), Math.ceil(gridZ)]) {
-      if (!grid.occupied.has(`${gx},${gz}`)) { continue; }
-      if (Math.abs(x - worldX(grid, gx)) < BUILDING_HALF_WIDTH
-          && Math.abs(z - worldZ(grid, gz)) < BUILDING_HALF_WIDTH) {
+      const half = grid.occupied.get(`${gx},${gz}`);
+      if (half === undefined) { continue; }
+      if (Math.abs(x - worldX(grid, gx)) < half && Math.abs(z - worldZ(grid, gz)) < half) {
         return true;
       }
     }

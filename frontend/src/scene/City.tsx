@@ -3,7 +3,7 @@ import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useMemo } from 'react';
 import { Building } from './Building';
-import { buildCityGrid, BLOCK_SCALE as SCALE } from './cityGrid';
+import { buildCityGrid, BLOCK_SCALE as SCALE, RUIN_MIN_PORTS } from './cityGrid';
 import { StreetControls } from './StreetControls';
 import { StreetLayout } from './StreetLayout';
 
@@ -170,7 +170,7 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: Ci
           label={ruin.ip}
           x={(ruin.gridX + offsetX) * SCALE}
           z={(ruin.gridZ + offsetZ) * SCALE}
-          portCount={ruin.portCount || 2} 
+          portCount={ruin.portCount || RUIN_MIN_PORTS}
           riskBand={ruin.riskBand as any}
           vendor={ruin.vendor}
           isRuin={true}

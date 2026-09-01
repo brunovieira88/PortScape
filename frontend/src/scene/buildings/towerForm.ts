@@ -130,3 +130,31 @@ export function towerForm(seed: number, floors: number, floorHeight: number,
 
   return { style, windows: style === 'SLAB' ? 'RIBBON' : 'STRIP', tiers, rotation, crown };
 }
+
+/** A planta de uma casa, que nao passa pelo towerForm: uma caixa de 10x10 sem rotacao. */
+export const HOUSE_WIDTH = 10;
+
+/**
+ * Meia-largura da pegada do edificio, ja com a rotacao aplicada.
+ *
+ * <p>E a metade do lado da caixa alinhada aos eixos que envolve o patamar de baixo --
+ * que e sempre o mais largo, em qualquer dos arquetipos. E daqui que sai a colisao:
+ * uma constante unica para todos os edificios estava errada por construcao, porque uma
+ * laje e mais do dobro da largura de uma agulha. Com 6 fixo, 38% dos edificios de um
+ * /24 eram mais largos do que a parede que os protegia e entrava-se pela fachada.
+ */
+export function footprintHalfWidth(portCount: number, seed = 0,
+    kind: DeviceKind = 'GENERIC'): number {
+  if (portCount <= 3 && kind === 'GENERIC') {
+    return HOUSE_WIDTH / 2;
+  }
+  const floors = Math.max(1, Math.min(portCount, MAX_FLOORS));
+  const form = towerForm(seed, floors, FLOOR_HEIGHT, kind);
+  const base = form.tiers[0];
+  const cos = Math.abs(Math.cos(form.rotation));
+  const sin = Math.abs(Math.sin(form.rotation));
+  // A caixa rodada e mais larga do que o edificio: um prisma a 45 graus ocupa a
+  // diagonal. Toma-se o maior dos dois lados para a colisao ser conservadora.
+  return Math.max(base.width * cos + base.depth * sin,
+                  base.width * sin + base.depth * cos) / 2;
+}

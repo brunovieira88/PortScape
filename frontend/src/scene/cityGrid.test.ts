@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildCityGrid, collidesAt, walkableBounds, worldX, worldZ,
-         BLOCK_SCALE, BUILDING_HALF_WIDTH } from './cityGrid';
+         BLOCK_SCALE } from './cityGrid';
 import sampleScan from '../mock/sample-scan.json';
 
 /** Um scan minimo com o layout no formato que o backend serve. */
@@ -171,10 +171,38 @@ describe('collidesAt', () => {
     const host = grid.hosts[0];
     const centro = worldX(grid, host.gridX);
     const z = worldZ(grid, host.gridZ);
+    const meiaLargura = grid.occupied.get(`${host.gridX},${host.gridZ}`)!;
 
-    expect(collidesAt(grid, centro + BUILDING_HALF_WIDTH - 0.1, z)).toBe(true);
-    expect(collidesAt(grid, centro + BUILDING_HALF_WIDTH + 0.1, z)).toBe(false);
+    expect(collidesAt(grid, centro + meiaLargura - 0.1, z)).toBe(true);
+    expect(collidesAt(grid, centro + meiaLargura + 0.1, z)).toBe(false);
   });
+
+  it('a caixa acompanha a largura real do edificio, e nao uma constante', () => {
+    // A regressao: 6 fixo para todos, herdado de quando todos os edificios eram a
+    // mesma caixa de 10x10. Uma laje da fase 4 chega a 8.6 de meia-largura -- 38% dos
+    // edificios de um /24 eram mais largos do que a parede que os protegia, e
+    // entrava-se pela fachada dentro antes de bater em alguma coisa.
+    const grid = buildCityGrid(scanWith([
+      { ip: '192.168.1.1', position: { x: 0, z: 0 }, portCount: 12 },
+      { ip: '192.168.1.151', position: { x: 8, z: 0 }, portCount: 12 },
+    ]));
+
+    const larguras = [...grid.occupied.values()];
+    expect(new Set(larguras).size).toBe(2);
+
+    for (const host of grid.hosts) {
+      const meiaLargura = grid.occupied.get(`${host.gridX},${host.gridZ}`)!;
+      const centro = worldX(grid, host.gridX);
+      const z = worldZ(grid, host.gridZ);
+      // Bate-se na fachada, seja ela onde for -- e nao no sitio onde ela estaria se
+      // todos os edificios fossem iguais.
+      expect(collidesAt(grid, centro + meiaLargura - 0.1, z)).toBe(true);
+      expect(collidesAt(grid, centro + meiaLargura + 0.1, z)).toBe(false);
+    }
+  });
+});
+
+describe('collidesAt (limites do mundo)', () => {
 
   it('uma cidade sem hosts e toda atravessavel', () => {
     const grid = buildCityGrid({ layout: { spacing: 4.0, width: 0, depth: 0, districts: [] } });
