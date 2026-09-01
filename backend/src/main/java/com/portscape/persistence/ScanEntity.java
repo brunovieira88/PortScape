@@ -63,6 +63,9 @@ public class ScanEntity {
     @Column(name = "cve_lookup_degraded", nullable = false)
     private boolean cveLookupDegraded;
 
+    @Column(nullable = false)
+    private int progress;
+
     /**
      * {@code orphanRemoval} e essencial: cada transicao do job regrava a lista de
      * hosts, e sem isto os hosts do estado anterior ficavam orfaos na tabela.
@@ -152,6 +155,14 @@ public class ScanEntity {
 
     public void setCveLookupDegraded(boolean cveLookupDegraded) {
         this.cveLookupDegraded = cveLookupDegraded;
+    }
+
+    public int getProgress() {
+        return progress;
+    }
+
+    public void setProgress(int progress) {
+        this.progress = progress;
     }
 
     public List<HostEntity> getHosts() {

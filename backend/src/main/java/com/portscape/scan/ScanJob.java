@@ -24,24 +24,19 @@ public record ScanJob(
         List<Host> hosts,
         String errorCode,
         String errorMessage,
-        boolean cveLookupDegraded
+        boolean cveLookupDegraded,
+        int progress
 ) {
     public ScanJob {
         hosts = hosts == null ? List.of() : List.copyOf(hosts);
     }
 
-    /** Construtor da fase 1, sem a flag de degradacao -- usado por testes e leitura antiga. */
-    public ScanJob(UUID id, String target, ScanStatus status, Instant createdAt, Instant startedAt,
-                   Instant finishedAt, List<Host> hosts, String errorCode, String errorMessage) {
-        this(id, target, status, createdAt, startedAt, finishedAt, hosts, errorCode, errorMessage, false);
-    }
-
     public static ScanJob pending(UUID id, String target, Instant now) {
-        return new ScanJob(id, target, ScanStatus.PENDING, now, null, null, List.of(), null, null, false);
+        return new ScanJob(id, target, ScanStatus.PENDING, now, null, null, List.of(), null, null, false, 0);
     }
 
     public ScanJob running(Instant now) {
-        return new ScanJob(id, target, ScanStatus.RUNNING, createdAt, now, null, List.of(), null, null, false);
+        return new ScanJob(id, target, ScanStatus.RUNNING, createdAt, now, null, List.of(), null, null, false, 0);
     }
 
     public ScanJob done(List<Host> found, Instant now) {
@@ -55,12 +50,12 @@ public record ScanJob(
      */
     public ScanJob done(List<Host> found, Instant now, boolean cveLookupDegraded) {
         return new ScanJob(id, target, ScanStatus.DONE, createdAt, startedAt, now,
-                found, null, null, cveLookupDegraded);
+                found, null, null, cveLookupDegraded, 100);
     }
 
     public ScanJob failed(String code, String message, Instant now) {
         return new ScanJob(id, target, ScanStatus.FAILED, createdAt, startedAt, now,
-                List.of(), code, message, false);
+                List.of(), code, message, false, 0);
     }
 
     /** Duracao do scan em ms, ou null enquanto nao tiver terminado. */
@@ -69,5 +64,9 @@ public record ScanJob(
             return null;
         }
         return finishedAt.toEpochMilli() - startedAt.toEpochMilli();
+    }
+
+    public ScanJob withProgress(int newProgress) {
+        return new ScanJob(id, target, status, createdAt, startedAt, finishedAt, hosts, errorCode, errorMessage, cveLookupDegraded, newProgress);
     }
 }

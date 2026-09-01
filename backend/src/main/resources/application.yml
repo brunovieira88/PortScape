@@ -36,6 +36,11 @@ portscape:
       - -O
       - --open
       - -T4
+    # Prefixo mais largo aceite num target. /16 sao 65 mil enderecos e nunca acaba
+    # dentro do timeout; /22 (1024) ja e um scan que termina. Apertar a vontade -- o
+    # codigo nao deixa alargar abaixo de 16, porque e ai que assenta a garantia de so
+    # se fazer scan a redes privadas (ver TargetValidator).
+    min-prefix: 16
     timeout: 10m
     host-timeout: 60s
 
@@ -86,6 +91,11 @@ portscape:
       8080: 5
     # Porta aberta que nao esta na tabela acima.
     default-port-weight: 8
+    # Tecto do somatorio dessas portas. Sem tecto, um NAS com dez portas banais somava
+    # 80 pontos e ficava CRITICAL -- exatamente o contrario do principio do projeto, que
+    # e "o que faz um edificio ficar vermelho e ter as portas erradas, nao ter muitas".
+    # As portas com peso proprio (tabela acima) continuam a somar sem limite.
+    max-default-port-points: 24
     # Pontos por unidade de CVSS do pior CVE do host (8.1 * 4 = 32 pontos).
     cvss-multiplier: 4.0
     severe-cvss-threshold: 7.0
@@ -101,12 +111,24 @@ portscape:
     high-threshold: 50
     medium-threshold: 25
 
+  baseline:
+    # Janela do inventario de dispositivos conhecidos desta rede. Um dispositivo visto
+    # nos ultimos 7 dias continua a aparecer como offline quando nao responde, e nao e
+    # assinalado como novo quando volta. Passado esse tempo sem dar sinal, sai da
+    # cidade -- e o que impede o telemovel de uma visita de ficar la para sempre.
+    window: 7d
+
   layout:
-    # Geometria da cidade 3D. A coluna de cada host e o resto da divisao do seu indice
-    # por grid-width, por isso mexer neste valor muda a coluna de todos os hosts.
+    # Geometria da cidade 3D. Cada bairro e um bloco quase quadrado preenchido por
+    # ordem de IP, para um scan de cinco maquinas nao dar uma grelha de 254 lugares
+    # quase toda vazia. grid-width e so o tecto da largura de um bairro: um bairro com
+    # 254 hosts da 16x16, que e a malha que um /24 sempre teve.
     grid-width: 16
     spacing: 4.0
-    district-gap: 4
+    # Intervalo entre bairros, em colunas. Baixo de proposito: como os bairros sao
+    # compactados, um bairro tipico tem 1 a 3 colunas e um intervalo maior do que isso
+    # devolvia a cidade ao deserto que a compactacao veio resolver.
+    district-gap: 2
 
 logging:
   level:

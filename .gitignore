@@ -1,0 +1,24 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+*.swp
+
+# Secrets / local env
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# One-off scratch/patch scripts (should never be committed)
+/patch*.js
+
+# Generated tool output
+graphify-out/

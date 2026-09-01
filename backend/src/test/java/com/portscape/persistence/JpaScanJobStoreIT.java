@@ -98,4 +98,43 @@ class JpaScanJobStoreIT extends PostgresTestBase {
     void returnsEmptyForAnUnknownId() {
         assertThat(store.find(UUID.randomUUID())).isEmpty();
     }
+
+    @Test
+    @DisplayName("o progresso avanca mas nunca recua, mesmo com atualizacoes fora de ordem")
+    void onlyEverMovesProgressForward() {
+        ScanJob running = pending("192.168.1.0/24", NOW).running(NOW);
+        store.save(running);
+
+        store.updateProgress(running.id(), 40);
+        store.updateProgress(running.id(), 12);
+
+        assertThat(store.find(running.id())).get()
+                .extracting(ScanJob::progress).isEqualTo(40);
+    }
+
+    @Test
+    @DisplayName("uma atualizacao atrasada nao mexe num scan ja terminado")
+    void ignoresProgressForAScanThatAlreadyFinished() {
+        ScanJob done = pending("192.168.1.0/24", NOW).running(NOW).done(List.of(), NOW);
+        store.save(done);
+
+        // O thread que le o pipe do nmap chega atrasado, depois do estado final gravado.
+        store.updateProgress(done.id(), 87);
+
+        assertThat(store.find(done.id())).get()
+                .extracting(ScanJob::status, ScanJob::progress)
+                .containsExactly(ScanStatus.DONE, 100);
+    }
+
+    @Test
+    @DisplayName("um scan que ficou a meio e encontrado como por terminar")
+    void findsUnfinishedScans() {
+        ScanJob interrupted = pending("192.168.1.0/24", NOW).running(NOW);
+        ScanJob finished = pending("10.0.0.0/24", NOW).running(NOW).done(List.of(), NOW);
+        store.save(interrupted);
+        store.save(finished);
+
+        assertThat(store.findUnfinished()).extracting(ScanJob::id)
+                .containsExactly(interrupted.id());
+    }
 }

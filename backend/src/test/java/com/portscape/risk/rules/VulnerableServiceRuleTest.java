@@ -15,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.portscape.domain.Host;
+import com.portscape.risk.RiskInput;
 import com.portscape.risk.RiskReason;
 import com.portscape.risk.nvd.Cve;
 import com.portscape.risk.nvd.CveLookupResult;
@@ -97,5 +98,21 @@ class VulnerableServiceRuleTest {
 
         assertThat(rule.evaluate(input(mixed, cves(SSH_CPE, cve("CVE-2024-6387", 8.1)))))
                 .hasSize(1);
+    }
+
+    @Test
+    @DisplayName("um CVE partilhado por varias portas conta uma vez -- o CPE do OS nao se triplica")
+    void countsEachCveOncePerHost() {
+        // O nmap anexa o CPE do kernel ao SSH e ao HTTP da mesma maquina.
+        String kernel = "cpe:/o:linux:linux_kernel:5.15";
+        Host host = host("192.168.1.10",
+                port(22, "ssh", "OpenSSH", "9.6", kernel),
+                port(80, "http", "nginx", "1.18", kernel));
+
+        RiskInput input = new RiskInput(host,
+                cves(kernel, cve("CVE-2024-0001", 9.8)), null, false);
+
+        assertThat(rule.evaluate(input)).singleElement()
+                .extracting(RiskReason::points).isEqualTo(39);
     }
 }

@@ -158,4 +158,46 @@ class NmapXmlParserTest {
                 .flatExtracting(Host::ports)
                 .allSatisfy(port -> assertThat(port.cpes()).isNotNull());
     }
+
+    @Test
+    @DisplayName("XML valido que nao e um nmaprun da erro, nao um scan vazio")
+    void rejectsXmlThatIsNotAnNmapRun() {
+        // Ex: a pagina de erro de um proxy. O Jackson desserializava isto sem se queixar.
+        String notNmap = "<html><body>502 Bad Gateway</body></html>";
+
+        assertThatThrownBy(() -> parser.parse(notNmap))
+                .isInstanceOf(NmapXmlParseException.class)
+                .hasMessageContaining("nmaprun");
+    }
+
+    @Test
+    @DisplayName("le o MAC e o fabricante do XML real do nmap")
+    void readsTheHardwareAddressFromTheSample() throws Exception {
+        Host host = parser.parse(load("sample-scan.xml")).stream()
+                .filter(h -> "192.168.1.1".equals(h.ip()))
+                .findFirst().orElseThrow();
+
+        assertThat(host.mac()).isEqualTo("AA:BB:CC:00:11:22");
+        assertThat(host.vendor()).isEqualTo("Example Networks");
+        // E o MAC que identifica o dispositivo entre scans, nao o IP.
+        assertThat(host.identity()).isEqualTo("AA:BB:CC:00:11:22");
+    }
+
+    @Test
+    @DisplayName("um host sem MAC identifica-se pelo IP, sem rebentar")
+    void fallsBackToTheAddressWhenNmapCouldNotResolveTheMac() throws Exception {
+        String xml = """
+                <nmaprun>
+                  <host><status state="up"/>
+                    <address addr="192.168.1.9" addrtype="ipv4"/>
+                  </host>
+                </nmaprun>
+                """;
+
+        Host host = parser.parse(xml).get(0);
+
+        assertThat(host.mac()).isNull();
+        assertThat(host.vendor()).isNull();
+        assertThat(host.identity()).isEqualTo("192.168.1.9");
+    }
 }

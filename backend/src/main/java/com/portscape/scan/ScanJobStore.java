@@ -15,9 +15,18 @@ import java.util.UUID;
 public interface ScanJobStore {
 
     void save(ScanJob job);
+    void updateProgress(UUID id, int progress);
 
     Optional<ScanJob> find(UUID id);
 
     /** Mais recentes primeiro -- e a ordem que a lista de scans no frontend quer. */
     List<ScanJob> findAll();
+
+    /**
+     * Scans que ficaram em PENDING ou RUNNING. Depois de um arranque limpo isto devia
+     * estar vazio: o que la estiver e resto de um processo que morreu a meio.
+     */
+    List<ScanJob> findUnfinished();
+
+    void delete(UUID id);
 }

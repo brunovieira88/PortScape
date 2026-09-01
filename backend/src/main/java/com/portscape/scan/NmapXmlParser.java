@@ -5,7 +5,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
+import java.io.StringReader;
+
 import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
 import org.springframework.stereotype.Component;
 
@@ -30,11 +35,14 @@ import com.portscape.scan.xml.XmlPort;
 @Component
 public class NmapXmlParser {
 
+    private static final String ROOT_ELEMENT = "nmaprun";
+
+    private final XMLInputFactory inputFactory = secureInputFactory();
     private final XmlMapper mapper;
 
     public NmapXmlParser() {
         this.mapper = XmlMapper.builder(XmlFactory.builder()
-                        .xmlInputFactory(secureInputFactory())
+                        .xmlInputFactory(inputFactory)
                         .build())
                 .build();
     }
@@ -54,6 +62,8 @@ public class NmapXmlParser {
         if (xml == null || xml.isBlank()) {
             throw new NmapXmlParseException("O nmap nao devolveu XML.");
         }
+
+        requireNmapRunRoot(xml);
 
         NmapRun run;
         try {
@@ -79,16 +89,84 @@ public class NmapXmlParser {
                 // Sem endereco nao ha nada de util a mostrar na cidade.
                 continue;
             }
-            hosts.add(new Host(ip, hostnameOf(xmlHost), osNameOf(xmlHost), osAccuracyOf(xmlHost), openPortsOf(xmlHost)));
+            XmlAddress mac = macOf(xmlHost);
+            hosts.add(new Host(ip,
+                    mac == null ? null : mac.addr,
+                    mac == null ? null : mac.vendor,
+                    hostnameOf(xmlHost), osNameOf(xmlHost), osAccuracyOf(xmlHost),
+                    openPortsOf(xmlHost), null));
         }
         return List.copyOf(hosts);
+    }
+
+    /**
+     * Confirma que a raiz e mesmo um {@code <nmaprun>}.
+     *
+     * <p>O Jackson ignora o nome do elemento raiz ao desserializar: sem esta
+     * verificacao, um XML valido mas de outra coisa qualquer -- uma pagina de erro de
+     * um proxy, por exemplo -- desserializava para um {@code NmapRun} de campos todos
+     * a null e saia daqui como "scan com sucesso, zero hosts". Uma rede a aparecer
+     * vazia por engano e o pior resultado que este parser pode devolver.
+     */
+    private void requireNmapRunRoot(String xml) {
+        XMLStreamReader reader = null;
+        try {
+            reader = inputFactory.createXMLStreamReader(new StringReader(xml));
+            while (reader.hasNext()) {
+                if (reader.next() != XMLStreamConstants.START_ELEMENT) {
+                    continue;
+                }
+                if (!ROOT_ELEMENT.equals(reader.getLocalName())) {
+                    throw new NmapXmlParseException(
+                            "O XML nao e um resultado de nmap: elemento raiz <"
+                                    + reader.getLocalName() + ">, esperado <" + ROOT_ELEMENT + ">.");
+                }
+                return;
+            }
+            throw new NmapXmlParseException("O XML do nmap nao tem elemento raiz.");
+        } catch (XMLStreamException e) {
+            throw new NmapXmlParseException("Nao foi possivel interpretar o XML do nmap: " + e.getMessage(), e);
+        } finally {
+            closeQuietly(reader);
+        }
+    }
+
+    private static void closeQuietly(XMLStreamReader reader) {
+        if (reader == null) {
+            return;
+        }
+        try {
+            reader.close();
+        } catch (XMLStreamException e) {
+            // Fechar um leitor sobre uma String nao tem como falhar de forma util.
+        }
     }
 
     private static boolean isUp(XmlHost host) {
         return host.status != null && "up".equalsIgnoreCase(host.status.state);
     }
 
-    /** Prefere IPv4; cai para IPv6 se for o unico. Ignora o endereco MAC. */
+    /**
+     * O endereco fisico, se o nmap o resolveu.
+     *
+     * <p>So vem quando o alvo esta no mesmo segmento de rede e o scan corre com
+     * privilegios -- e o nmap que o obtem por ARP. Nao vem para a propria maquina que
+     * corre o scan nem para loopback, e por isso a ausencia e normal e nao um erro.
+     * E daqui que sai a identidade estavel de um dispositivo (ver {@link Host#identity()}).
+     */
+    private static XmlAddress macOf(XmlHost host) {
+        if (host.addresses == null) {
+            return null;
+        }
+        for (XmlAddress address : host.addresses) {
+            if ("mac".equalsIgnoreCase(address.addrtype) && address.addr != null) {
+                return address;
+            }
+        }
+        return null;
+    }
+
+    /** Prefere IPv4; cai para IPv6 se for o unico. O MAC vem por {@link #macOf}. */
     private static String ipOf(XmlHost host) {
         if (host.addresses == null) {
             return null;

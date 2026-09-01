@@ -3,12 +3,14 @@ package com.portscape.api.dto;
 import java.time.Instant;
 import java.util.List;
 
+import java.util.Objects;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.portscape.baseline.HostChange;
 import com.portscape.baseline.ScanDiff;
 import com.portscape.domain.ScanStatus;
-import com.portscape.scan.ScanJob;
-
 import com.portscape.layout.CityLayout;
+import com.portscape.scan.ScanJob;
 
 /**
  * Envelope canonico de um scan.
@@ -29,9 +31,10 @@ public record ScanResponse(
         int hostsUp,
         String baselineScanId,
         boolean cveLookupDegraded,
+        int progress,
         CityLayout layout,
         List<HostDto> hosts,
-        List<RuinDto> ruins,
+        List<HostDto> ruins,
         ScanErrorDto error
 ) {
     public static ScanResponse from(ScanJob job) {
@@ -50,6 +53,7 @@ public record ScanResponse(
                 job.hosts().size(),
                 diff.baselineScanId() == null ? null : diff.baselineScanId().toString(),
                 job.cveLookupDegraded(),
+                job.progress(),
                 layout,
                 job.hosts().stream().map(host -> {
                     var position = layout == null ? null : layout.positions().get(host.ip());
@@ -58,9 +62,13 @@ public record ScanResponse(
                     return HostDto.from(host, diff.changeFor(host.ip()), band, posDto);
                 }).toList(),
                 layout == null ? List.of() : diff.disappeared().stream()
-                        .map(host -> layout.positions().get(host.ip()))
-                        .filter(java.util.Objects::nonNull)
-                        .map(RuinDto::from)
+                        .map(host -> {
+                            var position = layout.positions().get(host.ip());
+                            return position == null ? null : HostDto.from(host,
+                                    HostChange.DISAPPEARED, position.band(),
+                                    new PositionDto(position.x(), position.z()));
+                        })
+                        .filter(Objects::nonNull)
                         .toList(),
                 job.errorCode() == null ? null : new ScanErrorDto(job.errorCode(), job.errorMessage()));
     }
@@ -68,6 +76,6 @@ public record ScanResponse(
     /** Versao sem a lista de hosts, para o endpoint de listagem nao devolver tudo. */
     public ScanResponse withoutHosts() {
         return new ScanResponse(id, target, status, createdAt, startedAt, finishedAt,
-                durationMs, hostsUp, baselineScanId, cveLookupDegraded, null, List.of(), List.of(), error);
+                durationMs, hostsUp, baselineScanId, cveLookupDegraded, progress, null, List.of(), List.of(), error);
     }
 }

@@ -11,9 +11,9 @@ import com.portscape.layout.CityLayout;
 /**
  * Comparacao de um scan com o baseline da sua rede.
  *
- * @param disappeared hosts que existiam no baseline e ja nao respondem. Nao aparecem
- *                    na cidade 3D -- nao ha edificio para um host que sumiu -- mas numa
- *                    auditoria sao tao relevantes como os novos
+ * @param disappeared hosts que existiam no baseline e ja nao respondem. Vao com a
+ *                    posicao que tinham, para a cena os poder desenhar como ruinas no
+ *                    lugar onde estavam -- numa auditoria sao tao relevantes como os novos
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ScanDiffResponse(

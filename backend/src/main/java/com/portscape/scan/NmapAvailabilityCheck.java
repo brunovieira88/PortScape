@@ -1,5 +1,6 @@
 package com.portscape.scan;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -38,7 +39,7 @@ public class NmapAvailabilityCheck implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        List<String> command = new java.util.ArrayList<>(properties.command());
+        List<String> command = new ArrayList<>(properties.command());
         command.add("--version");
         try {
             String version = executor.execute(command).lines().findFirst().orElse("(desconhecida)");

@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.portscape.config.NvdProperties;
@@ -53,7 +54,16 @@ public class CveCache {
                 .flatMap(entity -> deserialize(entity).filter(cves -> isFresh(entity, cves)));
     }
 
-    @Transactional
+    /**
+     * Falhar a escrever na cache nao pode custar o scan -- so custa o proximo lookup.
+     *
+     * <p><b>Sem {@code @Transactional} de proposito.</b> Apanhar a excecao dentro da
+     * transacao nao a anulava: a transacao ficava marcada rollback-only e rebentava na
+     * mesma no commit, ja fora deste {@code try}, com uma
+     * {@code UnexpectedRollbackException} que ninguem esperava. Sem anotacao, cada
+     * operacao do repositorio traz a sua propria transacao, a falha acontece dentro do
+     * {@code repository.save} e e aqui que fica.
+     */
     public void put(String cpe, List<Cve> cves) {
         try {
             String payload = objectMapper.writeValueAsString(cves);
@@ -62,8 +72,7 @@ public class CveCache {
             entity.setPayload(payload);
             entity.setFetchedAt(clock.instant());
             repository.save(entity);
-        } catch (RuntimeException | com.fasterxml.jackson.core.JsonProcessingException e) {
-            // Falhar a escrever na cache nao pode custar o scan -- so o proximo lookup.
+        } catch (RuntimeException | JsonProcessingException e) {
             log.warn("Nao foi possivel guardar em cache os CVEs de {}: {}", cpe, e.toString());
         }
     }

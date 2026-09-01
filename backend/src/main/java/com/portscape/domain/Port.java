@@ -4,9 +4,9 @@ import java.util.List;
 
 /**
  * Uma porta detetada num host. {@code service}, {@code product} e {@code version}
- * podem ser null: o nmap nem sempre consegue identificar o serviço.
+ * podem ser null: o nmap nem sempre consegue identificar o servico.
  *
- * <p>{@code cpes} sao os identificadores CPE que o nmap atribui ao serviço
+ * <p>{@code cpes} sao os identificadores CPE que o nmap atribui ao servico
  * (ex. {@code cpe:/a:openbsd:openssh:9.6}) e sao a chave da consulta de CVEs ao NVD.
  */
 public record Port(

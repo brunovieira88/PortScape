@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.portscape.baseline.BaselineNotAllowedException;
 import com.portscape.scan.exception.InvalidTargetException;
 import com.portscape.scan.exception.ScanException;
+import com.portscape.scan.exception.ScanQueueFullException;
 
 /**
  * Converte as excecoes de scan em respostas RFC 7807, com o {@code code} da excecao
@@ -33,6 +34,15 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleScanFailure(ScanException e) {
         log.warn("Falha de scan a chegar ao handler HTTP [{}]", e.code(), e);
         return problem(HttpStatus.INTERNAL_SERVER_ERROR, "Falha no scan", e);
+    }
+
+    /**
+     * 503 e nao 500: o pedido estava correto, so nao ha capacidade agora. O cliente
+     * pode voltar a tentar sem mudar nada.
+     */
+    @ExceptionHandler(ScanQueueFullException.class)
+    public ProblemDetail handleQueueFull(ScanQueueFullException e) {
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "Fila de scans cheia", e);
     }
 
     @ExceptionHandler(BaselineNotAllowedException.class)
