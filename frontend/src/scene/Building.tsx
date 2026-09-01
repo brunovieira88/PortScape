@@ -2,7 +2,8 @@ import { useRef, useEffect, useMemo, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { Architecture, buildingHeight, DETAIL, type DetailLevel } from './buildings/ArchitectureBuilder';
+import { Architecture, DETAIL, type DetailLevel } from './buildings/ArchitectureBuilder';
+import { buildingHeight, seedOf } from './buildings/towerForm';
 import { deviceKindOf } from './buildings/deviceKind';
 import { NewHostHighlight } from './highlights/NewHostHighlight';
 import { ChangedHostHighlight } from './highlights/ChangedHostHighlight';
@@ -59,15 +60,6 @@ function shadeFor(band: keyof typeof BAND_COLORS, seed: number): string {
   const hueShift = ((seed % 1000) / 1000 - 0.5) * 0.035;
   const lightShift = (((seed >> 10) % 1000) / 1000 - 0.5) * 0.22;
   return base.offsetHSL(hueShift, 0, lightShift).getStyle();
-}
-
-/** Semente estavel a partir do IP -- o mesmo host tem sempre o mesmo aspecto. */
-function seedOf(ip: string): number {
-  let hash = 0;
-  for (let i = 0; i < ip.length; i++) {
-    hash = (hash * 31 + ip.charCodeAt(i)) & 0x7fffffff;
-  }
-  return hash;
 }
 
 export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onClick, isSelected, hostData, onClose, onOpenDetails, isNew, isChanged }: BuildingProps) {
@@ -135,7 +127,7 @@ export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onC
 
   const seed = seedOf(label);
   const color = shadeFor(riskBand, seed);
-  // A altura vem do ArchitectureBuilder, que e quem desenha o edificio. Duplicar a
+  // A altura vem do towerForm, o mesmo modulo que desenha o edificio. Duplicar a
   // formula aqui punha a etiqueta cinco unidades acima do telhado de todas as casas.
   const kind = deviceKindOf(vendor);
   const height = buildingHeight(portCount, seed, kind);
