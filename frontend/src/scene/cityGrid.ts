@@ -181,3 +181,51 @@ export function collidesAt(grid: CityGrid, x: number, z: number): boolean {
   }
   return false;
 }
+
+/**
+ * Onde por a camara a comecar: o sitio livre mais proximo do centro da cidade.
+ *
+ * <p>O voo de chegada aterrava sempre na origem sem verificar nada. Como a cidade e
+ * centrada, quando a largura em quarteiroes e par a origem cai exatamente no centro de
+ * uma celula -- e se essa celula tiver edificio, aterra-se <i>dentro</i> dele. Dali nao
+ * se sai: o {@link collidesAt} passa a recusar os dois eixos e a camara fica presa para
+ * sempre. Em 17 scans reais isso acontecia em 5.
+ *
+ * <p>Procura-se em aneis de meio quarteirao a partir da origem, o que poe o ponto de
+ * chegada no meio da rua mais proxima do centro. E deterministico: o mesmo scan da
+ * sempre o mesmo sitio, para o utilizador reconhecer onde chegou.
+ */
+export function spawnPointFor(grid: CityGrid): { x: number, z: number } {
+  const step = BLOCK_SCALE / 2;
+  const bounds = walkableBounds(grid);
+  const rings = Math.ceil(Math.max(bounds.maxX, bounds.maxZ) / step);
+
+  for (let ring = 0; ring <= rings; ring++) {
+    let best: { x: number, z: number } | null = null;
+    let bestDistance = Infinity;
+
+    for (let ix = -ring; ix <= ring; ix++) {
+      for (let iz = -ring; iz <= ring; iz++) {
+        // So o perimetro: o interior ja foi visto nos aneis anteriores.
+        if (Math.max(Math.abs(ix), Math.abs(iz)) !== ring) { continue; }
+
+        // O `|| 0` limpa o zero negativo que `-0 * step` produz no anel central: e
+        // igual a 0 em toda a aritmetica, mas nao no toEqual de um teste.
+        const x = ix * step || 0;
+        const z = iz * step || 0;
+        if (collidesAt(grid, x, z)) { continue; }
+
+        const distance = x * x + z * z;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = { x, z };
+        }
+      }
+    }
+    if (best) { return best; }
+  }
+
+  // Uma cidade sem um unico sitio onde estar de pe. Nao acontece -- o chao e sempre
+  // maior do que os edificios -- mas devolver a origem e melhor do que nao devolver.
+  return { x: 0, z: 0 };
+}

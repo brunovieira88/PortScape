@@ -1,7 +1,8 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { buildCityGrid, collidesAt } from './cityGrid';
+import { buildCityGrid, collidesAt, spawnPointFor } from './cityGrid';
+import { introFrame } from './cameraIntro';
 
 export function StreetControls({ scanData }: { scanData: any }) {
   const { camera, gl } = useThree();
@@ -72,17 +73,6 @@ export function StreetControls({ scanData }: { scanData: any }) {
     };
   }, [camera, gl.domElement]);
 
-  useEffect(() => {
-    // Voo de Drone - Nasce no céu e olha para baixo
-    camera.position.set(0, 150, 40);
-    targetRotation.current.set(-Math.PI / 4, 0, 0, 'YXZ');
-    camera.rotation.copy(targetRotation.current);
-    velocity.current.set(0, 0, 0);
-    
-    introTime.current = 0;
-    isIntroPlaying.current = true;
-  }, [scanData.id, camera]);
-
   // A grelha vem do cityGrid, a mesma que desenha os edificios. Recalcula-la aqui foi
   // durante toda a fase 4 a razao de se atravessarem os predios e bater em paredes
   // invisiveis: este ficheiro usava SCALE 13 e centrava pela largura minima, enquanto a
@@ -90,28 +80,41 @@ export function StreetControls({ scanData }: { scanData: any }) {
   const grid = useMemo(() => buildCityGrid(scanData), [scanData]);
   const checkCollision = (posX: number, posZ: number) => collidesAt(grid, posX, posZ);
 
+  // Onde o voo aterra. Sai da mesma grelha que faz as colisoes, portanto e por
+  // construcao um sitio onde se pode estar de pe -- ver o spawnPointFor.
+  const spawn = useMemo(() => spawnPointFor(grid), [grid]);
+  const landing = useRef(spawn);
+
+  useEffect(() => {
+    // Voo de Drone - Nasce no céu e olha para baixo
+    landing.current = spawn;
+    const start = introFrame(0, STREET_Y);
+    camera.position.set(spawn.x, start.y, spawn.z + start.zOffset);
+    targetRotation.current.set(start.pitch, 0, 0, 'YXZ');
+    camera.rotation.copy(targetRotation.current);
+    velocity.current.set(0, 0, 0);
+    
+    introTime.current = 0;
+    isIntroPlaying.current = true;
+  }, [scanData.id, camera, spawn]);
+
   useFrame((_state, delta) => {
     if (isIntroPlaying.current) {
       introTime.current += delta;
-      const progress = Math.min(introTime.current / 3.0, 1);
-      
-      // Easing out cubic: smooth deceleration as it approaches the ground
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      
-      // Interpolate Y from 150 to STREET_Y
-      camera.position.y = 150 * (1 - easeProgress) + STREET_Y * easeProgress;
-      
-      // Interpolate Z from 40 to 0 (move forward while dropping)
-      camera.position.z = 40 * (1 - easeProgress);
-      
-      // Interpolate rotation from looking down (-Math.PI / 4) to straight ahead (0)
-      targetRotation.current.x = (-Math.PI / 4) * (1 - easeProgress); 
+      const frame = introFrame(introTime.current, STREET_Y);
+
+      camera.position.x = landing.current.x;
+      camera.position.y = frame.y;
+      camera.position.z = landing.current.z + frame.zOffset;
+      targetRotation.current.x = frame.pitch;
       targetRotation.current.y = 0; // Ensures looking straight
 
-      if (progress >= 1) {
+      // Enquanto o voo decorre nao se acumula velocidade nenhuma: sem isto, teclas
+      // carregadas durante a descida davam um solavanco no instante da aterragem.
+      velocity.current.set(0, 0, 0);
+
+      if (frame.done) {
         isIntroPlaying.current = false;
-        camera.position.y = STREET_Y;
-        camera.position.z = 0;
       }
     }
 

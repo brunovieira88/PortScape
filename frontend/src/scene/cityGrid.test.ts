@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCityGrid, collidesAt, walkableBounds, worldX, worldZ,
+import { buildCityGrid, collidesAt, spawnPointFor, walkableBounds, worldX, worldZ,
          BLOCK_SCALE } from './cityGrid';
 import sampleScan from '../mock/sample-scan.json';
 
@@ -202,7 +202,62 @@ describe('collidesAt', () => {
   });
 });
 
-describe('collidesAt (limites do mundo)', () => {
+describe('spawnPointFor', () => {
+
+  it('nunca aterra dentro de um edificio', () => {
+    // A regressao que isto trava: o voo aterrava sempre na origem sem verificar nada.
+    // Com a cidade centrada e a largura par, a origem cai no centro de uma celula --
+    // se essa celula tiver edificio, o jogador nasce dentro dele e nao sai mais: o
+    // collidesAt recusa os dois eixos e a camara fica congelada. Acontecia em 5 dos
+    // 17 scans reais que havia em base.
+    for (let hostCount = 1; hostCount <= 24; hostCount++) {
+      const hosts = Array.from({ length: hostCount }, (_, i) => ({
+        ip: `192.168.1.${i + 1}`,
+        position: { x: (i % 6) * 4, z: Math.floor(i / 6) * 4 },
+        portCount: 4 + (i % 9),
+      }));
+      const grid = buildCityGrid(scanWith(hosts, { width: 24.0, depth: 16.0 }));
+
+      const spawn = spawnPointFor(grid);
+
+      expect(collidesAt(grid, spawn.x, spawn.z)).toBe(false);
+    }
+  });
+
+  it('reproduz o caso real em que se aterrava dentro do 192.168.1.102', () => {
+    // Scan 1995b8d3: 12 quarteiroes de largura, portanto a origem cai exatamente no
+    // centro da celula 6,1 -- que estava ocupada.
+    const grid = buildCityGrid(scanWith([
+      { ip: '192.168.1.102', position: { x: 24, z: 4 }, portCount: 5 },
+    ], { width: 48.0, depth: 8.0 }));
+
+    expect(collidesAt(grid, 0, 0)).toBe(true);
+    expect(collidesAt(grid, ...Object.values(spawnPointFor(grid)) as [number, number]))
+      .toBe(false);
+  });
+
+  it('numa cidade vazia fica na origem, que e o centro', () => {
+    const grid = buildCityGrid(scanWith([], { width: 24.0, depth: 24.0 }));
+
+    expect(spawnPointFor(grid)).toEqual({ x: 0, z: 0 });
+  });
+
+  it('escolhe sempre o mesmo sitio para o mesmo scan', () => {
+    const grid = buildCityGrid(sampleScan);
+
+    expect(spawnPointFor(grid)).toEqual(spawnPointFor(buildCityGrid(sampleScan)));
+  });
+
+  it('aterra dentro do alcatrao', () => {
+    const grid = buildCityGrid(sampleScan);
+    const bounds = walkableBounds(grid);
+    const spawn = spawnPointFor(grid);
+
+    expect(spawn.x).toBeGreaterThan(bounds.minX);
+    expect(spawn.x).toBeLessThan(bounds.maxX);
+    expect(spawn.z).toBeGreaterThan(bounds.minZ);
+    expect(spawn.z).toBeLessThan(bounds.maxZ);
+  });
 
   it('uma cidade sem hosts e toda atravessavel', () => {
     const grid = buildCityGrid({ layout: { spacing: 4.0, width: 0, depth: 0, districts: [] } });
