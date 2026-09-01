@@ -1,9 +1,9 @@
 import { Canvas } from '@react-three/fiber';
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { City } from './scene/City';
 import { ErrorBoundary } from './ErrorBoundary';
 import mockData from './mock/sample-scan.json';
-import { startScan, getScan } from './api/client';
+import { startScan, getScan, listScans, ApiError } from './api/client';
 import { DeviceListPanel } from './ui/DeviceListPanel';
 import { HostDetailsModal } from './ui/HostDetailsModal';
 import { HistoryPanel } from './ui/HistoryPanel';
@@ -16,91 +16,121 @@ export default function App() {
   const [scanData, setScanData] = useState<any>(mockData);
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<string>('');
-  const [simulatedProgress, setSimulatedProgress] = useState<number>(0);
+  // O progresso vem do backend. Ja foi uma curva inventada que assintotava nos 95%,
+  // enquanto o campo `progress` real chegava em cada sondagem e era deitado fora.
+  const [progress, setProgress] = useState<number>(0);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [targetIp, setTargetIp] = useState<string>('');
   const [showMenu, setShowMenu] = useState(true); // Menu no centro do ecrã
 
+  // Sondagem e temporizadores em curso, para poderem ser cancelados no desmonte.
+  const poll = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Cada coisa que possa vir a pintar o ecra -- um scan carregado do historico ou um
+  // scan novo a decorrer -- leva um numero. So o mais recente escreve. Sem isto,
+  // clicar em dois scans seguidos deixava a resposta mais lenta sobrepor-se, e um scan
+  // a decorrer roubava o ecra a um scan antigo que o utilizador tivesse aberto no meio.
+  const loadSeq = useRef(0);
+
+  const reveal = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const stopPolling = () => {
+    if (poll.current) {
+      clearInterval(poll.current);
+      poll.current = null;
+    }
+    if (reveal.current) {
+      clearTimeout(reveal.current);
+      reveal.current = null;
+    }
+  };
+
   useEffect(() => {
-    const fetchLatest = async () => {
-      try {
-        const res = await fetch('/api/scans');
-        if (!res.ok) return;
-        const scans = await res.json();
-        if (scans && scans.length > 0) {
-          const latestId = scans[0].id;
-          const fullScan = await getScan(latestId);
-          setScanData(fullScan);
-          // Removido o setShowMenu(false) a pedido do utilizador
-        }
-      } catch (e) {
-      }
-    };
-    fetchLatest();
+    listScans()
+      .then(scans => (scans?.length ? getScan(scans[0].id) : null))
+      .then(latest => { if (latest) setScanData(latest); })
+      // Sem backend fica-se no cenario de exemplo, que e o comportamento util aqui.
+      .catch(() => {});
+    return stopPolling;
   }, []);
 
-  if (selectedHost) {
-    window.onkeydown = (e) => {
-      if (e.key === 'Escape') setSelectedHost(null);
-    };
-  }
+  useEffect(() => {
+    if (!selectedHost) { return; }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedHost(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedHost]);
 
   const handleLoadScan = async (id: string) => {
+    const seq = ++loadSeq.current;
     try {
       const fullScan = await getScan(id);
+      if (seq !== loadSeq.current) { return; }
       setScanData(fullScan);
       setSelectedHost(null);
       setShowMenu(false);
+      setScanError(null);
     } catch (e) {
-      console.error(e);
+      if (seq === loadSeq.current) {
+        setScanError(e instanceof ApiError ? e.message : 'Não foi possível carregar o scan.');
+      }
     }
   };
 
   const handleStartScan = async () => {
+    stopPolling();
+    const seq = ++loadSeq.current;
+    setIsScanning(true);
+    setScanError(null);
+    setScanStatus('INITIALIZING SCAN...');
+    setProgress(0);
+
+    let started;
     try {
-      setIsScanning(true);
-      setScanStatus('INITIALIZING SCAN...');
-      setSimulatedProgress(0);
-      
-      let prog = 0;
-      const progressTimer = setInterval(() => {
-        // Velocidade dinâmica: começa rápido (descoberta), abranda brutalmente no fim (OS/Version detection)
-        const speed = prog < 40 ? 0.008 : (prog < 75 ? 0.002 : 0.0003);
-        prog += (95 - prog) * speed;
-        setSimulatedProgress(prog);
-      }, 50);
-
-      const res = await startScan(targetIp || undefined);
-      
-      const poll = setInterval(async () => {
-        try {
-          const pollRes = await getScan(res.id);
-          setScanStatus(`SCAN STATUS: ${pollRes.status}`);
-          
-          if (pollRes.status === 'DONE' || pollRes.status === 'FAILED') {
-            clearInterval(poll);
-            clearInterval(progressTimer);
-            if (pollRes.status === 'DONE') setSimulatedProgress(100);
-            
-            // Pequeno delay para o utilizador ver a barra a encher aos 100%
-            setTimeout(() => {
-              setIsScanning(false);
-              if (pollRes.status === 'DONE') {
-                setScanData(pollRes);
-                setSelectedHost(null);
-                setShowMenu(false);
-              }
-            }, 800);
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }, 2000);
-
+      started = await startScan(targetIp || undefined);
     } catch (e) {
-      console.error(e);
-      setScanStatus('ERROR STARTING SCAN');
+      // O backend explica-se: alvo fora de uma rede privada, fila cheia, nmap sem
+      // permissoes. Mostrar essa mensagem em vez de um erro generico e a diferenca
+      // entre o utilizador perceber o que fez e ficar a adivinhar.
+      setScanError(e instanceof ApiError ? e.message : 'Não foi possível iniciar o scan.');
+      setScanStatus('');
       setIsScanning(false);
+      return;
     }
+
+    poll.current = setInterval(async () => {
+      try {
+        const current = await getScan(started.id);
+        // O utilizador abriu outro scan entretanto: deixa-lo ver o que escolheu.
+        if (seq !== loadSeq.current) { stopPolling(); return; }
+        setScanStatus(`SCAN STATUS: ${current.status}`);
+        setProgress(current.progress ?? 0);
+
+        if (current.status !== 'DONE' && current.status !== 'FAILED') { return; }
+        stopPolling();
+
+        if (current.status === 'FAILED') {
+          setScanError(current.error?.message || 'O scan falhou.');
+          setIsScanning(false);
+          return;
+        }
+
+        setProgress(100);
+        // Pequeno atraso para a barra se ver a chegar aos 100%.
+        reveal.current = setTimeout(() => {
+          setIsScanning(false);
+          if (seq !== loadSeq.current) { return; }
+          setScanData(current);
+          setSelectedHost(null);
+          setShowMenu(false);
+        }, 600);
+      } catch (e) {
+        // Um scan apagado a meio, ou o backend em baixo: parar em vez de sondar
+        // para sempre, que era o que acontecia antes.
+        stopPolling();
+        setScanError(e instanceof ApiError ? e.message : 'Perdeu-se o contacto com o scan.');
+        setIsScanning(false);
+      }
+    }, 1500);
   };
 
   const anyPanelOpen = isHistoryOpen || isInventoryOpen;
@@ -149,6 +179,18 @@ export default function App() {
         </button>
       </div>
 
+      {/* Se a consulta ao NVD falhou ou bateu no limite de pedidos, os CVEs vieram
+          incompletos e o risco mostrado esta SUBESTIMADO. Numa ferramenta de auditoria
+          isso tem de ser dito: mostrar risco a menos sem avisar e o pior silencio. */}
+      {scanData?.cveLookupDegraded && !showMenu && !anyPanelOpen && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[997] bg-[#030d12]/95 backdrop-blur-xl border border-[#ff8a00]/40 px-5 py-3 rounded-xl flex items-center gap-3 shadow-[0_0_30px_rgba(255,138,0,0.15)]">
+          <span className="text-[#ff8a00]">⚠</span>
+          <div className="text-[10px] font-mono uppercase tracking-widest text-[#ff8a00]">
+            CVE lookup degraded — risk scores may be understated
+          </div>
+        </div>
+      )}
+
       {/* Painel Central de Controlo de Scans (Backend) */}
       {showMenu && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[999] bg-[#030d12]/90 backdrop-blur-2xl border border-white/10 p-8 w-[400px] rounded-3xl shadow-[0_0_50px_rgba(0,240,255,0.1)] flex flex-col items-center">
@@ -185,14 +227,23 @@ export default function App() {
             <div className="mt-6 w-full flex flex-col items-center">
               <div className="text-[10px] font-mono text-[#00f0ff] mb-2 uppercase tracking-widest flex justify-between w-full px-1">
                 <span>{scanStatus}</span>
-                <span>{Math.round(simulatedProgress)}%</span>
+                <span>{Math.round(progress)}%</span>
               </div>
               <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                {/* A transicao longa e o que suaviza os saltos entre sondagens: o
+                    valor mostrado e sempre o do backend, so chega la a deslizar. */}
                 <div 
-                  className="h-full bg-[#00f0ff] shadow-[0_0_10px_#00f0ff] transition-all duration-75 ease-linear" 
-                  style={{ width: `${simulatedProgress}%` }}
+                  className="h-full bg-[#00f0ff] shadow-[0_0_10px_#00f0ff] transition-[width] duration-1000 ease-out" 
+                  style={{ width: `${progress}%` }}
                 ></div>
               </div>
+            </div>
+          )}
+
+          {scanError && (
+            <div className="mt-6 w-full bg-[#ff003c]/10 border border-[#ff003c]/40 rounded-lg p-3 flex items-start gap-3">
+              <span className="text-[#ff003c] text-sm leading-none mt-0.5">⚠</span>
+              <div className="text-[11px] text-[#ff8a9f] leading-relaxed">{scanError}</div>
             </div>
           )}
 
@@ -209,6 +260,18 @@ export default function App() {
 
       {/* Painel de Histórico (Canto Esquerdo) */}
       <HistoryPanel 
+        onScanDeleted={(id: string) => {
+          // A cidade estava a mostrar este scan: sem isto ficava um fantasma no ecra,
+          // e voltar a clicar nele dava 404.
+          if (scanData?.id === id) {
+            loadSeq.current++;
+            stopPolling();
+            setScanData(mockData);
+            setSelectedHost(null);
+            setDetailedHost(null);
+          }
+        }}
+
         activeScanId={scanData?.id} 
         onSelectScan={handleLoadScan} 
         isOpen={isHistoryOpen} 

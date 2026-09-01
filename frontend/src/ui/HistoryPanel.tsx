@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { listScans, deleteScan } from '../api/client';
+import { useEffect, useRef, useState } from 'react';
+import { listScans, deleteScan, ApiError } from '../api/client';
 
 function CrumblingBlocks() {
   const blocks = Array.from({ length: 24 }); // 6 colunas x 4 linhas
@@ -32,32 +32,52 @@ function CrumblingBlocks() {
   );
 }
 
-export function HistoryPanel({ activeScanId, onSelectScan, isOpen, onToggle, isHidden }: { activeScanId?: string, onSelectScan: (id: string) => void, isOpen: boolean, onToggle: () => void, isHidden?: boolean }) {
+export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen, onToggle, isHidden }: { activeScanId?: string, onSelectScan: (id: string) => void, onScanDeleted?: (id: string) => void, isOpen: boolean, onToggle: () => void, isHidden?: boolean }) {
   const [scans, setScans] = useState<any[]>([]);
   const [scanToDelete, setScanToDelete] = useState<string | null>(null);
   const [scanToDestroy, setScanToDestroy] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const alive = useRef(true);
+  const destruction = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchScans = () => {
-    listScans().then(setScans).catch(console.error);
+    listScans()
+      .then(list => { if (alive.current) { setScans(list); setLoadError(null); } })
+      .catch(err => {
+        // Sem isto, um backend em baixo dava um historico vazio indistinguivel de
+        // "ainda nao ha scans" -- e ninguem percebia que o problema era a ligacao.
+        if (alive.current) {
+          setLoadError(err instanceof ApiError ? err.message : 'Histórico indisponível.');
+        }
+      });
   };
 
   useEffect(() => {
     fetchScans();
   }, [activeScanId]);
 
+  useEffect(() => () => {
+    alive.current = false;
+    if (destruction.current) { clearTimeout(destruction.current); }
+  }, []);
+
   const handleDeleteConfirm = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation(); 
     setScanToDestroy(id);
     
-    setTimeout(async () => {
+    // O atraso e so para a animacao de demolicao correr antes da linha desaparecer.
+    destruction.current = setTimeout(async () => {
       try {
         await deleteScan(id);
+        if (!alive.current) { return; }
         setScanToDelete(null);
         setScanToDestroy(null);
+        onScanDeleted?.(id);
         fetchScans(); 
       } catch (err) {
-        console.error(err);
+        if (!alive.current) { return; }
         setScanToDestroy(null);
+        setLoadError(err instanceof ApiError ? err.message : 'Não foi possível apagar o scan.');
       }
     }, 800);
   };
@@ -196,7 +216,12 @@ export function HistoryPanel({ activeScanId, onSelectScan, isOpen, onToggle, isH
               );
             })}
           </div>
-          {scans.length === 0 && (
+          {loadError ? (
+            <div className="mt-10 mx-2 bg-[#ff003c]/10 border border-[#ff003c]/40 rounded p-3 text-center">
+              <div className="text-[#ff003c] mb-1">⚠</div>
+              <div className="text-[10px] font-mono text-[#ff8a9f] leading-relaxed">{loadError}</div>
+            </div>
+          ) : scans.length === 0 && (
             <div className="text-xs text-gray-500 text-center mt-10 font-mono">No historical records</div>
           )}
         </div>
