@@ -16,6 +16,12 @@ class ScanResultMergerTest {
         return new Host(ip, "host.lan", "Linux", 90, List.of(ports));
     }
 
+    /** Um host como a fase de descoberta o entrega: privilegiada, portanto com MAC. */
+    private static Host discovered(String ip, Port... ports) {
+        return new Host(ip, "AA:BB:CC:00:11:22", "Xiaomi Communications", "host.lan",
+                "Linux", 90, List.of(ports), null);
+    }
+
     @Test
     @DisplayName("preenche servico/produto/versao quando a segunda fase encontra a mesma porta")
     void fillsInServiceDetailsForMatchingPorts() {
@@ -104,5 +110,24 @@ class ScanResultMergerTest {
         Port merged = ScanResultMerger.merge(discovered, versionInfo).get(0).ports().get(0);
 
         assertThat(merged.service()).isEqualTo("ssh");
+    }
+
+    @Test
+    @DisplayName("o MAC e o fabricante sobrevivem a segunda fase, que nao os tem")
+    void keepsTheHardwareAddressThatOnlyDiscoveryCanSee() {
+        // A regressao: a copia do host era escrita a mao com o construtor curto, que
+        // poe mac e vendor a null. Como a segunda fase toca em todos os hosts com
+        // portas abertas, isso apagava o fabricante da rede inteira -- e com ele a
+        // identidade entre scans e a forma do edificio na cena.
+        Host discovered = discovered("192.168.1.73", new Port(22, "tcp", "open", null, null, null));
+        Host versioned = host("192.168.1.73", new Port(22, "tcp", "open", "ssh", "OpenSSH", "9.6"));
+
+        Host merged = ScanResultMerger.merge(List.of(discovered), List.of(versioned)).get(0);
+
+        assertThat(merged.mac()).isEqualTo("AA:BB:CC:00:11:22");
+        assertThat(merged.vendor()).isEqualTo("Xiaomi Communications");
+        assertThat(merged.identity()).isEqualTo("AA:BB:CC:00:11:22");
+        // E continua a ganhar o que a segunda fase tinha a acrescentar.
+        assertThat(merged.ports().get(0).product()).isEqualTo("OpenSSH");
     }
 }

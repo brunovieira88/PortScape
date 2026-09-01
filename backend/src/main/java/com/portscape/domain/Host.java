@@ -62,6 +62,19 @@ public record Host(
         return new Host(ip, mac, vendor, hostname, osGuess, osAccuracy, ports, risk);
     }
 
+    /**
+     * O mesmo host com outra lista de portas.
+     *
+     * <p>Existe para nao haver copias escritas a mao campo a campo. Uma dessas, no
+     * {@link com.portscape.scan.ScanResultMerger}, chamava o construtor curto e deitava
+     * fora o MAC e o fabricante de todos os hosts que a segunda fase do scan tocava --
+     * ou seja, de todos os que tinham portas abertas. O sintoma so aparecia no fim da
+     * cadeia, com a rede inteira sem fabricante nenhum.
+     */
+    public Host withPorts(List<Port> ports) {
+        return new Host(ip, mac, vendor, hostname, osGuess, osAccuracy, ports, risk);
+    }
+
     /** Altura do edificio na cena 3D deriva daqui (ver fase 4). */
     public int portCount() {
         return ports.size();

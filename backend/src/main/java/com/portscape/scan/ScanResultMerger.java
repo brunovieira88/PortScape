@@ -45,7 +45,9 @@ final class ScanResultMerger {
                 .map(port -> mergePort(port, versionedPorts.get(port.number())))
                 .toList();
 
-        return new Host(discovered.ip(), discovered.hostname(), discovered.osGuess(), discovered.osAccuracy(), merged);
+        // withPorts e nao um construtor: a descoberta e a fase privilegiada, e e a
+        // unica que traz MAC e fabricante. Escrever a copia a mao perdia-os.
+        return discovered.withPorts(merged);
     }
 
     /**
