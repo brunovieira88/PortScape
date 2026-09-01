@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { Architecture, DETAIL, type DetailLevel } from './buildings/ArchitectureBuilder';
 import { buildingHeight, seedOf } from './buildings/towerForm';
 import { deviceKindOf } from './buildings/deviceKind';
+import { stepDelta } from './frame';
 import { NewHostHighlight } from './highlights/NewHostHighlight';
 import { ChangedHostHighlight } from './highlights/ChangedHostHighlight';
 
@@ -93,7 +94,9 @@ export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onC
   const STRUCTURE_IN = 300;
   const STRUCTURE_OUT = 350;
   
-  useFrame((_state, delta) => {
+  useFrame((_state, rawDelta) => {
+    // Ver o stepDelta: sem o limite, voltar a esta aba estica os edificios ao ceu.
+    const delta = stepDelta(rawDelta);
     if (groupRef.current) {
       groupRef.current.scale.y = THREE.MathUtils.lerp(groupRef.current.scale.y, targetScale, 4 * delta);
     }

@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { buildCityGrid, collidesAt, spawnPointFor } from './cityGrid';
 import { introFrame } from './cameraIntro';
+import { stepDelta } from './frame';
 
 export function StreetControls({ scanData }: { scanData: any }) {
   const { camera, gl } = useThree();
@@ -98,7 +99,11 @@ export function StreetControls({ scanData }: { scanData: any }) {
     isIntroPlaying.current = true;
   }, [scanData.id, camera, spawn]);
 
-  useFrame((_state, delta) => {
+  useFrame((_state, rawDelta) => {
+    // Ver o stepDelta: o R3F passa o delta do relogio em bruto, e voltar a esta aba
+    // depois de um minuto noutra dava um alfa de 600 nos lerps aqui em baixo.
+    const delta = stepDelta(rawDelta);
+
     if (isIntroPlaying.current) {
       introTime.current += delta;
       const frame = introFrame(introTime.current, STREET_Y);
