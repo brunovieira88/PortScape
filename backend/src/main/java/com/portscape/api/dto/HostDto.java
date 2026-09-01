@@ -9,13 +9,19 @@ import com.portscape.domain.Host;
 import com.portscape.risk.RiskBand;
 
 /**
- * {@code portCount} vai explicito no JSON: e dele que sai a altura do edificio na
+ * O {@code mac} e o {@code vendor} podem vir a null: so ha endereco fisico para
+ * maquinas no mesmo segmento e com o scan privilegiado. O {@code vendor} e o unico
+ * campo que diz <i>o que</i> a maquina e ("Apple, Inc."), e nao so onde esta.
+ *
+ * <p>{@code portCount} vai explicito no JSON: e dele que sai a altura do edificio na
  * cena 3D (fase 4) e evita que o frontend tenha de contar. O {@code riskScore} da a
  * cor, e as {@code riskReasons} enchem o painel de detalhes.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record HostDto(
         String ip,
+        String mac,
+        String vendor,
         String hostname,
         String osGuess,
         Integer osAccuracy,
@@ -45,6 +51,8 @@ public record HostDto(
     public static HostDto from(Host host, HostChange change, RiskBand riskBand, PositionDto position) {
         return new HostDto(
                 host.ip(),
+                host.mac(),
+                host.vendor(),
                 host.hostname(),
                 host.osGuess(),
                 host.osAccuracy(),
