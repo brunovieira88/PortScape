@@ -103,8 +103,8 @@ export function HostDetailsModal({ host, onClose }: { host: any, onClose: () => 
                     <div key={i} className="flex items-start gap-3 bg-red-900/10 border border-red-500/20 p-3 rounded">
                       <span className="text-red-500 mt-0.5">⚠</span>
                       <div>
-                        <div className="text-xs font-bold text-red-400 mb-1">{r.reason}</div>
-                        <div className="text-[10px] font-mono text-gray-400">Impact Score: +{r.scoreContribution}</div>
+                        <div className="text-xs font-bold text-red-400 mb-1">{r.description}</div>
+                        <div className="text-[10px] font-mono text-gray-400">Impact Score: +{r.points}</div>
                       </div>
                     </div>
                   ))}
@@ -122,7 +122,7 @@ export function HostDetailsModal({ host, onClose }: { host: any, onClose: () => 
                   {ports.map((p: any, i: number) => (
                     <div key={i} className="flex items-center gap-3 bg-black/60 border border-white/10 p-2 rounded">
                       <div className="w-12 text-right font-mono text-[#00f0ff] font-bold text-sm">
-                        {p.portId}
+                        {p.number}
                       </div>
                       <div className="flex-1">
                         <div className="text-xs text-white uppercase tracking-wider">{p.service || 'UNKNOWN'}</div>

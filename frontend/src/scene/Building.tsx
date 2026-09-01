@@ -204,7 +204,7 @@ export function Building({ label, x, z, portCount, riskBand, isRuin, onClick, is
                   {hostData.ports?.map((port: any, idx: number) => (
                     <div key={idx} className="flex justify-between items-center py-2 border-b border-white/10 last:border-0 hover:bg-white/5 px-2 -mx-2 transition-colors">
                       <div className="flex items-center gap-3">
-                        <span className="text-[#00f0ff] text-base font-bold w-12">{port.port}</span>
+                        <span className="text-[#00f0ff] text-base font-bold w-12">{port.number}</span>
                         <span className="text-xs text-gray-500 font-bold uppercase">{port.protocol}</span>
                       </div>
                       <div className="text-sm text-gray-100 uppercase tracking-widest">{port.service}</div>
