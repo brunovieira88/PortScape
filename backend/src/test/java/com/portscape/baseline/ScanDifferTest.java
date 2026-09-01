@@ -18,6 +18,14 @@ class ScanDifferTest {
     private static final Instant NOW = Instant.parse("2026-08-28T10:00:00Z");
     private static final UUID BASELINE_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
 
+    /** O mesmo dispositivo, identificado pelo MAC, no endereco que o DHCP lhe deu. */
+    private static Host device(String mac, String ip, int... ports) {
+        return new Host(ip, mac, "Example Networks", null, null, null,
+                java.util.Arrays.stream(ports)
+                        .mapToObj(port -> new Port(port, "tcp", "open", null, null, null))
+                        .toList(), null);
+    }
+
     private static Host host(String ip, int... ports) {
         return new Host(ip, null, null, null, java.util.Arrays.stream(ports)
                 .mapToObj(port -> new Port(port, "tcp", "open", null, null, null))
@@ -26,6 +34,10 @@ class ScanDifferTest {
 
     private static ScanJob scan(UUID id, Host... hosts) {
         return ScanJob.pending(id, "192.168.1.0/24", NOW).running(NOW).done(List.of(hosts), NOW);
+    }
+
+    private static ScanJob scanWith(Host... hosts) {
+        return scan(UUID.randomUUID(), hosts);
     }
 
     private static ScanDiff diff(List<Host> current, List<Host> baseline) {
@@ -122,5 +134,66 @@ class ScanDifferTest {
     void namesTheBaselineItComparedAgainst() {
         assertThat(diff(List.of(host("192.168.1.1", 80)), List.of(host("192.168.1.1", 80))))
                 .extracting(ScanDiff::baselineScanId).isEqualTo(BASELINE_ID);
+    }
+
+    @Test
+    @DisplayName("o mesmo dispositivo noutro IP nao e um host novo")
+    void followsADeviceAcrossAnAddressChange() {
+        ScanJob antes = scanWith(device("AA:BB:CC:00:11:22", "192.168.1.68", 22));
+        ScanJob agora = scanWith(device("AA:BB:CC:00:11:22", "192.168.1.70", 22));
+
+        ScanDiff diff = ScanDiffer.diff(agora, antes);
+
+        // Com a comparacao por IP isto dava NEW no .70 e o .68 como desaparecido --
+        // dois falsos alarmes por cada renovacao de aluguer de DHCP.
+        assertThat(diff.changeFor("192.168.1.70")).isEqualTo(HostChange.UNCHANGED);
+        assertThat(diff.disappeared()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("um MAC nunca visto e um host novo, mesmo que reutilize um IP conhecido")
+    void flagsAnUnknownDeviceEvenOnAFamiliarAddress() {
+        ScanJob antes = scanWith(device("AA:BB:CC:00:11:22", "192.168.1.68", 22));
+        ScanJob agora = scanWith(device("FF:EE:DD:99:88:77", "192.168.1.68", 22));
+
+        ScanDiff diff = ScanDiffer.diff(agora, antes);
+
+        // E este o caso que interessa a uma auditoria: alguem ocupou o endereco.
+        assertThat(diff.changeFor("192.168.1.68")).isEqualTo(HostChange.NEW);
+        assertThat(diff.disappeared()).extracting(Host::mac).containsExactly("AA:BB:CC:00:11:22");
+    }
+
+    @Test
+    @DisplayName("um dispositivo que muda de IP e de portas conta como alterado")
+    void stillReportsRealChangesOnADeviceThatMoved() {
+        ScanJob antes = scanWith(device("AA:BB:CC:00:11:22", "192.168.1.68", 22));
+        ScanJob agora = scanWith(device("AA:BB:CC:00:11:22", "192.168.1.70", 22, 23));
+
+        assertThat(ScanDiffer.diff(agora, antes).changeFor("192.168.1.70"))
+                .isEqualTo(HostChange.CHANGED);
+    }
+
+    @Test
+    @DisplayName("sem MAC vale o IP: e o caso do proprio portatil e dos scans sem privilegios")
+    void fallsBackToTheAddressWhenThereIsNoMac() {
+        ScanJob antes = scanWith(host("192.168.1.68", 22));
+        ScanJob agora = scanWith(host("192.168.1.68", 22));
+
+        assertThat(ScanDiffer.diff(agora, antes).changeFor("192.168.1.68"))
+                .isEqualTo(HostChange.UNCHANGED);
+    }
+
+    @Test
+    @DisplayName("um host com MAC e outro sem nao sao emparelhados por acaso")
+    void doesNotMatchAMaclessHostAgainstADeviceIdentity() {
+        ScanJob antes = scanWith(device("AA:BB:CC:00:11:22", "192.168.1.68", 22));
+        ScanJob agora = scanWith(host("192.168.1.68", 22));
+
+        // O scan novo nao conseguiu resolver o MAC, portanto o .68 identifica-se pelo
+        // IP e nao bate com "AA:BB:...". E o comportamento conservador certo: sinaliza
+        // em vez de assumir que e o mesmo.
+        ScanDiff diff = ScanDiffer.diff(agora, antes);
+        assertThat(diff.changeFor("192.168.1.68")).isEqualTo(HostChange.NEW);
+        assertThat(diff.disappeared()).hasSize(1);
     }
 }

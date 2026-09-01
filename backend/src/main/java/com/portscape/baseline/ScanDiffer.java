@@ -30,18 +30,22 @@ public final class ScanDiffer {
             return ScanDiff.none();
         }
 
-        Map<String, Host> baselineByIp = byIp(baseline.hosts());
+        // O emparelhamento e por identidade (MAC quando existe); as chaves do
+        // resultado continuam a ser IPs, que e o que a cena e a API usam para
+        // encontrar cada host.
+        Map<String, Host> baselineByIdentity = byIdentity(baseline.hosts());
         Map<String, HostChange> changes = new HashMap<>();
         for (Host host : current.hosts()) {
-            Host previous = baselineByIp.get(host.ip());
+            Host previous = baselineByIdentity.get(host.identity());
             changes.put(host.ip(), previous == null
                     ? HostChange.NEW
                     : (hasChanged(host, previous) ? HostChange.CHANGED : HostChange.UNCHANGED));
         }
 
-        Set<String> present = current.hosts().stream().map(Host::ip).collect(Collectors.toSet());
+        Set<String> present = current.hosts().stream()
+                .map(Host::identity).collect(Collectors.toSet());
         List<Host> disappeared = baseline.hosts().stream()
-                .filter(host -> !present.contains(host.ip()))
+                .filter(host -> !present.contains(host.identity()))
                 .toList();
 
         return new ScanDiff(baseline.id(), changes, disappeared);
@@ -62,7 +66,15 @@ public final class ScanDiffer {
         return host.ports().stream().map(Port::number).collect(Collectors.toSet());
     }
 
-    private static Map<String, Host> byIp(List<Host> hosts) {
-        return hosts.stream().collect(Collectors.toMap(Host::ip, Function.identity(), (a, b) -> a));
+    /**
+     * Indexa por {@link Host#identity()} -- MAC quando o nmap o resolveu, IP quando nao.
+     *
+     * <p>Era por IP, e num rede com DHCP isso fazia de cada renovacao de aluguer um
+     * host desaparecido mais um host novo. O alerta de "maquina nao autorizada", que e
+     * a razao de ser deste projecto, disparava por causa do telemovel do proprio dono.
+     */
+    private static Map<String, Host> byIdentity(List<Host> hosts) {
+        return hosts.stream()
+                .collect(Collectors.toMap(Host::identity, Function.identity(), (a, b) -> a));
     }
 }
