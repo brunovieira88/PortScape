@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { Architecture, DETAIL, type DetailLevel } from './buildings/ArchitectureBuilder';
-import { buildingHeight, seedOf } from './buildings/towerForm';
+import { buildingHeight, footprintRadius, seedOf } from './buildings/towerForm';
 import { deviceKindOf } from './buildings/deviceKind';
 import { stepDelta } from './frame';
 import { NewHostHighlight } from './highlights/NewHostHighlight';
@@ -134,6 +134,9 @@ export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onC
   // formula aqui punha a etiqueta cinco unidades acima do telhado de todas as casas.
   const kind = deviceKindOf(vendor);
   const height = buildingHeight(portCount, seed, kind);
+  // Os destaques envolvem o edificio: o raio tem de vir da planta dele, nao de um
+  // numero fixo. Ver a nota no ChangedHostHighlight.
+  const radius = footprintRadius(portCount, seed, kind);
   const waypointY = height + 2;
 
   const handleClick = (e: any) => {
@@ -186,8 +189,8 @@ export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onC
         detail={detail}
         seed={seed}
       />
-      {isNew && !isRuin && <NewHostHighlight />}
-      {isChanged && !isRuin && <ChangedHostHighlight height={height + 5} />}
+      {isNew && !isRuin && <NewHostHighlight radius={radius} />}
+      {isChanged && !isRuin && <ChangedHostHighlight radius={radius} />}
       
       {showUI && (
         <>
@@ -307,6 +310,14 @@ export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onC
             <div className="text-white/90 font-bold uppercase text-[10px] mt-0.5">
               {isRuin ? "OFFLINE" : `${portCount} PORTS`}
             </div>
+            {/* O fio no chao so se ve de perto e de cima. A etiqueta ja esta a flutuar
+                por cima do edificio e le-se de longe: e o sitio barato de dizer o
+                estado, sem mais nada dentro da cena a competir com os edificios. */}
+            {!isRuin && (isNew || isChanged) && (
+              <div className="text-white/60 uppercase text-[8px] tracking-[0.25em] mt-0.5">
+                {isNew ? '· NEW ·' : '· CHANGED ·'}
+              </div>
+            )}
           </div>
         </Html>
       )}

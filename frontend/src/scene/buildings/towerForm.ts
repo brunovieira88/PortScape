@@ -158,3 +158,21 @@ export function footprintHalfWidth(portCount: number, seed = 0,
   return Math.max(base.width * cos + base.depth * sin,
                   base.width * sin + base.depth * cos) / 2;
 }
+
+/**
+ * Raio de uma circunferencia que envolve a planta do edificio, seja qual for a sua
+ * rotacao. E a meia-diagonal do patamar de baixo.
+ *
+ * <p>E daqui que sai o tamanho dos destaques de host novo/alterado. Estavam em valores
+ * fixos escolhidos quando todos os edificios eram a mesma caixa de 10x10: numa laje de
+ * 17 de largura a marca passava por <i>dentro</i> do edificio e so se via nas pontas.
+ */
+export function footprintRadius(portCount: number, seed = 0,
+    kind: DeviceKind = 'GENERIC'): number {
+  if (portCount <= 3 && kind === 'GENERIC') {
+    return Math.SQRT2 * HOUSE_WIDTH / 2;
+  }
+  const floors = Math.max(1, Math.min(portCount, MAX_FLOORS));
+  const base = towerForm(seed, floors, FLOOR_HEIGHT, kind).tiers[0];
+  return Math.hypot(base.width, base.depth) / 2;
+}
