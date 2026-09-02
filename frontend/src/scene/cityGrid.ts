@@ -195,7 +195,7 @@ export function collidesAt(grid: CityGrid, x: number, z: number): boolean {
  * chegada no meio da rua mais proxima do centro. E deterministico: o mesmo scan da
  * sempre o mesmo sitio, para o utilizador reconhecer onde chegou.
  */
-export function spawnPointFor(grid: CityGrid): { x: number, z: number } {
+export function spawnPointFor(grid: CityGrid, origin: { x: number, z: number } = { x: 0, z: 0 }): { x: number, z: number } {
   const step = BLOCK_SCALE / 2;
   const bounds = walkableBounds(grid);
   const rings = Math.ceil(Math.max(bounds.maxX, bounds.maxZ) / step);
@@ -211,11 +211,13 @@ export function spawnPointFor(grid: CityGrid): { x: number, z: number } {
 
         // O `|| 0` limpa o zero negativo que `-0 * step` produz no anel central: e
         // igual a 0 em toda a aritmetica, mas nao no toEqual de um teste.
-        const x = ix * step || 0;
-        const z = iz * step || 0;
+        const x = origin.x + (ix * step || 0);
+        const z = origin.z + (iz * step || 0);
         if (collidesAt(grid, x, z)) { continue; }
 
-        const distance = x * x + z * z;
+        const dx = x - origin.x;
+        const dz = z - origin.z;
+        const distance = dx * dx + dz * dz;
         if (distance < bestDistance) {
           bestDistance = distance;
           best = { x, z };
@@ -227,5 +229,5 @@ export function spawnPointFor(grid: CityGrid): { x: number, z: number } {
 
   // Uma cidade sem um unico sitio onde estar de pe. Nao acontece -- o chao e sempre
   // maior do que os edificios -- mas devolver a origem e melhor do que nao devolver.
-  return { x: 0, z: 0 };
+  return { x: origin.x, z: origin.z };
 }

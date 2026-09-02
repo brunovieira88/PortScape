@@ -1,11 +1,13 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { buildCityGrid, collidesAt, spawnPointFor } from './cityGrid';
+import { buildCityGrid, collidesAt, spawnPointFor, worldX, worldZ } from './cityGrid';
 import { introFrame } from './cameraIntro';
 import { stepDelta } from './frame';
 
-export function StreetControls({ scanData }: { scanData: any }) {
+interface TeleportRequest { ip: string; nonce: number; }
+
+export function StreetControls({ scanData, teleportTarget }: { scanData: any, teleportTarget?: TeleportRequest | null }) {
   const { camera, gl } = useThree();
   const keys = useRef<{ [key: string]: boolean }>({});
   
@@ -98,6 +100,29 @@ export function StreetControls({ scanData }: { scanData: any }) {
     introTime.current = 0;
     isIntroPlaying.current = true;
   }, [scanData.id, camera, spawn]);
+
+  // Teleporte a partir da lista de dispositivos: poe o jogador no sitio livre mais
+  // proximo do edificio pedido, sem voo de chegada -- e um atalho, nao uma segunda
+  // aterragem. O nonce garante que clicar duas vezes no mesmo host teleporta as duas.
+  useEffect(() => {
+    if (!teleportTarget) { return; }
+    const host = [...grid.hosts, ...grid.ruins].find(h => h.ip === teleportTarget.ip);
+    if (!host) { return; }
+
+    const targetX = worldX(grid, host.gridX);
+    const targetZ = worldZ(grid, host.gridZ);
+    const spot = spawnPointFor(grid, { x: targetX, z: targetZ });
+
+    isIntroPlaying.current = false;
+    velocity.current.set(0, 0, 0);
+    camera.position.set(spot.x, STREET_Y, spot.z);
+
+    const dx = targetX - spot.x;
+    const dz = targetZ - spot.z;
+    if (Math.abs(dx) > 0.001 || Math.abs(dz) > 0.001) {
+      targetRotation.current.y = Math.atan2(-dx, -dz);
+    }
+  }, [teleportTarget, grid, camera]);
 
   useFrame((_state, rawDelta) => {
     // Ver o stepDelta: o R3F passa o delta do relogio em bruto, e voltar a esta aba

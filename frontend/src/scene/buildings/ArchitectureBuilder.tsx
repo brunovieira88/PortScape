@@ -57,11 +57,20 @@ function HunterDrone({ color, altitude, radius }: { color: string, altitude: num
  */
 const CORE_INSET = 0.4;
 /**
- * A massa do edificio. Escuro, mas nao preto: tem de sobrar alguma coisa para a luz
- * apanhar, senao as tres faces visiveis de um prisma ficam identicas e o edificio le
- * como silhueta recortada em vez de volume. Fica abaixo do limiar do bloom de proposito.
+ * Cinzento escuro neutro da massa do edificio. Nao tinge com a cor da faixa de risco de
+ * proposito: tingir igualava a massa as linhas neon e a cidade perdia o contraste
+ * escuro-contra-neon que da o aspecto noturno. Continua a nao ser preto puro -- precisa
+ * de sobrar alguma coisa para a luz apanhar, senao as faces de um prisma ficam todas
+ * identicas e o edificio le como silhueta recortada em vez de volume.
  */
-const CORE_COLOR = '#0d1018';
+const CORE_COLOR = '#3a3d44';
+/**
+ * Emissivo fixo e baixo, independente da luz da cena. Sem isto a face virada para o
+ * lado contrario da lua fica sem luz nenhuma e volta a ler como preta -- e era
+ * exatamente essa a fachada que se via atraves das janelas (vazadas, so wireframe) da
+ * casa: preto por falta de luz direta, nao pela cor do material.
+ */
+const CORE_EMISSIVE = '#101216';
 
 /**
  * O material da massa dos edificios -- o unico da cena que responde a luz.
@@ -72,7 +81,7 @@ const CORE_COLOR = '#0d1018';
  * continuam basic, porque essas sao emissivas -- nao sao iluminadas, sao a luz.
  */
 function CoreMaterial() {
-  return <meshStandardMaterial color={CORE_COLOR} roughness={0.85} metalness={0.15} />;
+  return <meshStandardMaterial color={CORE_COLOR} emissive={CORE_EMISSIVE} roughness={0.85} metalness={0.15} />;
 }
 
 /**
@@ -186,17 +195,60 @@ function Beacon({ y, color, phase }: { y: number, color: string, phase: number }
  * vocabulario da laje moderna, e <b>frisos</b> verticais estreitos e altos, que e o do
  * arranha-ceus. Quadrados a meio da fachada nao sao nem uma coisa nem outra.
  */
-function TierWindows({ tier, style, color, floorHeight, seed, lit }:
-  { tier: Tier, style: WindowStyle, color: string, floorHeight: number, seed: number, lit: boolean }) {
+interface WindowSlot {
+  pos: [number, number, number]; rotY: number; scaleX: number; scaleY: number;
+}
 
+/**
+ * Um bloco de janelas com a mesma cor. Duas instancias deste (acesas / apagadas) sao
+ * mais simples e mais fiaveis do que dar cor por instancia dentro de um so
+ * InstancedMesh -- a tentativa de tingir por instancia (setColorAt +
+ * material.vertexColors) nunca chegou a pintar de forma consistente entre motores, e
+ * uma cor fixa por malha e o mesmo truque que ja funciona no resto da cena.
+ */
+function InstancedWindows({ slots, color }: { slots: WindowSlot[], color: string }) {
   const ref = useRef<THREE.InstancedMesh>(null);
+
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) { return; }
+    const dummy = new THREE.Object3D();
+    slots.forEach((slot, i) => {
+      dummy.position.set(...slot.pos);
+      dummy.rotation.set(0, slot.rotY, 0);
+      // A geometria e um quadrado de 1x1; cada instancia estica-se para a sua face.
+      dummy.scale.set(slot.scaleX, slot.scaleY, 1);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+  }, [slots]);
+
+  if (slots.length === 0) { return null; }
+
+  return (
+    <instancedMesh ref={ref} args={[undefined, undefined, slots.length]}>
+      <planeGeometry args={[1, 1]} />
+      <meshBasicMaterial color={color} toneMapped={false} transparent opacity={0.95} />
+    </instancedMesh>
+  );
+}
+
+function TierWindows({ tier, style, color, floorHeight, seed, litCount }:
+  { tier: Tier, style: WindowStyle, color: string, floorHeight: number, seed: number, litCount: number }) {
+
   const floors = Math.max(1, Math.round(tier.height / floorHeight));
+  // Altura real de um andar *neste* patamar. Um SETBACK ou uma agulha tem patamares
+  // muito mais baixos que FLOOR_HEIGHT -- dimensionar a janela por essa constante fixa
+  // fazia-a sair maior do que o proprio patamar, e ela saltava por cima e por baixo da
+  // fachada. Aqui a janela nunca e maior do que o andar onde assenta.
+  const sliceHeight = tier.height / floors;
 
   const instances = useMemo(() => {
     const rng = rngFrom(seed);
     const out: {
       pos: [number, number, number], rotY: number,
-      scaleX: number, scaleY: number, brightness: number,
+      scaleX: number, scaleY: number,
     }[] = [];
 
     const faces: { rotY: number, along: 'x' | 'z', sign: number }[] = [
@@ -216,13 +268,13 @@ function TierWindows({ tier, style, color, floorHeight, seed, lit }:
       const scaleX = style === 'RIBBON'
         ? span * 0.82
         : Math.min(0.55, (span / cols) * 0.34);
-      const scaleY = style === 'RIBBON' ? floorHeight * 0.26 : floorHeight * 0.62;
+      const scaleY = (style === 'RIBBON' ? sliceHeight * 0.26 : sliceHeight * 0.62);
       for (let floor = 0; floor < floors; floor++) {
         for (let col = 0; col < cols; col++) {
           // As faixas desenham-se sempre; os frisos sao esparsos de proposito.
           if (style === 'STRIP' && rng() > 0.82) { continue; }
           const local = cols === 1 ? 0 : (col - (cols - 1) / 2) * (span / cols);
-          const y = tier.base + floor * floorHeight + floorHeight / 2;
+          const y = tier.base + floor * sliceHeight + sliceHeight / 2;
           out.push({
             pos: face.along === 'x'
               ? [local, y, face.sign * outward]
@@ -230,40 +282,40 @@ function TierWindows({ tier, style, color, floorHeight, seed, lit }:
             rotY: face.rotY,
             scaleX,
             scaleY,
-            // Poucas muito acesas, muitas apagadas: e o contraste que da vida.
-            brightness: rng() < 0.22 ? 0.85 + rng() * 0.15 : 0.12 + rng() * 0.18,
           });
         }
       }
     }
     return out;
-  }, [tier, style, floorHeight, seed, floors]);
+  }, [tier, style, sliceHeight, seed, floors]);
 
-  useLayoutEffect(() => {
-    const mesh = ref.current;
-    if (!mesh) { return; }
-    const dummy = new THREE.Object3D();
-    const tint = new THREE.Color();
-    instances.forEach((instance, i) => {
-      dummy.position.set(...instance.pos);
-      dummy.rotation.set(0, instance.rotY, 0);
-      // A geometria e um quadrado de 1x1; cada instancia estica-se para a sua face.
-      dummy.scale.set(instance.scaleX, instance.scaleY, 1);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
-      mesh.setColorAt(i, tint.set(color).multiplyScalar(lit ? instance.brightness : 0.18));
-    });
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) { mesh.instanceColor.needsUpdate = true; }
-  }, [instances, color, lit]);
+  // Quais acendem sai do numero de portas abertas do host, nao de sorte: e a mesma
+  // ideia que ja da a altura do edificio, aplicada a fachada. Um shuffle com semente
+  // propria (distinta da que desenha a grelha) escolhe sempre as mesmas janelas para o
+  // mesmo host, em qualquer scan.
+  const { lit, dim } = useMemo(() => {
+    const indices = instances.map((_, i) => i);
+    const rng = rngFrom(seed + 104729);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    const litSet = new Set(indices.slice(0, Math.min(litCount, indices.length)));
+    const lit: WindowSlot[] = [];
+    const dim: WindowSlot[] = [];
+    instances.forEach((slot, i) => (litSet.has(i) ? lit : dim).push(slot));
+    return { lit, dim };
+  }, [instances, litCount, seed]);
+
+  const dimColor = useMemo(() => `#${new THREE.Color(color).multiplyScalar(0.18).getHexString()}`, [color]);
 
   if (instances.length === 0) { return null; }
 
   return (
-    <instancedMesh ref={ref} args={[undefined, undefined, instances.length]}>
-      <planeGeometry args={[1, 1]} />
-      <meshBasicMaterial color={color} toneMapped={false} transparent opacity={0.95} />
-    </instancedMesh>
+    <>
+      <InstancedWindows slots={lit} color={color} />
+      <InstancedWindows slots={dim} color={dimColor} />
+    </>
   );
 }
 
@@ -398,8 +450,7 @@ export function Architecture({ portCount, color, isRuin, riskBand, kind = 'GENER
 
     if (!isRuin) {
       elements.push(
-        <mesh key={`tier-core-${i}`} position={[0, cy, 0]} rotation={[0, form.rotation, 0]}
-             >
+        <mesh key={`tier-core-${i}`} position={[0, cy, 0]} rotation={[0, form.rotation, 0]}>
           <boxGeometry args={[tier.width - CORE_INSET, tier.height, tier.depth - CORE_INSET]} />
           <CoreMaterial />
         </mesh>
@@ -419,7 +470,7 @@ export function Architecture({ portCount, color, isRuin, riskBand, kind = 'GENER
         <group key={`facade-${i}`} rotation={[0, form.rotation, 0]}>
           <TierWindows tier={tier} style={form.windows} color={activeColor}
                        floorHeight={floorH} seed={seed + i * 7919}
-                       lit={!isRuin && detail >= DETAIL.FULL} />
+                       litCount={isRuin ? 0 : portCount} />
         </group>
       );
     }
@@ -494,13 +545,6 @@ export function Architecture({ portCount, color, isRuin, riskBand, kind = 'GENER
 
   // 2. LOtowerW / MEDIUM: Comercial, Néons e Heliportos
   if ((riskBand === 'LOW' || riskBand === 'MEDIUM') && portCount > 3 && !isRuin) {
-    // Heliporto circular no telhado
-    elements.push(
-      <mesh key="helipad" position={[0, H + 3.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[2, 3, 16]} />
-        <meshBasicMaterial color={activeColor} wireframe={true} transparent={true} opacity={0.8} />
-      </mesh>
-    );
     // Pilares estruturais / Exoesqueleto nos 4 cantos do edifício para um aspeto fortificado
     const pR = towerW / 2 + 0.2;
     elements.push(
@@ -536,29 +580,10 @@ export function Architecture({ portCount, color, isRuin, riskBand, kind = 'GENER
         <meshBasicMaterial color={activeColor} wireframe={true} transparent={true} opacity={isRuin ? 0.3 : 0.7} />
       </mesh>
     );
-    // Anel estrutural de suporte a meia-altura
-    elements.push(
-      <mesh key="overhang-ring" position={[0, H * 0.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[towerW - 1, towerW + 2, 4]} />
-        <meshBasicMaterial color={activeColor} wireframe={true} transparent={true} opacity={isRuin ? 0.4 : 0.8} side={2} />
-      </mesh>
-    );
   }
 
   // 4. CRITICAL: Perigo, Opressão, Controlo Total
   if (riskBand === 'CRITICAL' && portCount > 3) {
-    // Anéis Duplos Opressivos flutuando sobre a cidade
-    elements.push(
-      <mesh key="overhang-ring-1" position={[0, H * 0.7, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[towerW, towerW + 5, 8]} />
-        <meshBasicMaterial color={activeColor} wireframe={true} transparent={true} opacity={isRuin ? 0.6 : 0.9} side={2} />
-      </mesh>,
-      <mesh key="overhang-ring-2" position={[0, H * 0.9, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[towerW, towerW + 3, 8]} />
-        <meshBasicMaterial color={activeColor} wireframe={true} transparent={true} opacity={isRuin ? 0.6 : 0.9} side={2} />
-      </mesh>
-    );
-
     // Coroa / Núcleo de Dados Corrompido no topo (Para todas as torres Critical)
     elements.push(
       <mesh key="critical-core" position={[0, H + 5, 0]}>

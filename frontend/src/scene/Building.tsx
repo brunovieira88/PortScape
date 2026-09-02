@@ -93,7 +93,15 @@ export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onC
   const FULL_DETAIL_OUT = 150;
   const STRUCTURE_IN = 300;
   const STRUCTURE_OUT = 350;
-  
+
+  // Distancia a que a etiqueta (nome + portas) aparece. Independente do LOD da
+  // geometria: o STRUCTURE_IN de 300 unidades foi pensado para um punhado de casas
+  // por perto, mas numa cidade cheia isso poe dezenas de labels sobrepostas ao mesmo
+  // tempo, ilegveis. A etiqueta so serve para quem esta a andar ao pe do edificio.
+  const LABEL_IN = 60;
+  const LABEL_OUT = 72;
+  const [showLabel, setShowLabel] = useState(false);
+
   useFrame((_state, rawDelta) => {
     // Ver o stepDelta: sem o limite, voltar a esta aba estica os edificios ao ceu.
     const delta = stepDelta(rawDelta);
@@ -111,6 +119,11 @@ export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onC
           : DETAIL.SILHOUETTE;
     if (next !== detail) {
       setDetail(next);
+    }
+
+    const nextShowLabel = dist < (showLabel ? LABEL_OUT : LABEL_IN);
+    if (nextShowLabel !== showLabel) {
+      setShowLabel(nextShowLabel);
     }
 
     if (!isNear && dist < AUTO_SPAWN_ENTER) {
@@ -304,7 +317,7 @@ export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onC
       {/* Waypoint DOM (Imune ao Bloom/Luzes do ambiente 3D) */}
       {/* A etiqueta e um no de DOM que o drei reposiciona a cada frame. Uma por
           edificio de um /24 sao 254 divs a competir com a cena; longe nem se le. */}
-      {!showUI && detail >= DETAIL.STRUCTURE && (
+      {!showUI && showLabel && (
         <Html key={`html-waypoint-${label}`} position={[0, waypointY, 0]} center zIndexRange={[50, 0]}>
           <div 
             className="flex flex-col items-center justify-center pointer-events-none select-none text-center whitespace-nowrap"

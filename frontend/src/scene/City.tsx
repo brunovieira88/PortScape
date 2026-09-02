@@ -1,4 +1,3 @@
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useMemo } from 'react';
@@ -19,6 +18,7 @@ interface CityProps {
   selectedHost: any;
   onSelectHost: (host: any) => void;
   onOpenDetails: (host: any) => void;
+  teleportTarget?: { ip: string, nonce: number } | null;
 }
 
 /** Azul-noite quase preto. E o horizonte e o nevoeiro ao mesmo tempo. */
@@ -77,14 +77,13 @@ function CrescentMoon() {
       <mesh renderOrder={-1}>
         <planeGeometry args={[120, 120]} />
         {/* toneMapped={false} garante que brilha imenso e não fica cinzento */}
-        <meshBasicMaterial 
-          map={moonTexture} 
-          transparent={true} 
-          toneMapped={false} 
+        <meshBasicMaterial
+          map={moonTexture}
+          transparent={true}
+          toneMapped={false}
           fog={false}
-          color="#ffffff" 
+          color="#ffffff"
           depthWrite={false}
-          depthTest={false}
         />
       </mesh>
     </group>
@@ -92,7 +91,7 @@ function CrescentMoon() {
 }
 
 
-export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: CityProps) {
+export function City({ scanData, selectedHost, onSelectHost, onOpenDetails, teleportTarget }: CityProps) {
   // Toda a traducao do layout do backend para a grelha vive no cityGrid, fora do
   // React, para poder ser testada. Ver o aviso la sobre nao recompactar aqui.
   // O chao (groundW/groundD) e maior do que a cidade de proposito, para uma rede
@@ -104,7 +103,7 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: Ci
 
   return (
     <>
-      <StreetControls scanData={scanData} />
+      <StreetControls scanData={scanData} teleportTarget={teleportTarget} />
 
       {/* A cor do horizonte e o nevoeiro sao a mesma: e isso que faz a cidade
           desvanecer-se ao longe em vez de terminar num corte seco.
@@ -182,13 +181,10 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails }: Ci
         />
       ))}
 
-      {/* O bloom e o que da o neon. O limiar fica em 0.2 de proposito -- subi-lo
-          domava o amarelo mas punha o vermelho do CRITICAL abaixo da linha, e a faixa
-          mais grave deixava de brilhar de todo. O que se dosea e a intensidade, que
-          afecta as faixas todas por igual em vez de castigar so a mais luminosa. */}
-      <EffectComposer>
-        <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} intensity={1.4} />
-      </EffectComposer>
+      {/* O EffectComposer/Bloom dava o brilho neon, mas era -- medido -- o maior custo
+          de frame de toda a cena, mais do que todos os edificios juntos. Removido por
+          desempenho; os materiais toneMapped={false} continuam a dar-lhes um brilho
+          proprio sem precisar de um pass de pos-processamento inteiro. */}
     </>
   );
 }

@@ -5,7 +5,7 @@ function bandColor(band: string): string {
   return BAND_COLORS[band as keyof typeof BAND_COLORS] || BAND_COLORS.UNKNOWN;
 }
 
-export function HostDetailsModal({ host, onClose }: { host: any, onClose: () => void }) {
+export function HostDetailsModal({ host, onClose, onTeleport }: { host: any, onClose: () => void, onTeleport?: () => void }) {
   // Fecha com a tecla ESC
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -49,12 +49,24 @@ export function HostDetailsModal({ host, onClose }: { host: any, onClose: () => 
             )}
           </div>
           
-          <button 
-            onClick={onClose}
-            className="text-gray-500 hover:text-white transition-colors p-2"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
+          <div className="flex items-center gap-2">
+            {onTeleport && (
+              <button
+                onClick={onTeleport}
+                className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-widest text-[#00f0ff] border border-[#00f0ff]/40 px-3 py-2 rounded hover:bg-[#00f0ff]/10 hover:border-[#00f0ff] transition-colors"
+                title="Teleportar para este dispositivo na cidade"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                Go To
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-white transition-colors p-2"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
         </div>
 
         {/* Content Body */}

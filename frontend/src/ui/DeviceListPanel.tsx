@@ -1,12 +1,53 @@
+import { useMemo, useState } from 'react';
 import { BAND_COLORS } from '../scene/Building';
 
 function bandColor(band: string): string {
   return BAND_COLORS[band as keyof typeof BAND_COLORS] || BAND_COLORS.UNKNOWN;
 }
 
+/** Todas as faixas, na mesma ordem de gravidade usada na cidade. */
+const ALL_BANDS = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN'] as const;
+
+/**
+ * IP para numero, para ordenar como um endereco e nao como texto -- em ordem
+ * alfabetica "192.168.1.100" vem antes de "192.168.1.2", o que nao e a ordem em que
+ * ninguem le uma rede. Um IP que nao se consiga ler (IPv6, hostname) vai para o fim,
+ * por ordem alfabetica entre si.
+ */
+function ipSortKey(ip: string): number {
+  const octets = ip?.split('.').map(Number);
+  if (!octets || octets.length !== 4 || octets.some(n => Number.isNaN(n))) {
+    return Infinity;
+  }
+  return octets.reduce((acc, n) => acc * 256 + n, 0);
+}
+
+function byIp(a: any, b: any): number {
+  const diff = ipSortKey(a.ip) - ipSortKey(b.ip);
+  return Number.isFinite(diff) ? diff : (a.ip || '').localeCompare(b.ip || '');
+}
+
 export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isHidden }: { scanData: any, onOpenDetails?: (host: any) => void, isOpen: boolean, onToggle: () => void, isHidden?: boolean }) {
-  const activeHosts = scanData?.hosts || [];
-  const ruins = scanData?.ruins || [];
+  const [activeBands, setActiveBands] = useState<Set<string>>(new Set(ALL_BANDS));
+
+  const toggleBand = (band: string) => {
+    setActiveBands(prev => {
+      const next = new Set(prev);
+      if (next.has(band)) { next.delete(band); } else { next.add(band); }
+      return next;
+    });
+  };
+
+  const activeHosts = useMemo(
+    () => [...(scanData?.hosts || [])]
+      .filter(host => activeBands.has(host.riskBand || 'UNKNOWN'))
+      .sort(byIp),
+    [scanData, activeBands]
+  );
+  const ruins = useMemo(
+    () => [...(scanData?.ruins || [])].sort(byIp),
+    [scanData]
+  );
 
   return (
     <div className={`transition-opacity duration-300 ${isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
@@ -66,6 +107,37 @@ export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isH
               <span className="text-[#00f0ff] text-xs font-bold tracking-[0.2em] uppercase">Active Targets</span>
               <span className="text-[9px] bg-[#00f0ff]/20 text-[#00f0ff] px-1.5 py-0.5 rounded font-mono">{activeHosts.length}</span>
             </div>
+
+            {/* Filtro por faixa de risco. Comeca tudo ligado -- um filtro que esconde
+                hosts por defeito e o tipo de coisa que faz alguem "perder" uma
+                maquina critica so porque a abriu depois de mexer noutra faixa. */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {ALL_BANDS.map(band => {
+                const on = activeBands.has(band);
+                const color = bandColor(band);
+                return (
+                  <button
+                    key={band}
+                    onClick={() => toggleBand(band)}
+                    className="text-xs px-3 py-1.5 rounded-md font-mono font-bold uppercase tracking-wider border transition-colors"
+                    style={{
+                      color: on ? color : '#4b5563',
+                      backgroundColor: on ? `${color}22` : 'transparent',
+                      borderColor: on ? `${color}55` : '#374151',
+                    }}
+                  >
+                    {band}
+                  </button>
+                );
+              })}
+            </div>
+
+            {activeHosts.length === 0 && (
+              <div className="text-[10px] text-gray-500 font-mono text-center py-4 border border-dashed border-gray-800 rounded">
+                NO HOSTS MATCH THE SELECTED FILTERS
+              </div>
+            )}
+
             <div className="flex flex-col gap-2">
               {activeHosts.map((host: any) => (
                 <div 
