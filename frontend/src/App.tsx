@@ -8,6 +8,12 @@ import { DeviceListPanel } from './ui/DeviceListPanel';
 import { HostDetailsModal } from './ui/HostDetailsModal';
 import { HistoryPanel } from './ui/HistoryPanel';
 
+// Set only by `npm run build:demo` (see vite.config.ts and .env.demo) -- the GitHub
+// Pages build, which has no backend behind it. Every network call in this file is
+// gated on it so the static demo shows the sample city instead of a wall of failed
+// fetches to an /api that doesn't exist there.
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+
 export default function App() {
   const [selectedHost, setSelectedHost] = useState<any | null>(null);
   const [detailedHost, setDetailedHost] = useState<any | null>(null);
@@ -50,6 +56,7 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (DEMO_MODE) { setIsBooting(false); return; }
     listScans()
       .then(scans => (scans?.length ? getScan(scans[0].id) : null))
       .then(latest => { if (latest) setScanData(latest); })
@@ -83,6 +90,11 @@ export default function App() {
   };
 
   const handleStartScan = async () => {
+    if (DEMO_MODE) {
+      setScanError('This is a static demo running on sample data — clone the repo and run the backend to scan a real network.');
+      return;
+    }
+
     stopPolling();
     const seq = ++loadSeq.current;
     setIsScanning(true);
@@ -271,8 +283,9 @@ export default function App() {
         </div>
       )}
 
-      {/* Painel de Histórico (Canto Esquerdo) */}
-      <HistoryPanel 
+      {/* Painel de Histórico (Canto Esquerdo) -- sem sentido no demo estático: não há
+          backend a guardar scans, só o exemplo fixo. */}
+      {!DEMO_MODE && <HistoryPanel
         onScanDeleted={(id: string) => {
           // A cidade estava a mostrar este scan: sem isto ficava um fantasma no ecra,
           // e voltar a clicar nele dava 404.
@@ -290,7 +303,7 @@ export default function App() {
         isOpen={isHistoryOpen} 
         onToggle={() => setIsHistoryOpen(!isHistoryOpen)} 
         isHidden={isInventoryOpen || showMenu}
-      />
+      />}
 
       {/* Painel Lateral com Lista de Dispositivos */}
       <DeviceListPanel 

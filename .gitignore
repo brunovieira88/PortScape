@@ -13,6 +13,7 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+!frontend/.env.demo
 
 # Logs
 *.log

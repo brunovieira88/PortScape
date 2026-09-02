@@ -8,6 +8,7 @@ Every device on your network becomes a building. Height is the number of open po
 colour is the risk band, and anything that wasn't there last time is marked on the ground.
 
 [![CI](https://github.com/brunovieira88/PortScape/actions/workflows/ci.yml/badge.svg)](https://github.com/brunovieira88/PortScape/actions/workflows/ci.yml)
+[![Live demo](https://img.shields.io/badge/Live%20demo-GitHub%20Pages-00f0ff.svg)](https://brunovieira88.github.io/PortScape/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Java 21](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/projects/jdk/21/)
 [![Spring Boot 3.5](https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F.svg)](https://spring.io/projects/spring-boot)
@@ -129,6 +130,13 @@ Then open http://localhost:5173, leave the target blank, and hit **Initiate Scan
 > `--network host` is the LinuxKit VM rather than macOS itself — the scan reports hosts
 > that don't exist on the real network. A silent wrong answer is worse than an error,
 > so nmap runs natively on the host.
+
+### Just want to look around, no install?
+
+**[Live demo](https://brunovieira88.github.io/PortScape/)** — the sample city this
+README's screenshots come from, running with every network call to the backend switched
+off. `npm run build:demo` (from `frontend/`) builds the exact same thing locally; it's
+what `.github/workflows/deploy-pages.yml` deploys.
 
 ### Privileged scanning
 
