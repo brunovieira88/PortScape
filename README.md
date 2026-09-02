@@ -30,6 +30,7 @@ colour is the risk band, and anything that wasn't there last time is marked on t
 
 - [Why this exists](#why-this-exists)
 - [Highlights](#highlights)
+- [Prerequisites](#prerequisites)
 - [Quick start](#quick-start)
 - [How it works](#how-it-works)
 - [The risk model](#the-risk-model)
@@ -78,9 +79,27 @@ running nmap, it's the two layers on top:
 | **Deterministic architecture** | A building's shape is derived from its IP and its MAC vendor, so the same device looks the same in every scan. A gateway is always a spire. |
 | **306 tests** | 219 unit + 37 integration on the backend (Testcontainers, real PostgreSQL), 50 on the frontend. Every scoring rule, parser and layout calculation is covered. |
 
-## Quick start
+## Prerequisites
 
-**Requirements:** Java 21 · Maven 3.9+ · Node 22+ · nmap 7.9+ · Docker (for PostgreSQL)
+| Tool | Version | Why |
+|---|---|---|
+| [Java](https://adoptium.net/) | 21+ | Runs the backend (Spring Boot) |
+| [Maven](https://maven.apache.org/download.cgi) | 3.9+ | Builds and runs the backend |
+| [Node.js](https://nodejs.org/) | 22+ | Runs the frontend (Vite) and the root dev scripts |
+| [nmap](https://nmap.org/download.html) | 7.9+ | Does the actual scanning — must be on `PATH` |
+| [Docker](https://www.docker.com/products/docker-desktop/) | any recent | Runs PostgreSQL only — see note below |
+
+Check what you already have:
+
+```bash
+java -version && mvn -version && node -v && nmap --version && docker --version
+```
+
+`make` is optional — only needed if you want `make dev` instead of `npm run dev`. It
+ships with macOS and most Linux distributions; Windows doesn't have it by default, which
+is exactly why `npm run dev` exists as the cross-platform option.
+
+## Quick start
 
 ```bash
 git clone https://github.com/brunovieira88/PortScape.git
