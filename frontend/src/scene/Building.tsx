@@ -1,5 +1,6 @@
-import { useRef, useEffect, useMemo, useState } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useRef, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
+import type { Host, Port, RiskBand } from '../api/types';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { Architecture, DETAIL, type DetailLevel } from './buildings/ArchitectureBuilder';
@@ -14,12 +15,12 @@ interface BuildingProps {
   x: number;
   z: number;
   portCount: number;
-  riskBand: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
+  riskBand: RiskBand;
   vendor?: string | null;
   isRuin: boolean;
   onClick: () => void;
   isSelected?: boolean;
-  hostData?: any;
+  hostData?: Host;
   onClose?: () => void;
   onOpenDetails?: () => void;
   isNew?: boolean;
@@ -47,6 +48,17 @@ export const BAND_COLORS = {
   LOW: '#00b7c3',      // ciano     — 0.38, era 0.70
   UNKNOWN: '#595959'   // cinzento  — 0.10, era 0.22: "nao avaliado" nao deve chamar
 };
+
+/**
+ * A cor de uma faixa de risco, com o cinzento do UNKNOWN para o que nao foi avaliado.
+ *
+ * <p>Vive aqui, ao lado da paleta, porque os paineis precisam exactamente da mesma
+ * conta -- e um host sem `riskBand` (a listagem devolve sumarios sem risco) tem de dar
+ * a mesma cor nos dois sitios.
+ */
+export function bandColor(band: string | null | undefined): string {
+  return BAND_COLORS[band as keyof typeof BAND_COLORS] || BAND_COLORS.UNKNOWN;
+}
 
 /**
  * A cor da faixa, afastada um pouco consoante o host.
@@ -152,7 +164,7 @@ export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onC
   const radius = footprintRadius(portCount, seed, kind);
   const waypointY = height + 2;
 
-  const handleClick = (e: any) => {
+  const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     const dist = camera.position.distanceTo(anchor);
     if (dist <= MAX_INTERACT_DISTANCE) {
@@ -163,7 +175,7 @@ export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onC
     }
   };
 
-  const handlePointerOver = (e: any) => {
+  const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
     const dist = camera.position.distanceTo(anchor);
     document.body.style.cursor = dist <= MAX_INTERACT_DISTANCE ? 'pointer' : 'not-allowed';
@@ -171,7 +183,7 @@ export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onC
 
   const showUI = (isSelected || (isNear && !forceClosed)) && hostData;
 
-  const handleClose = (e: any) => {
+  const handleClose = (e: ReactMouseEvent<HTMLButtonElement>) => {
     e.stopPropagation(); 
     if (onClose) onClose();
     if (isNear) setForceClosed(true); 
@@ -288,7 +300,7 @@ export function Building({ label, x, z, portCount, riskBand, vendor, isRuin, onC
 
                 <div className="text-xs text-gray-400 font-bold uppercase mb-3 tracking-wider">Open Ports ({hostData.ports?.length || 0})</div>
                 <div className="max-h-56 overflow-y-auto space-y-2 pr-2">
-                  {hostData.ports?.map((port: any, idx: number) => (
+                  {hostData.ports?.map((port: Port, idx: number) => (
                     <div key={idx} className="flex justify-between items-center py-2 border-b border-white/10 last:border-0 hover:bg-white/5 px-2 -mx-2 transition-colors">
                       <div className="flex items-center gap-3">
                         <span className="text-[#00f0ff] text-base font-bold w-12">{port.number}</span>

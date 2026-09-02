@@ -2,8 +2,9 @@ import { Canvas } from '@react-three/fiber';
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { City } from './scene/City';
 import { ErrorBoundary } from './ErrorBoundary';
-import mockData from './mock/demo-scan.json';
+import { demoScan } from './mock/demoScan';
 import { startScan, getScan, listScans, ApiError } from './api/client';
+import type { Host, Scan } from './api/types';
 import { DeviceListPanel } from './ui/DeviceListPanel';
 import { HostDetailsModal } from './ui/HostDetailsModal';
 import { HistoryPanel } from './ui/HistoryPanel';
@@ -15,12 +16,12 @@ import { HistoryPanel } from './ui/HistoryPanel';
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 export default function App() {
-  const [selectedHost, setSelectedHost] = useState<any | null>(null);
-  const [detailedHost, setDetailedHost] = useState<any | null>(null);
+  const [selectedHost, setSelectedHost] = useState<Host | null>(null);
+  const [detailedHost, setDetailedHost] = useState<Host | null>(null);
   const [teleportTarget, setTeleportTarget] = useState<{ ip: string, nonce: number } | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
-  const [scanData, setScanData] = useState<any>(mockData);
+  const [scanData, setScanData] = useState<Scan>(demoScan);
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<string>('');
   // O progresso vem do backend. Ja foi uma curva inventada que assintotava nos 95%,
@@ -151,7 +152,7 @@ export default function App() {
     }, 1500);
   };
 
-  const handleTeleport = (host: any) => {
+  const handleTeleport = (host: Host) => {
     setTeleportTarget({ ip: host.ip, nonce: Date.now() });
     setDetailedHost(null);
     setIsInventoryOpen(false);
@@ -164,7 +165,7 @@ export default function App() {
     <div className="w-screen h-screen bg-black overflow-hidden relative font-sans text-white select-none">
       
       {/* AVISO DE MOCK DATA GLOBAL */}
-      {scanData.id === mockData.id && (
+      {scanData.id === demoScan.id && (
         <div className="absolute top-0 left-0 w-full bg-red-600/90 text-white font-mono text-[10px] sm:text-xs text-center py-2 z-[9999] tracking-[0.3em] font-bold shadow-[0_0_30px_rgba(255,0,0,0.8)] border-b border-red-500 uppercase flex justify-center items-center gap-4">
           <span className="animate-pulse">⚠️</span>
           SIMULATION MODE: DISPLAYING OFFLINE MOCK DATA. INITIATE A REAL SCAN TO OBSERVE ACTUAL NETWORK TOPOLOGY.
@@ -173,7 +174,7 @@ export default function App() {
       )}
 
       {/* Top Left - Título Minimalista Estilo RuView */}
-      <div className={`absolute left-8 z-[999] pointer-events-none transition-all duration-300 ${scanData.id === mockData.id ? 'top-14' : 'top-6'} ${anyPanelOpen || showMenu ? 'opacity-0' : 'opacity-100'}`}>
+      <div className={`absolute left-8 z-[999] pointer-events-none transition-all duration-300 ${scanData.id === demoScan.id ? 'top-14' : 'top-6'} ${anyPanelOpen || showMenu ? 'opacity-0' : 'opacity-100'}`}>
         <h1 className="text-2xl font-bold text-[#00f0ff] tracking-widest flex items-center gap-2 font-mono">
           PortScape
         </h1>
@@ -292,7 +293,7 @@ export default function App() {
           if (scanData?.id === id) {
             loadSeq.current++;
             stopPolling();
-            setScanData(mockData);
+            setScanData(demoScan);
             setSelectedHost(null);
             setDetailedHost(null);
           }

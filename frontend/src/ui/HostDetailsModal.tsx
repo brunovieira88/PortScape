@@ -1,11 +1,8 @@
 import { useEffect } from 'react';
-import { BAND_COLORS } from '../scene/Building';
+import type { Host, Port, RiskReason } from '../api/types';
+import { bandColor } from '../scene/Building';
 
-function bandColor(band: string): string {
-  return BAND_COLORS[band as keyof typeof BAND_COLORS] || BAND_COLORS.UNKNOWN;
-}
-
-export function HostDetailsModal({ host, onClose, onTeleport }: { host: any, onClose: () => void, onTeleport?: () => void }) {
+export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, onClose: () => void, onTeleport?: () => void }) {
   // Fecha com a tecla ESC
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -130,7 +127,7 @@ export function HostDetailsModal({ host, onClose, onTeleport }: { host: any, onC
                 <div className="text-sm text-gray-500 italic">No significant risks detected.</div>
               ) : (
                 <div className="space-y-2">
-                  {riskReasons.map((r: any, i: number) => (
+                  {riskReasons.map((r: RiskReason, i: number) => (
                     <div key={i} className="flex items-start gap-3 bg-red-900/10 border border-red-500/20 p-3 rounded">
                       <span className="text-red-500 mt-0.5">⚠</span>
                       <div>
@@ -150,7 +147,7 @@ export function HostDetailsModal({ host, onClose, onTeleport }: { host: any, onC
                 <div className="text-sm text-gray-500 italic">No open ports detected.</div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {ports.map((p: any, i: number) => (
+                  {ports.map((p: Port, i: number) => (
                     <div key={i} className="flex items-center gap-3 bg-black/60 border border-white/10 p-2 rounded">
                       <div className="w-12 text-right font-mono text-[#00f0ff] font-bold text-sm">
                         {p.number}

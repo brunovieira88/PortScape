@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { listScans, deleteScan, ApiError } from '../api/client';
+import type { Scan } from '../api/types';
 
 function CrumblingBlocks() {
   const blocks = Array.from({ length: 24 }); // 6 colunas x 4 linhas
@@ -24,7 +25,7 @@ function CrumblingBlocks() {
               '--rx': `${rX}deg`,
               '--ry': `${rY}deg`,
               '--rz': `${rZ}deg`,
-            } as any}
+            } as CSSProperties}
           />
         );
       })}
@@ -32,8 +33,17 @@ function CrumblingBlocks() {
   );
 }
 
-export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen, onToggle, isHidden }: { activeScanId?: string, onSelectScan: (id: string) => void, onScanDeleted?: (id: string) => void, isOpen: boolean, onToggle: () => void, isHidden?: boolean }) {
-  const [scans, setScans] = useState<any[]>([]);
+interface HistoryPanelProps {
+  activeScanId?: string;
+  onSelectScan: (id: string) => void;
+  onScanDeleted?: (id: string) => void;
+  isOpen: boolean;
+  onToggle: () => void;
+  isHidden?: boolean;
+}
+
+export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen, onToggle, isHidden }: HistoryPanelProps) {
+  const [scans, setScans] = useState<Scan[]>([]);
   const [scanToDelete, setScanToDelete] = useState<string | null>(null);
   const [scanToDestroy, setScanToDestroy] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);

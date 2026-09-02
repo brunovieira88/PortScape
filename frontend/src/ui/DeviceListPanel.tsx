@@ -1,12 +1,9 @@
 import { useMemo, useState } from 'react';
-import { BAND_COLORS } from '../scene/Building';
-
-function bandColor(band: string): string {
-  return BAND_COLORS[band as keyof typeof BAND_COLORS] || BAND_COLORS.UNKNOWN;
-}
+import type { Host, RiskBand, Scan } from '../api/types';
+import { bandColor } from '../scene/Building';
 
 /** Todas as faixas, na mesma ordem de gravidade usada na cidade. */
-const ALL_BANDS = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN'] as const;
+const ALL_BANDS: readonly RiskBand[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN'];
 
 /**
  * IP para numero, para ordenar como um endereco e nao como texto -- em ordem
@@ -22,12 +19,20 @@ function ipSortKey(ip: string): number {
   return octets.reduce((acc, n) => acc * 256 + n, 0);
 }
 
-function byIp(a: any, b: any): number {
+function byIp(a: Host, b: Host): number {
   const diff = ipSortKey(a.ip) - ipSortKey(b.ip);
   return Number.isFinite(diff) ? diff : (a.ip || '').localeCompare(b.ip || '');
 }
 
-export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isHidden }: { scanData: any, onOpenDetails?: (host: any) => void, isOpen: boolean, onToggle: () => void, isHidden?: boolean }) {
+interface DeviceListPanelProps {
+  scanData: Scan;
+  onOpenDetails?: (host: Host) => void;
+  isOpen: boolean;
+  onToggle: () => void;
+  isHidden?: boolean;
+}
+
+export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isHidden }: DeviceListPanelProps) {
   const [activeBands, setActiveBands] = useState<Set<string>>(new Set(ALL_BANDS));
 
   const toggleBand = (band: string) => {
@@ -139,7 +144,7 @@ export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isH
             )}
 
             <div className="flex flex-col gap-2">
-              {activeHosts.map((host: any) => (
+              {activeHosts.map(host => (
                 <div 
                   key={host.ip} 
                   onClick={() => {
@@ -188,7 +193,7 @@ export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isH
                 <span className="text-[9px] bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded font-mono">{ruins.length}</span>
               </div>
               <div className="flex flex-col gap-2">
-                {ruins.map((ruin: any) => (
+                {ruins.map(ruin => (
                   <div 
                     key={ruin.ip} 
                     onClick={() => {
