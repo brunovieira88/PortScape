@@ -1,0 +1,2241 @@
+{
+  "id": "77771111-2222-3333-4444-999999999999",
+  "target": "192.168.1.0/24",
+  "status": "DONE",
+  "createdAt": "2026-08-30T21:00:00Z",
+  "startedAt": "2026-08-30T21:00:00Z",
+  "finishedAt": "2026-08-30T21:03:12Z",
+  "durationMs": 192000,
+  "hostsUp": 45,
+  "baselineScanId": "99999999-8888-7777-6666-555555555555",
+  "cveLookupDegraded": false,
+  "progress": 100,
+  "layout": {
+    "spacing": 4,
+    "width": 108,
+    "depth": 20,
+    "districts": [
+      {
+        "band": "CRITICAL",
+        "x": 0,
+        "width": 12,
+        "depth": 12,
+        "hostCount": 7
+      },
+      {
+        "band": "HIGH",
+        "x": 28,
+        "width": 12,
+        "depth": 12,
+        "hostCount": 9
+      },
+      {
+        "band": "MEDIUM",
+        "x": 56,
+        "width": 16,
+        "depth": 12,
+        "hostCount": 10
+      },
+      {
+        "band": "LOW",
+        "x": 88,
+        "width": 20,
+        "depth": 20,
+        "hostCount": 21
+      }
+    ]
+  },
+  "hosts": [
+    {
+      "ip": "192.168.1.69",
+      "mac": "B8:27:EB:A9:81:16",
+      "vendor": "Xiaomi Communications",
+      "hostname": null,
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 0,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [],
+      "riskReasons": [],
+      "portCount": 0,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 96,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.124",
+      "mac": "5C:91:75:D2:21:D9",
+      "vendor": "Ubiquiti Networks",
+      "hostname": "router.lan",
+      "osGuess": "Linux 5.4 - 5.15",
+      "osAccuracy": 94,
+      "riskScore": 34,
+      "riskBand": "MEDIUM",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 443,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "https",
+          "product": "lighttpd",
+          "version": "1.4.53",
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 443/tcp (https) exposta",
+          "points": 2
+        },
+        {
+          "code": "KNOWN_CVE",
+          "description": "CVE-2020-36254 (CVSS 8.1) em Dropbear sshd 2017.75 no porto 22",
+          "points": 32
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 56,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.67",
+      "mac": "5C:91:75:6E:F6:63",
+      "vendor": "Supermicro",
+      "hostname": "db.internal",
+      "osGuess": "Linux 5.x",
+      "osAccuracy": 90,
+      "riskScore": 70,
+      "riskBand": "HIGH",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 3306,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "mysql",
+          "product": "MySQL",
+          "version": "5.5.5",
+          "cpes": []
+        },
+        {
+          "number": 22,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ssh",
+          "product": "OpenSSH",
+          "version": "9.6",
+          "cpes": []
+        },
+        {
+          "number": 6379,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "redis",
+          "product": "Redis",
+          "version": "5.0.3",
+          "cpes": []
+        },
+        {
+          "number": 5432,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "postgresql",
+          "product": "PostgreSQL DB",
+          "version": "16.2",
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MYSQL (3306/tcp) exposto na rede",
+          "points": 20
+        },
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 22/tcp (ssh) exposta",
+          "points": 5
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "REDIS (6379/tcp) exposto na rede",
+          "points": 25
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "POSTGRESQL (5432/tcp) exposto na rede",
+          "points": 20
+        }
+      ],
+      "portCount": 4,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 36,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.171",
+      "mac": "3C:22:FB:D7:14:93",
+      "vendor": "Dell Inc.",
+      "hostname": "desktop.lan",
+      "osGuess": "Windows 10/11",
+      "osAccuracy": 92,
+      "riskScore": 20,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 139,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "netbios-ssn",
+          "product": null,
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "NETBIOS-SSN (139/tcp) exposto na rede",
+          "points": 20
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 100,
+        "z": 8
+      }
+    },
+    {
+      "ip": "192.168.1.81",
+      "mac": "68:AA:C4:E5:91:73",
+      "vendor": "Hewlett-Packard",
+      "hostname": "desktop1.lan",
+      "osGuess": "Windows 10/11",
+      "osAccuracy": 92,
+      "riskScore": 20,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 135,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "msrpc",
+          "product": "Microsoft Windows RPC",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MSRPC (135/tcp) exposto na rede",
+          "points": 20
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 88,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.153",
+      "mac": "5C:91:75:C6:F2:21",
+      "vendor": "Raspberry Pi Foundation",
+      "hostname": "pi.lan",
+      "osGuess": "Raspberry Pi OS",
+      "osAccuracy": 71,
+      "riskScore": 30,
+      "riskBand": "MEDIUM",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 3389,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ms-wbt-server",
+          "product": null,
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
+          "points": 30
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 64,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.245",
+      "mac": "DC:A6:32:03:49:80",
+      "vendor": "Raspberry Pi Foundation",
+      "hostname": "pi1.lan",
+      "osGuess": "Raspberry Pi OS",
+      "osAccuracy": 71,
+      "riskScore": 5,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 22,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ssh",
+          "product": "OpenSSH",
+          "version": "8.4p1",
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 22/tcp (ssh) exposta",
+          "points": 5
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 88,
+        "z": 16
+      }
+    },
+    {
+      "ip": "192.168.1.79",
+      "mac": "68:AA:C4:AB:60:5B",
+      "vendor": "TP-Link Corporation",
+      "hostname": "smartplug.lan",
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 5,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "lwIP httpd",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 5
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 104,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.180",
+      "mac": "3C:22:FB:62:ED:CA",
+      "vendor": "Apple, Inc.",
+      "hostname": "laptop.lan",
+      "osGuess": "Windows 10/11",
+      "osAccuracy": 90,
+      "riskScore": 80,
+      "riskBand": "CRITICAL",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 3389,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ms-wbt-server",
+          "product": null,
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 135,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "msrpc",
+          "product": "Microsoft Windows RPC",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 445,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "microsoft-ds",
+          "product": "Windows SMB",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
+          "points": 30
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MSRPC (135/tcp) exposto na rede",
+          "points": 20
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "points": 30
+        }
+      ],
+      "portCount": 3,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 4,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.29",
+      "mac": "C0:9A:D0:4A:96:85",
+      "vendor": "Zhejiang Dahua Technology",
+      "hostname": "cam.lan",
+      "osGuess": "Linux 2.6",
+      "osAccuracy": 65,
+      "riskScore": 73,
+      "riskBand": "HIGH",
+      "change": "NEW",
+      "ports": [
+        {
+          "number": 554,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "rtsp",
+          "product": null,
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "GoAhead-Webs",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 23,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "telnet",
+          "product": null,
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 5
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "TELNET (23/tcp) exposto na rede",
+          "points": 35
+        },
+        {
+          "code": "UNWEIGHTED_PORTS",
+          "description": "3 porta(s) comuns expostas",
+          "points": 8
+        },
+        {
+          "code": "NOT_IN_BASELINE",
+          "description": "Host novo, nao visto em scans anteriores",
+          "points": 25
+        }
+      ],
+      "portCount": 3,
+      "isNew": true,
+      "isChanged": false,
+      "position": {
+        "x": 32,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.102",
+      "mac": "DC:A6:32:E2:EC:4D",
+      "vendor": "Shenzhen Reecam Tech",
+      "hostname": "smartplug1.lan",
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 5,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "lwIP httpd",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 5
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 92,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.23",
+      "mac": "A4:83:E7:03:F5:D1",
+      "vendor": "ASUSTek COMPUTER INC.",
+      "hostname": "laptop1.lan",
+      "osGuess": "Windows 10/11",
+      "osAccuracy": 90,
+      "riskScore": 50,
+      "riskBand": "HIGH",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 135,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "msrpc",
+          "product": "Microsoft Windows RPC",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 445,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "microsoft-ds",
+          "product": "Windows SMB",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MSRPC (135/tcp) exposto na rede",
+          "points": 20
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "points": 30
+        }
+      ],
+      "portCount": 2,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 28,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.248",
+      "mac": "3C:22:FB:18:8F:A4",
+      "vendor": "Dell Inc.",
+      "hostname": "desktop2.lan",
+      "osGuess": "Windows 10/11",
+      "osAccuracy": 92,
+      "riskScore": 100,
+      "riskBand": "CRITICAL",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 139,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "netbios-ssn",
+          "product": null,
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 445,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "microsoft-ds",
+          "product": "Windows SMB",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 3389,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ms-wbt-server",
+          "product": null,
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 135,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "msrpc",
+          "product": "Microsoft Windows RPC",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "NETBIOS-SSN (139/tcp) exposto na rede",
+          "points": 20
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "points": 30
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
+          "points": 30
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MSRPC (135/tcp) exposto na rede",
+          "points": 20
+        }
+      ],
+      "portCount": 4,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 0,
+        "z": 8
+      }
+    },
+    {
+      "ip": "192.168.1.149",
+      "mac": "68:AA:C4:24:25:34",
+      "vendor": "Lenovo",
+      "hostname": "laptop2.lan",
+      "osGuess": "Windows 10/11",
+      "osAccuracy": 90,
+      "riskScore": 56,
+      "riskBand": "HIGH",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 3389,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ms-wbt-server",
+          "product": null,
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
+          "points": 30
+        },
+        {
+          "code": "KNOWN_CVE",
+          "description": "CVE-2019-11500 (CVSS 6.5) em Dnsmasq buffer overflow, porto 53",
+          "points": 26
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 36,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.22",
+      "mac": "5C:91:75:9C:6C:4D",
+      "vendor": "TP-Link Corporation",
+      "hostname": "smartplug2.lan",
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 5,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "lwIP httpd",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 5
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 88,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.38",
+      "mac": "A4:83:E7:C2:E7:66",
+      "vendor": "Samsung Electronics Co.,Ltd",
+      "hostname": null,
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 0,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [],
+      "riskReasons": [],
+      "portCount": 0,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 92,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.133",
+      "mac": "68:AA:C4:D1:F6:FB",
+      "vendor": "Espressif Inc.",
+      "hostname": "smartplug3.lan",
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 5,
+      "riskBand": "LOW",
+      "change": "CHANGED",
+      "ports": [
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "lwIP httpd",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 5
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": true,
+      "position": {
+        "x": 96,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.144",
+      "mac": "3C:22:FB:4D:0E:F1",
+      "vendor": "ASUSTek COMPUTER INC.",
+      "hostname": "laptop3.lan",
+      "osGuess": "Windows 10/11",
+      "osAccuracy": 90,
+      "riskScore": 25,
+      "riskBand": "MEDIUM",
+      "change": "NEW",
+      "ports": [],
+      "riskReasons": [
+        {
+          "code": "NOT_IN_BASELINE",
+          "description": "Host novo, nao visto em scans anteriores",
+          "points": 25
+        }
+      ],
+      "portCount": 0,
+      "isNew": true,
+      "isChanged": false,
+      "position": {
+        "x": 60,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.108",
+      "mac": "DC:A6:32:AB:EA:6B",
+      "vendor": "Dell Inc.",
+      "hostname": "desktop3.lan",
+      "osGuess": "Windows 10/11",
+      "osAccuracy": 92,
+      "riskScore": 100,
+      "riskBand": "CRITICAL",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 445,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "microsoft-ds",
+          "product": "Windows SMB",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 3389,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ms-wbt-server",
+          "product": null,
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 135,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "msrpc",
+          "product": "Microsoft Windows RPC",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 139,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "netbios-ssn",
+          "product": null,
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "points": 30
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
+          "points": 30
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MSRPC (135/tcp) exposto na rede",
+          "points": 20
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "NETBIOS-SSN (139/tcp) exposto na rede",
+          "points": 20
+        }
+      ],
+      "portCount": 4,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 0,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.142",
+      "mac": "B8:27:EB:96:4B:B5",
+      "vendor": "Brother Industries, Ltd.",
+      "hostname": "printer.lan",
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 8,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 631,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ipp",
+          "product": "CUPS",
+          "version": "2.3",
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "UNWEIGHTED_PORTS",
+          "description": "1 porta(s) comuns expostas",
+          "points": 8
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 100,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.55",
+      "mac": "5C:91:75:85:82:8C",
+      "vendor": "Xiaomi Communications",
+      "hostname": "tv.lan",
+      "osGuess": "Android 10-12",
+      "osAccuracy": 80,
+      "riskScore": 33,
+      "riskBand": "MEDIUM",
+      "change": "NEW",
+      "ports": [
+        {
+          "number": 8008,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "Chromecast",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "UNWEIGHTED_PORTS",
+          "description": "1 porta(s) comuns expostas",
+          "points": 8
+        },
+        {
+          "code": "NOT_IN_BASELINE",
+          "description": "Host novo, nao visto em scans anteriores",
+          "points": 25
+        }
+      ],
+      "portCount": 1,
+      "isNew": true,
+      "isChanged": false,
+      "position": {
+        "x": 68,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.178",
+      "mac": "C0:9A:D0:5D:80:64",
+      "vendor": "Espressif Inc.",
+      "hostname": "smartplug4.lan",
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 5,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "lwIP httpd",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 5
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 104,
+        "z": 8
+      }
+    },
+    {
+      "ip": "192.168.1.199",
+      "mac": "5C:91:75:B4:D5:63",
+      "vendor": "Xiaomi Communications",
+      "hostname": null,
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 0,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [],
+      "riskReasons": [],
+      "portCount": 0,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 96,
+        "z": 12
+      }
+    },
+    {
+      "ip": "192.168.1.231",
+      "mac": "DC:A6:32:F8:15:01",
+      "vendor": "Synology Incorporated",
+      "hostname": "nas.lan",
+      "osGuess": "Linux 3.2 - 4.9",
+      "osAccuracy": 88,
+      "riskScore": 95,
+      "riskBand": "CRITICAL",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 22,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ssh",
+          "product": "OpenSSH",
+          "version": "9.3",
+          "cpes": []
+        },
+        {
+          "number": 21,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ftp",
+          "product": "vsftpd",
+          "version": "2.3.4",
+          "cpes": []
+        },
+        {
+          "number": 23,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "telnet",
+          "product": "Dropbear sshd",
+          "version": "2017.75",
+          "cpes": []
+        },
+        {
+          "number": 445,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "microsoft-ds",
+          "product": "Samba smbd",
+          "version": "4.6.2",
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 22/tcp (ssh) exposta",
+          "points": 5
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "FTP (21/tcp) exposto na rede",
+          "points": 25
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "TELNET (23/tcp) exposto na rede",
+          "points": 35
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "points": 30
+        }
+      ],
+      "portCount": 4,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 8,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.85",
+      "mac": "A4:83:E7:C3:41:A0",
+      "vendor": "Hewlett-Packard",
+      "hostname": "desktop4.lan",
+      "osGuess": "Windows 10/11",
+      "osAccuracy": 92,
+      "riskScore": 100,
+      "riskBand": "CRITICAL",
+      "change": "NEW",
+      "ports": [
+        {
+          "number": 135,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "msrpc",
+          "product": "Microsoft Windows RPC",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 3389,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ms-wbt-server",
+          "product": null,
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 445,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "microsoft-ds",
+          "product": "Windows SMB",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 139,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "netbios-ssn",
+          "product": null,
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MSRPC (135/tcp) exposto na rede",
+          "points": 20
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
+          "points": 30
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "points": 30
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "NETBIOS-SSN (139/tcp) exposto na rede",
+          "points": 20
+        },
+        {
+          "code": "NOT_IN_BASELINE",
+          "description": "Host novo, nao visto em scans anteriores",
+          "points": 25
+        }
+      ],
+      "portCount": 4,
+      "isNew": true,
+      "isChanged": false,
+      "position": {
+        "x": 4,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.2",
+      "mac": "DC:A6:32:2D:37:74",
+      "vendor": "Apple, Inc.",
+      "hostname": "laptop4.lan",
+      "osGuess": "Windows 10/11",
+      "osAccuracy": 90,
+      "riskScore": 30,
+      "riskBand": "MEDIUM",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 445,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "microsoft-ds",
+          "product": "Windows SMB",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "points": 30
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 56,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.84",
+      "mac": "B8:27:EB:95:05:53",
+      "vendor": "Western Digital Technologies",
+      "hostname": "nas1.lan",
+      "osGuess": "Linux 3.2 - 4.9",
+      "osAccuracy": 88,
+      "riskScore": 60,
+      "riskBand": "HIGH",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 21,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ftp",
+          "product": "vsftpd",
+          "version": "2.3.4",
+          "cpes": []
+        },
+        {
+          "number": 445,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "microsoft-ds",
+          "product": "Samba smbd",
+          "version": "4.6.2",
+          "cpes": []
+        },
+        {
+          "number": 22,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ssh",
+          "product": "OpenSSH",
+          "version": "9.3",
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "FTP (21/tcp) exposto na rede",
+          "points": 25
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "points": 30
+        },
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 22/tcp (ssh) exposta",
+          "points": 5
+        }
+      ],
+      "portCount": 3,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 28,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.119",
+      "mac": "5C:91:75:F7:2F:65",
+      "vendor": "Reolink Innovation",
+      "hostname": "cam1.lan",
+      "osGuess": "Linux 2.6",
+      "osAccuracy": 65,
+      "riskScore": 53,
+      "riskBand": "HIGH",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 8080,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http-proxy",
+          "product": null,
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 23,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "telnet",
+          "product": null,
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "GoAhead-Webs",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 554,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "rtsp",
+          "product": null,
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 8080/tcp (http-proxy) exposta",
+          "points": 5
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "TELNET (23/tcp) exposto na rede",
+          "points": 35
+        },
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 5
+        },
+        {
+          "code": "UNWEIGHTED_PORTS",
+          "description": "4 porta(s) comuns expostas",
+          "points": 8
+        }
+      ],
+      "portCount": 4,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 32,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.158",
+      "mac": "68:AA:C4:1D:B0:6D",
+      "vendor": "Apple, Inc.",
+      "hostname": null,
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 0,
+      "riskBand": "LOW",
+      "change": "CHANGED",
+      "ports": [],
+      "riskReasons": [],
+      "portCount": 0,
+      "isNew": false,
+      "isChanged": true,
+      "position": {
+        "x": 92,
+        "z": 8
+      }
+    },
+    {
+      "ip": "192.168.1.187",
+      "mac": "DC:A6:32:22:DB:DD",
+      "vendor": "Samsung Electronics Co.,Ltd",
+      "hostname": null,
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 0,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [],
+      "riskReasons": [],
+      "portCount": 0,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 88,
+        "z": 12
+      }
+    },
+    {
+      "ip": "192.168.1.94",
+      "mac": "C0:9A:D0:CA:45:1D",
+      "vendor": "Intel Corporate",
+      "hostname": "legacy.lan",
+      "osGuess": "Windows XP",
+      "osAccuracy": 85,
+      "riskScore": 100,
+      "riskBand": "CRITICAL",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 139,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "netbios-ssn",
+          "product": null,
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 23,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "telnet",
+          "product": "Microsoft telnetd",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 21,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ftp",
+          "product": "Microsoft ftpd",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 135,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "msrpc",
+          "product": "Microsoft Windows RPC",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 445,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "microsoft-ds",
+          "product": "Windows SMB",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "NETBIOS-SSN (139/tcp) exposto na rede",
+          "points": 20
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "TELNET (23/tcp) exposto na rede",
+          "points": 35
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "FTP (21/tcp) exposto na rede",
+          "points": 25
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MSRPC (135/tcp) exposto na rede",
+          "points": 20
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "points": 30
+        }
+      ],
+      "portCount": 5,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 8,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.150",
+      "mac": "DC:A6:32:96:BA:56",
+      "vendor": "Canon Inc.",
+      "hostname": "printer1.lan",
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 16,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 631,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ipp",
+          "product": "CUPS",
+          "version": "2.3",
+          "cpes": []
+        },
+        {
+          "number": 9100,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "jetdirect",
+          "product": null,
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "UNWEIGHTED_PORTS",
+          "description": "2 porta(s) comuns expostas",
+          "points": 16
+        }
+      ],
+      "portCount": 2,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 88,
+        "z": 8
+      }
+    },
+    {
+      "ip": "192.168.1.222",
+      "mac": "A4:83:E7:59:D1:77",
+      "vendor": "Shenzhen Reecam Tech",
+      "hostname": "smartplug5.lan",
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 44,
+      "riskBand": "MEDIUM",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "lwIP httpd",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 5
+        },
+        {
+          "code": "KNOWN_CVE",
+          "description": "CVE-2017-0144 (CVSS 9.8) em EternalBlue no SMBv1, porto 445",
+          "points": 39
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 56,
+        "z": 8
+      }
+    },
+    {
+      "ip": "192.168.1.249",
+      "mac": "DC:A6:32:90:2D:88",
+      "vendor": "TP-Link Corporation",
+      "hostname": "smartplug6.lan",
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 30,
+      "riskBand": "MEDIUM",
+      "change": "NEW",
+      "ports": [
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "lwIP httpd",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 5
+        },
+        {
+          "code": "NOT_IN_BASELINE",
+          "description": "Host novo, nao visto em scans anteriores",
+          "points": 25
+        }
+      ],
+      "portCount": 1,
+      "isNew": true,
+      "isChanged": false,
+      "position": {
+        "x": 60,
+        "z": 8
+      }
+    },
+    {
+      "ip": "192.168.1.165",
+      "mac": "3C:22:FB:CE:9F:35",
+      "vendor": "Canon Inc.",
+      "hostname": "printer2.lan",
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 37,
+      "riskBand": "MEDIUM",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "embedded httpd",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 5
+        },
+        {
+          "code": "KNOWN_CVE",
+          "description": "CVE-2020-36254 (CVSS 8.1) em Dropbear sshd 2017.75 no porto 22",
+          "points": 32
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 68,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.223",
+      "mac": "5C:91:75:76:34:97",
+      "vendor": "Hangzhou Hikvision Digital Technology",
+      "hostname": "cam2.lan",
+      "osGuess": "Linux 2.6",
+      "osAccuracy": 65,
+      "riskScore": 72,
+      "riskBand": "HIGH",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 8080,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http-proxy",
+          "product": null,
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 23,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "telnet",
+          "product": null,
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 8080/tcp (http-proxy) exposta",
+          "points": 5
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "TELNET (23/tcp) exposto na rede",
+          "points": 35
+        },
+        {
+          "code": "KNOWN_CVE",
+          "description": "CVE-2020-36254 (CVSS 8.1) em Dropbear sshd 2017.75 no porto 22",
+          "points": 32
+        }
+      ],
+      "portCount": 2,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 32,
+        "z": 8
+      }
+    },
+    {
+      "ip": "192.168.1.200",
+      "mac": "3C:22:FB:FB:8C:36",
+      "vendor": "Espressif Inc.",
+      "hostname": "smartplug7.lan",
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 5,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "lwIP httpd",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 5
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 100,
+        "z": 12
+      }
+    },
+    {
+      "ip": "192.168.1.211",
+      "mac": "5C:91:75:C5:7F:FD",
+      "vendor": "Reolink Innovation",
+      "hostname": "cam3.lan",
+      "osGuess": "Linux 2.6",
+      "osAccuracy": 65,
+      "riskScore": 53,
+      "riskBand": "HIGH",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "GoAhead-Webs",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 554,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "rtsp",
+          "product": null,
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 8080,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http-proxy",
+          "product": null,
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 23,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "telnet",
+          "product": null,
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 5
+        },
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 8080/tcp (http-proxy) exposta",
+          "points": 5
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "TELNET (23/tcp) exposto na rede",
+          "points": 35
+        },
+        {
+          "code": "UNWEIGHTED_PORTS",
+          "description": "4 porta(s) comuns expostas",
+          "points": 8
+        }
+      ],
+      "portCount": 4,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 28,
+        "z": 8
+      }
+    },
+    {
+      "ip": "192.168.1.12",
+      "mac": "5C:91:75:00:2D:1C",
+      "vendor": "Apple, Inc.",
+      "hostname": null,
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 25,
+      "riskBand": "MEDIUM",
+      "change": "NEW",
+      "ports": [],
+      "riskReasons": [
+        {
+          "code": "NOT_IN_BASELINE",
+          "description": "Host novo, nao visto em scans anteriores",
+          "points": 25
+        }
+      ],
+      "portCount": 0,
+      "isNew": true,
+      "isChanged": false,
+      "position": {
+        "x": 60,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.74",
+      "mac": "B8:27:EB:70:7B:03",
+      "vendor": "Brother Industries, Ltd.",
+      "hostname": "printer3.lan",
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 13,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "embedded httpd",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 9100,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "jetdirect",
+          "product": null,
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 5
+        },
+        {
+          "code": "UNWEIGHTED_PORTS",
+          "description": "2 porta(s) comuns expostas",
+          "points": 8
+        }
+      ],
+      "portCount": 2,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 100,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.148",
+      "mac": "B8:27:EB:E9:7C:28",
+      "vendor": "Hewlett Packard",
+      "hostname": "printer4.lan",
+      "osGuess": null,
+      "osAccuracy": null,
+      "riskScore": 21,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 80,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "embedded httpd",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 9100,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "jetdirect",
+          "product": null,
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 631,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ipp",
+          "product": "CUPS",
+          "version": "2.3",
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 80/tcp (http) exposta",
+          "points": 5
+        },
+        {
+          "code": "UNWEIGHTED_PORTS",
+          "description": "3 porta(s) comuns expostas",
+          "points": 16
+        }
+      ],
+      "portCount": 3,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 104,
+        "z": 4
+      }
+    },
+    {
+      "ip": "192.168.1.241",
+      "mac": "B8:27:EB:D8:18:90",
+      "vendor": "Dell Inc.",
+      "hostname": "laptop5.lan",
+      "osGuess": "Windows 10/11",
+      "osAccuracy": 90,
+      "riskScore": 50,
+      "riskBand": "HIGH",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 445,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "microsoft-ds",
+          "product": "Windows SMB",
+          "version": null,
+          "cpes": []
+        },
+        {
+          "number": 135,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "msrpc",
+          "product": "Microsoft Windows RPC",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "points": 30
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MSRPC (135/tcp) exposto na rede",
+          "points": 20
+        }
+      ],
+      "portCount": 2,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 36,
+        "z": 8
+      }
+    },
+    {
+      "ip": "192.168.1.60",
+      "mac": "5C:91:75:9B:DD:64",
+      "vendor": "QNAP Systems, Inc.",
+      "hostname": "nas2.lan",
+      "osGuess": "Linux 3.2 - 4.9",
+      "osAccuracy": 88,
+      "riskScore": 100,
+      "riskBand": "CRITICAL",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 22,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ssh",
+          "product": "OpenSSH",
+          "version": "9.3",
+          "cpes": []
+        },
+        {
+          "number": 445,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "microsoft-ds",
+          "product": "Samba smbd",
+          "version": "4.6.2",
+          "cpes": []
+        },
+        {
+          "number": 5000,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "http",
+          "product": "Synology DSM",
+          "version": "7.2",
+          "cpes": []
+        },
+        {
+          "number": 21,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "ftp",
+          "product": "vsftpd",
+          "version": "2.3.4",
+          "cpes": []
+        },
+        {
+          "number": 23,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "telnet",
+          "product": "Dropbear sshd",
+          "version": "2017.75",
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "COMMON_PORT",
+          "description": "Porta 22/tcp (ssh) exposta",
+          "points": 5
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "points": 30
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "FTP (21/tcp) exposto na rede",
+          "points": 25
+        },
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "TELNET (23/tcp) exposto na rede",
+          "points": 35
+        },
+        {
+          "code": "UNWEIGHTED_PORTS",
+          "description": "5 porta(s) comuns expostas",
+          "points": 8
+        },
+        {
+          "code": "KNOWN_CVE",
+          "description": "CVE-2020-36254 (CVSS 8.1) em Dropbear sshd 2017.75 no porto 22",
+          "points": 32
+        }
+      ],
+      "portCount": 5,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 0,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.15",
+      "mac": "DC:A6:32:78:EA:46",
+      "vendor": "Apple, Inc.",
+      "hostname": "laptop6.lan",
+      "osGuess": "Windows 10/11",
+      "osAccuracy": 90,
+      "riskScore": 45,
+      "riskBand": "MEDIUM",
+      "change": "NEW",
+      "ports": [
+        {
+          "number": 135,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "msrpc",
+          "product": "Microsoft Windows RPC",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MSRPC (135/tcp) exposto na rede",
+          "points": 20
+        },
+        {
+          "code": "NOT_IN_BASELINE",
+          "description": "Host novo, nao visto em scans anteriores",
+          "points": 25
+        }
+      ],
+      "portCount": 1,
+      "isNew": true,
+      "isChanged": false,
+      "position": {
+        "x": 64,
+        "z": 0
+      }
+    },
+    {
+      "ip": "192.168.1.166",
+      "mac": "DC:A6:32:79:E4:53",
+      "vendor": "Dell Inc.",
+      "hostname": "laptop7.lan",
+      "osGuess": "Windows 10/11",
+      "osAccuracy": 90,
+      "riskScore": 20,
+      "riskBand": "LOW",
+      "change": "UNCHANGED",
+      "ports": [
+        {
+          "number": 135,
+          "protocol": "tcp",
+          "state": "open",
+          "service": "msrpc",
+          "product": "Microsoft Windows RPC",
+          "version": null,
+          "cpes": []
+        }
+      ],
+      "riskReasons": [
+        {
+          "code": "HIGH_RISK_PORT",
+          "description": "MSRPC (135/tcp) exposto na rede",
+          "points": 20
+        }
+      ],
+      "portCount": 1,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 96,
+        "z": 8
+      }
+    }
+  ],
+  "ruins": [
+    {
+      "ip": "192.168.1.196",
+      "mac": "C0:9A:D0:E7:A1:5C",
+      "vendor": "Xiaomi Communications",
+      "hostname": null,
+      "riskScore": null,
+      "riskBand": "LOW",
+      "change": "DISAPPEARED",
+      "ports": [],
+      "riskReasons": [],
+      "portCount": 0,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 92,
+        "z": 12
+      }
+    },
+    {
+      "ip": "192.168.1.209",
+      "mac": "5C:91:75:86:88:78",
+      "vendor": "ASUSTek COMPUTER INC.",
+      "hostname": "laptop99.lan",
+      "riskScore": null,
+      "riskBand": "LOW",
+      "change": "DISAPPEARED",
+      "ports": [],
+      "riskReasons": [],
+      "portCount": 0,
+      "isNew": false,
+      "isChanged": false,
+      "position": {
+        "x": 104,
+        "z": 12
+      }
+    }
+  ]
+}

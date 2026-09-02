@@ -2,7 +2,7 @@ import { Canvas } from '@react-three/fiber';
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { City } from './scene/City';
 import { ErrorBoundary } from './ErrorBoundary';
-import mockData from './mock/sample-scan.json';
+import mockData from './mock/demo-scan.json';
 import { startScan, getScan, listScans, ApiError } from './api/client';
 import { DeviceListPanel } from './ui/DeviceListPanel';
 import { HostDetailsModal } from './ui/HostDetailsModal';
@@ -11,6 +11,7 @@ import { HistoryPanel } from './ui/HistoryPanel';
 export default function App() {
   const [selectedHost, setSelectedHost] = useState<any | null>(null);
   const [detailedHost, setDetailedHost] = useState<any | null>(null);
+  const [teleportTarget, setTeleportTarget] = useState<{ ip: string, nonce: number } | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [scanData, setScanData] = useState<any>(mockData);
@@ -138,13 +139,20 @@ export default function App() {
     }, 1500);
   };
 
+  const handleTeleport = (host: any) => {
+    setTeleportTarget({ ip: host.ip, nonce: Date.now() });
+    setDetailedHost(null);
+    setIsInventoryOpen(false);
+    setIsHistoryOpen(false);
+  };
+
   const anyPanelOpen = isHistoryOpen || isInventoryOpen;
 
   return (
     <div className="w-screen h-screen bg-black overflow-hidden relative font-sans text-white select-none">
       
       {/* AVISO DE MOCK DATA GLOBAL */}
-      {scanData.id === '11111111-2222-3333-4444-555555555555' && (
+      {scanData.id === mockData.id && (
         <div className="absolute top-0 left-0 w-full bg-red-600/90 text-white font-mono text-[10px] sm:text-xs text-center py-2 z-[9999] tracking-[0.3em] font-bold shadow-[0_0_30px_rgba(255,0,0,0.8)] border-b border-red-500 uppercase flex justify-center items-center gap-4">
           <span className="animate-pulse">⚠️</span>
           SIMULATION MODE: DISPLAYING OFFLINE MOCK DATA. INITIATE A REAL SCAN TO OBSERVE ACTUAL NETWORK TOPOLOGY.
@@ -153,7 +161,7 @@ export default function App() {
       )}
 
       {/* Top Left - Título Minimalista Estilo RuView */}
-      <div className={`absolute left-8 z-[999] pointer-events-none transition-all duration-300 ${scanData.id === '11111111-2222-3333-4444-555555555555' ? 'top-14' : 'top-6'} ${anyPanelOpen || showMenu ? 'opacity-0' : 'opacity-100'}`}>
+      <div className={`absolute left-8 z-[999] pointer-events-none transition-all duration-300 ${scanData.id === mockData.id ? 'top-14' : 'top-6'} ${anyPanelOpen || showMenu ? 'opacity-0' : 'opacity-100'}`}>
         <h1 className="text-2xl font-bold text-[#00f0ff] tracking-widest flex items-center gap-2 font-mono">
           PortScape
         </h1>
@@ -295,7 +303,11 @@ export default function App() {
 
       {/* Modal de Detalhes Completos do Host */}
       {detailedHost && (
-        <HostDetailsModal host={detailedHost} onClose={() => setDetailedHost(null)} />
+        <HostDetailsModal
+          host={detailedHost}
+          onClose={() => setDetailedHost(null)}
+          onTeleport={() => handleTeleport(detailedHost)}
+        />
       )}
 
       {/* Overlay Escuro para focar nos menus */}
@@ -308,11 +320,12 @@ export default function App() {
       <ErrorBoundary>
         <Canvas gl={{ antialias: true, toneMapping: 0 }} camera={{ near: 0.5, far: 2000, fov: 60 }}>
           <Suspense fallback={null}>
-            {!isBooting && <City 
-              
-              selectedHost={selectedHost} onSelectHost={setSelectedHost} 
-              scanData={scanData} 
-              onOpenDetails={setDetailedHost} 
+            {!isBooting && <City
+
+              selectedHost={selectedHost} onSelectHost={setSelectedHost}
+              scanData={scanData}
+              onOpenDetails={setDetailedHost}
+              teleportTarget={teleportTarget}
             />}
           </Suspense>
         </Canvas>
