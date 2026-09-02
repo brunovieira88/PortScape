@@ -276,6 +276,11 @@ the 3D city, facing it.
 
 ## API
 
+With the backend running, the full contract is served from the code itself at
+**<http://localhost:8080/swagger-ui.html>** — every endpoint, every field of every DTO,
+and a form to try each call. The raw document is at `/v3/api-docs`. The table below is
+the short version.
+
 | Method | Route | Response |
 |---|---|---|
 | `POST` | `/api/scans` | `202` + `Location`. Body `{"target":"192.168.1.0/24"}` is optional — without it, the local network is detected automatically. |
@@ -381,11 +386,11 @@ VPN), and keeps the target correct when you move between networks.
 
 ```bash
 cd backend
-mvn test        # 219 unit tests, seconds, no Docker needed
+mvn test        # 222 unit tests, seconds, no Docker needed
 mvn verify      # + 37 integration tests (Testcontainers, needs Docker)
 
 cd frontend
-npm test        # 50 tests
+npm test        # 73 tests
 npx tsc -b      # type check
 ```
 
@@ -415,7 +420,7 @@ portscape/
 │   │   ├── buildings/  per-archetype geometry — house, tower, windows
 │   │   └── highlights/ new/changed host markers
 │   ├── ui/             side panels, modals, scan history
-│   ├── api/            REST client
+│   ├── api/            REST client, shared API types, the scan-polling hook
 │   └── mock/           offline demo data (no backend needed)
 ├── package.json        root `npm run dev` — orchestration only, no app code
 ├── Makefile            same thing via `make dev`, for macOS/Linux habit
@@ -424,7 +429,7 @@ portscape/
 
 ## Stack
 
-- **Backend** — Java 21, Spring Boot 3.5, PostgreSQL, Flyway, JUnit 5, Testcontainers
+- **Backend** — Java 21, Spring Boot 3.5, PostgreSQL, Flyway, springdoc (OpenAPI), JUnit 5, Testcontainers
 - **Frontend** — React 19, TypeScript, Vite, Three.js via React Three Fiber, Tailwind CSS
 - **Scanning** — nmap, parsed from its XML output
 

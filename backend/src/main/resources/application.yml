@@ -17,6 +17,10 @@ spring:
     enabled: true
 
 portscape:
+  # Preenchido pelo Maven a partir da versao do pom (o starter-parent filtra este
+  # ficheiro com delimitadores @). Aparece como a versao da API no /swagger-ui.
+  version: @project.version@
+
   nmap:
     # Prefixo do comando. Para scan privilegiado (-sS/-O) usar sudoers NOPASSWD:
     #   command: ["sudo", "-n", "/opt/homebrew/bin/nmap"]
@@ -129,6 +133,19 @@ portscape:
     # compactados, um bairro tipico tem 1 a 3 colunas e um intervalo maior do que isso
     # devolvia a cidade ao deserto que a compactacao veio resolver.
     district-gap: 2
+
+# Documentacao da API, gerada a partir dos controllers e dos DTOs. Os caminhos ficam
+# explicitos para nao dependerem de um default da biblioteca que uma actualizacao possa
+# mudar debaixo dos pes -- ha links para eles no README.
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    # Os endpoints pela ordem em que estao declarados no controller, que e a ordem por
+    # que se usam (criar um scan, consultar, comparar), e nao por ordem alfabetica.
+    operations-sorter: false
+    tags-sorter: alpha
 
 logging:
   level:
