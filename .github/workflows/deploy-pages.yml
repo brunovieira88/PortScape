@@ -1,0 +1,60 @@
+# Publica o frontend, sozinho e sem backend, no GitHub Pages -- o link "experimenta
+# ja" do README. So dispara a pedido (workflow_dispatch): o Pages tem de estar
+# activado nas definicoes do repositorio (Settings > Pages > Source: GitHub Actions)
+# antes desta run funcionar, e um repo privado precisa de GitHub Pro ou superior para
+# isso. Ate isso estar feito, correr este workflow falha alto e claro em vez de falhar
+# silenciosamente em todos os pushes a main.
+name: Deploy demo to GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# So uma publicacao de cada vez; uma a meio nao e cancelada por outra mais recente
+# para o Pages nunca ficar a meio de uma troca.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build (demo mode)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # --mode demo troca a base URL para /PortScape/ e desliga toda a chamada de rede
+      # a um backend que nao existe no Pages -- ver vite.config.ts e App.tsx.
+      - name: Build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build:demo
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
