@@ -14,12 +14,7 @@ colour is the risk band, and anything that wasn't there last time is marked on t
 [![React 19](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev)
 [![Three.js](https://img.shields.io/badge/Three.js-r185-000000.svg)](https://threejs.org)
 
-<!--
-  HERO IMAGE GOES HERE. Record a ~10s GIF of the arrival flight and a walk down a
-  street, save it as docs/portscape.gif, and uncomment the line below.
-
-  ![Portscape](docs/portscape.gif)
--->
+![Portscape](docs/screenshot-hero.png)
 
 </div>
 
@@ -49,6 +44,12 @@ running nmap, it's the two layers on top:
   phone that moves from `.68` to `.70` overnight is the same phone — comparing by
   address turned every lease renewal into "a host vanished and a new one appeared",
   which is exactly the alarm this project exists to make trustworthy.
+
+<p align="center">
+  <img src="docs/screenshot-district.png" alt="A CRITICAL district — every red slab is a device with the wrong ports open" width="100%">
+  <br>
+  <sub>A CRITICAL district. The colour is the risk band; the height is the port count. You don't read this street — you notice it.</sub>
+</p>
 
 ## Highlights
 
@@ -141,6 +142,12 @@ is not a reason to throw away the first.
 
 Scores run 0–100 and saturate at the top. Every point has a reason attached.
 
+<p align="center">
+  <img src="docs/screenshot-hologram.png" alt="The in-world info panel, floating over a CRITICAL host: score 100, four exposed Windows ports" width="100%">
+  <br>
+  <sub>Walk up to a building and its score explains itself, right there in the city — no separate dashboard to alt-tab to.</sub>
+</p>
+
 | Rule | What it scores |
 |---|---|
 | `OPEN_PORT` | Each open port, weighted by port number. Telnet (23) and SMB (445) cost a lot; HTTPS (443) costs almost nothing. Ports without a weight of their own are capped in total, so a NAS with ten mundane ports can't reach CRITICAL by volume alone. |
@@ -199,6 +206,17 @@ the city with false alarms.
 > the history would stop being comparable. A diff depends on the *current* baseline, and
 > storing it would leave the flags lying the moment someone pins a different one.
 
+## The inventory panel
+
+The city is for noticing; the side panel is for finding. Every host, sorted by IP
+address (not alphabetically — `192.168.1.2` sorts before `192.168.1.100`), filterable
+by risk band. Click one and a **Go To** button drops you next to that exact building in
+the 3D city, facing it.
+
+<p align="center">
+  <img src="docs/screenshot-inventory.png" alt="The device inventory panel, sorted by IP and filterable by risk band" width="70%">
+</p>
+
 ## API
 
 | Method | Route | Response |
@@ -222,6 +240,12 @@ curl -XPOST localhost:8080/api/scans \
 
 curl localhost:8080/api/scans/<id> | jq
 ```
+
+<p align="center">
+  <img src="docs/screenshot-panel.png" alt="The full host detail modal: risk profile, system identity, security audit log and open ports" width="85%">
+  <br>
+  <sub>The same data the JSON below carries, laid out for a person instead of a parser.</sub>
+</p>
 
 <details>
 <summary><b>Example response</b></summary>
