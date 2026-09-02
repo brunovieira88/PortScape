@@ -116,6 +116,16 @@ describe('HistoryPanel', () => {
     expect(alert.textContent).toContain('Connection refused');
   });
 
+  it('um scan cancelado nao se marca como erro', async () => {
+    // Parar um scan foi uma decisao de quem o pediu, nao uma avaria -- o historico nao
+    // deve gritar "Error" por causa dela.
+    listScans.mockResolvedValue([scanOf('s1', { status: 'CANCELLED', hostsUp: 0 })]);
+    renderPanel();
+
+    expect(await screen.findByText('Cancelled')).toBeDefined();
+    expect(screen.queryByText('Error')).toBeNull();
+  });
+
   it('com o painel fechado, o conteudo sai do alcance do Tab', async () => {
     renderPanel({ isOpen: false });
     await waitFor(() => expect(listScans).toHaveBeenCalled());

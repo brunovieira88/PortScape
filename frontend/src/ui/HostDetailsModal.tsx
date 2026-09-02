@@ -19,18 +19,31 @@ export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, on
   const dialog = useRef<HTMLDivElement>(null);
 
   /**
-   * Um dialogo tem de prender o foco enquanto esta aberto.
+   * O foco entra ao abrir e volta ao sitio de onde veio ao fechar.
    *
-   * <p>Sem isto o Tab continuava a passear pela pagina por baixo -- que esta tapada
-   * mas nao desaparecida -- e o utilizador de teclado ficava a percorrer uma cidade
-   * que nao ve para voltar ao que tinha aberto. E ao fechar, o foco caia no principio
-   * da pagina em vez de voltar ao dispositivo de onde veio.
+   * <p>Sem dependencias, e isso e o ponto: o {@code onClose} que o App passa e uma
+   * arrow function nova a cada render, e com ele nas dependencias este efeito
+   * desmontava e remontava a cada render do pai. Onde o foco estava <i>antes</i> de o
+   * dialogo abrir e uma coisa que se sabe uma vez, a montagem; re-captura-la a cada
+   * render e pedir que o comportamento dependa de quantos renders calharam acontecer.
+   * Por isso vive separado do efeito que ouve o teclado, esse sim ligado ao onClose.
    */
   useEffect(() => {
     const returnTo = document.activeElement as HTMLElement | null;
     const focusables = dialog.current ? focusablesIn(dialog.current) : [];
     (focusables[0] ?? dialog.current)?.focus();
 
+    return () => { returnTo?.focus?.(); };
+  }, []);
+
+  /**
+   * Um dialogo tem de prender o foco enquanto esta aberto.
+   *
+   * <p>Sem isto o Tab continuava a passear pela pagina por baixo -- que esta tapada
+   * mas nao desaparecida -- e o utilizador de teclado ficava a percorrer uma cidade
+   * que nao ve para voltar ao que tinha aberto.
+   */
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { onClose(); return; }
       if (e.key !== 'Tab' || !dialog.current) { return; }
@@ -58,10 +71,7 @@ export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, on
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      returnTo?.focus?.();
-    };
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
   if (!host) return null;

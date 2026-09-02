@@ -70,6 +70,19 @@ export async function listScans(signal?: AbortSignal): Promise<Scan[]> {
   return res.json() as Promise<Scan[]>;
 }
 
+/**
+ * Para um scan a decorrer. Devolve o scan ja parado, para o ecra nao ter de esperar
+ * pela sondagem seguinte.
+ *
+ * <p>Um 409 quer dizer que o scan acabou entretanto -- quem sonda de 1500 em 1500 ms
+ * pode sempre carregar no botao no mesmo instante em que ele termina.
+ */
+export async function cancelScan(id: string): Promise<Scan> {
+  const res = await fetch(`${API_BASE}/scans/${id}/cancel`, { method: 'POST' });
+  if (!res.ok) throw await failureOf(res, 'Could not cancel the scan.');
+  return res.json() as Promise<Scan>;
+}
+
 export async function deleteScan(id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/scans/${id}`, { method: 'DELETE' });
   if (!res.ok) throw await failureOf(res, 'Could not delete the scan.');

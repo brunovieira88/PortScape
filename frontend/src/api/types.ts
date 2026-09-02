@@ -16,7 +16,7 @@
  */
 
 /** Estado de um scan. Ver `domain/ScanStatus.java`. */
-export type ScanStatus = 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
+export type ScanStatus = 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED' | 'CANCELLED';
 
 /** Faixa de risco, que e o que da a cor ao edificio. Ver `risk/RiskBand.java`. */
 export type RiskBand = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';

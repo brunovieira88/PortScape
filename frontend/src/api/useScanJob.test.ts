@@ -15,11 +15,13 @@ import { useScanJob } from './useScanJob';
 vi.mock('./client', async importOriginal => ({
   ...await importOriginal<typeof client>(),
   startScan: vi.fn(),
+  cancelScan: vi.fn(),
   getScan: vi.fn(),
   listScans: vi.fn(),
 }));
 
 const startScan = vi.mocked(client.startScan);
+const cancelScan = vi.mocked(client.cancelScan);
 const getScan = vi.mocked(client.getScan);
 const listScans = vi.mocked(client.listScans);
 
@@ -138,6 +140,84 @@ describe('useScanJob', () => {
     // utilizador, e nao quem chega por ultimo.
     await advance(POLL + REVEAL);
     expect(result.current.scanData.id).toBe('antigo');
+  });
+
+  it('cancelar para a sondagem e nao mexe na cidade', async () => {
+    startScan.mockResolvedValue(scanOf('s1', { status: 'PENDING' }));
+    getScan.mockResolvedValue(scanOf('s1', { status: 'RUNNING', progress: 30 }));
+    cancelScan.mockResolvedValue(scanOf('s1', { status: 'CANCELLED', progress: 0 }));
+
+    const { result } = renderHook(() => useScanJob());
+    await act(async () => { await result.current.startScan(); });
+    await advance(POLL);
+
+    await act(async () => { await result.current.cancelScan(); });
+
+    expect(cancelScan).toHaveBeenCalledWith('s1');
+    expect(result.current.isScanning).toBe(false);
+    // Nao e um erro: foi o utilizador que pediu.
+    expect(result.current.scanError).toBeNull();
+    expect(result.current.scanData.id).toBe(demoScan.id);
+
+    const callsSoFar = getScan.mock.calls.length;
+    await advance(POLL * 5);
+    expect(getScan).toHaveBeenCalledTimes(callsSoFar);
+  });
+
+  it('um scan que aparece CANCELLED na sondagem tambem e um fim', async () => {
+    // O cancelamento pode vir de fora deste ecra. Sem tratar o estado, sondava-se um
+    // scan parado para sempre -- o teste era `!== DONE && !== FAILED`.
+    startScan.mockResolvedValue(scanOf('s1', { status: 'PENDING' }));
+    getScan.mockResolvedValue(scanOf('s1', { status: 'CANCELLED', progress: 0 }));
+
+    const { result } = renderHook(() => useScanJob());
+    await act(async () => { await result.current.startScan(); });
+    await advance(POLL);
+
+    expect(result.current.isScanning).toBe(false);
+    expect(result.current.scanError).toBeNull();
+
+    const callsSoFar = getScan.mock.calls.length;
+    await advance(POLL * 5);
+    expect(getScan).toHaveBeenCalledTimes(callsSoFar);
+  });
+
+  it('um scan que acabou entre a sondagem e o clique nao da erro nenhum', async () => {
+    // 409: quem sonda de 1500 em 1500 ms pode sempre carregar em cancelar no instante
+    // exacto em que o scan termina. Nao ha nada a corrigir, e um erro vermelho por
+    // isso seria assustar sem motivo.
+    startScan.mockResolvedValue(scanOf('s1', { status: 'PENDING' }));
+    getScan.mockResolvedValue(scanOf('s1', { status: 'RUNNING' }));
+    cancelScan.mockRejectedValue(
+      new client.ApiError('O scan ja terminou (DONE).', 'SCAN_NOT_CANCELLABLE', 409));
+
+    const { result } = renderHook(() => useScanJob());
+    await act(async () => { await result.current.startScan(); });
+    await advance(POLL);
+    await act(async () => { await result.current.cancelScan(); });
+
+    expect(result.current.scanError).toBeNull();
+    expect(result.current.isScanning).toBe(false);
+  });
+
+  it('uma falha a cancelar diz-se', async () => {
+    startScan.mockResolvedValue(scanOf('s1', { status: 'PENDING' }));
+    getScan.mockResolvedValue(scanOf('s1', { status: 'RUNNING' }));
+    cancelScan.mockRejectedValue(new client.ApiError('Connection refused', null, 503));
+
+    const { result } = renderHook(() => useScanJob());
+    await act(async () => { await result.current.startScan(); });
+    await advance(POLL);
+    await act(async () => { await result.current.cancelScan(); });
+
+    expect(result.current.scanError).toBe('Connection refused');
+  });
+
+  it('sem scan a decorrer, cancelar nao faz pedido nenhum', async () => {
+    const { result } = renderHook(() => useScanJob());
+    await act(async () => { await result.current.cancelScan(); });
+
+    expect(cancelScan).not.toHaveBeenCalled();
   });
 
   it('desmontar mata a sondagem', async () => {

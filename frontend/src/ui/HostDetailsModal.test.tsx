@@ -102,6 +102,30 @@ describe('HostDetailsModal', () => {
     origin.remove();
   });
 
+  it('o foco volta ao sitio certo mesmo depois de o App voltar a renderizar', () => {
+    // O App passa `onClose={() => ...}`, uma funcao nova a cada render. Capturar o
+    // "sitio de onde veio" e coisa de uma vez so, a montagem, e nao de cada vez que o
+    // pai volta a renderizar -- dai o efeito do foco viver separado do que ouve o
+    // teclado. Isto fixa esse comportamento em vez de o deixar depender de quantos
+    // renders acontecem no meio.
+    const origin = document.createElement('button');
+    document.body.appendChild(origin);
+    origin.focus();
+
+    const { rerender, unmount } = render(
+      <HostDetailsModal host={hostOf()} onClose={() => {}} onTeleport={vi.fn()} />);
+
+    // Tres renders do App, cada um com um onClose novo, como acontece de verdade.
+    for (let i = 0; i < 3; i++) {
+      rerender(<HostDetailsModal host={hostOf()} onClose={() => {}} onTeleport={vi.fn()} />);
+    }
+
+    unmount();
+
+    expect(document.activeElement).toBe(origin);
+    origin.remove();
+  });
+
   it('o botao de teleporte so aparece quando ha para onde ir', async () => {
     const onTeleport = vi.fn();
     const { rerender } = render(

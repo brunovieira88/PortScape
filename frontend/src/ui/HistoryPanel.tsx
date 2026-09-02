@@ -205,6 +205,11 @@ export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen
                             {scan.status === 'FAILED' && (
                               <span className="text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-mono uppercase">Error</span>
                             )}
+                            {/* Cinzento e nao vermelho: parar um scan foi uma decisao
+                                de quem o pediu, nao uma avaria. */}
+                            {scan.status === 'CANCELLED' && (
+                              <span className="text-[9px] bg-gray-700/40 text-gray-400 px-1.5 py-0.5 rounded font-mono uppercase">Cancelled</span>
+                            )}
                             <button 
                               onClick={(e) => { e.stopPropagation(); setScanToDelete(scan.id); }}
                               className="relative z-20 text-gray-500 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"

@@ -22,7 +22,7 @@ export default function App() {
   // A conversa com o backend -- sondagem, progresso, erros -- vive no useScanJob.
   // Aqui fica so o que e ecra: que paineis estao abertos e que host esta seleccionado.
   const { scanData, isBooting, isScanning, scanStatus, progress, scanError,
-          startScan, loadScan, forgetScan } = useScanJob({
+          startScan, cancelScan, loadScan, forgetScan } = useScanJob({
     onScanShown: () => { setSelectedHost(null); setShowMenu(false); },
     onScanForgotten: () => { setSelectedHost(null); setDetailedHost(null); },
   });
@@ -156,6 +156,16 @@ export default function App() {
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>
+
+              {/* Parar o scan a serio, e nao so fechar o menu -- que e o que o
+                  "Cancel / View Map" ali abaixo faz. Um /24 com deteccao de versao
+                  demora minutos, e ate aqui o unico caminho para sair era esperar. */}
+              <button
+                onClick={() => cancelScan()}
+                className="mt-4 text-xs font-mono uppercase tracking-widest text-[#ff8a9f] border border-[#ff003c]/40 px-4 py-2 rounded hover:bg-[#ff003c]/10 hover:text-white hover:border-[#ff003c] focus-visible:border-[#ff003c] focus-visible:outline-none transition-colors"
+              >
+                Cancel scan
+              </button>
             </div>
           )}
 

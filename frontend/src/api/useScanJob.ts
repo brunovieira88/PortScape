@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEMO_MODE } from '../demoMode';
 import { demoScan } from '../mock/demoScan';
-import { ApiError, getScan, listScans, startScan as requestScan } from './client';
+import { ApiError, cancelScan as requestCancel, getScan, listScans, startScan as requestScan } from './client';
 import type { Scan } from './types';
 
 /** Intervalo entre sondagens ao backend enquanto um scan decorre. */
@@ -24,6 +24,8 @@ export interface ScanJob {
   progress: number;
   scanError: string | null;
   startScan: (target?: string) => Promise<void>;
+  /** Para o scan em curso. Sem scan a decorrer, nao faz nada. */
+  cancelScan: () => Promise<void>;
   loadScan: (id: string) => Promise<void>;
   /** O scan foi apagado no backend: se e o que esta no ecra, larga-lo. */
   forgetScan: (id: string) => void;
@@ -65,6 +67,10 @@ export function useScanJob(callbacks: ScanJobCallbacks = {}): ScanJob {
   // a versao com que arrancou.
   const handlers = useRef(callbacks);
   handlers.current = callbacks;
+
+  // O scan que esta a decorrer, para lhe poder pedir o cancelamento. E uma ref e nao
+  // estado porque quem a le e o handler do botao, nao o render.
+  const inFlight = useRef<string | null>(null);
 
   // Sondagem e temporizadores em curso, para poderem ser cancelados no desmonte.
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -136,6 +142,7 @@ export function useScanJob(callbacks: ScanJobCallbacks = {}): ScanJob {
     let started;
     try {
       started = await requestScan(target || undefined);
+      inFlight.current = started.id;
     } catch (e) {
       // O backend explica-se: alvo fora de uma rede privada, fila cheia, nmap sem
       // permissoes. Mostrar essa mensagem em vez de um erro generico e a diferenca
@@ -154,12 +161,23 @@ export function useScanJob(callbacks: ScanJobCallbacks = {}): ScanJob {
         setScanStatus(`SCAN STATUS: ${current.status}`);
         setProgress(current.progress ?? 0);
 
-        if (current.status !== 'DONE' && current.status !== 'FAILED') { return; }
+        if (current.status === 'PENDING' || current.status === 'RUNNING') { return; }
         stopPolling();
+        inFlight.current = null;
 
         if (current.status === 'FAILED') {
           setScanError(current.error?.message || 'The scan failed.');
           setIsScanning(false);
+          return;
+        }
+
+        // Um scan cancelado tambem e um fim. Sem isto sondava-se um scan parado para
+        // sempre -- o teste era `!== DONE && !== FAILED`, e CANCELLED nao e nenhum dos
+        // dois. Nao e erro: foi o utilizador que pediu, e a cidade fica como estava.
+        if (current.status === 'CANCELLED') {
+          setScanStatus('SCAN CANCELLED');
+          setIsScanning(false);
+          setProgress(0);
           return;
         }
 
@@ -181,6 +199,31 @@ export function useScanJob(callbacks: ScanJobCallbacks = {}): ScanJob {
     }, POLL_INTERVAL_MS);
   }, [stopPolling]);
 
+  const cancelScan = useCallback(async () => {
+    const id = inFlight.current;
+    if (!id) { return; }
+    // Antes da resposta, para o botao nao aceitar um segundo clique enquanto o pedido
+    // esta no ar.
+    inFlight.current = null;
+    stopPolling();
+
+    try {
+      await requestCancel(id);
+      setScanStatus('SCAN CANCELLED');
+      setProgress(0);
+    } catch (e) {
+      // Um 409 quer dizer que o scan acabou entre a sondagem e o clique. Nao ha nada a
+      // corrigir e nao vale a pena assustar ninguem com um erro vermelho -- so nao se
+      // mente dizendo que foi cancelado.
+      if (!(e instanceof ApiError && e.status === 409)) {
+        setScanError(e instanceof ApiError ? e.message : 'Could not cancel the scan.');
+      }
+      setScanStatus('');
+    } finally {
+      setIsScanning(false);
+    }
+  }, [stopPolling]);
+
   const forgetScan = useCallback((id: string) => {
     // A cidade estava a mostrar este scan: sem isto ficava um fantasma no ecra, e
     // voltar a clicar nele dava 404.
@@ -193,6 +236,6 @@ export function useScanJob(callbacks: ScanJobCallbacks = {}): ScanJob {
 
   return {
     scanData, isBooting, isScanning, scanStatus, progress, scanError,
-    startScan, loadScan, forgetScan,
+    startScan, cancelScan, loadScan, forgetScan,
   };
 }

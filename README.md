@@ -287,6 +287,7 @@ the short version.
 | `GET` | `/api/scans/{id}` | Scan state, and when `DONE`, hosts with risk scores and change flags. |
 | `GET` | `/api/scans/{id}/diff` | Full comparison against the baseline, including hosts that disappeared. |
 | `GET` | `/api/scans` | Scan history (summaries). |
+| `POST` | `/api/scans/{id}/cancel` | Stops a running scan and returns it. `409` if it already finished. |
 | `DELETE` | `/api/scans/{id}` | Deletes a scan. |
 | `GET` | `/api/baselines` | Pinned baselines. |
 | `POST` | `/api/baselines` | Pins a scan as reference. Body `{"scanId":"..."}` — the network comes from the scan itself. |
@@ -386,11 +387,11 @@ VPN), and keeps the target correct when you move between networks.
 
 ```bash
 cd backend
-mvn test        # 222 unit tests, seconds, no Docker needed
+mvn test        # 229 unit tests, seconds, no Docker needed
 mvn verify      # + 37 integration tests (Testcontainers, needs Docker)
 
 cd frontend
-npm test        # 73 tests
+npm test        # 92 tests
 npx tsc -b      # type check
 ```
 
