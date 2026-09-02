@@ -2,6 +2,7 @@ package com.portscape.scan;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -16,7 +17,8 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.Executor;
+import java.util.UUID;
+import org.springframework.core.task.AsyncTaskExecutor;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +40,7 @@ import com.portscape.risk.nvd.CveLookupResult;
 import com.portscape.risk.nvd.CveLookupService;
 import com.portscape.scan.exception.InvalidTargetException;
 import com.portscape.scan.exception.NmapExecutionException;
+import com.portscape.scan.exception.ScanNotCancellableException;
 import com.portscape.scan.exception.NmapPrivilegeException;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,7 +63,7 @@ class ScanServiceTest {
     private InMemoryScanJobStore store;
     private ScanService service;
     /** Executor sincrono: o scan corre dentro do startScan, o que torna o teste determinista. */
-    private final Executor directExecutor = Runnable::run;
+    private final AsyncTaskExecutor directExecutor = new SyncTaskExecutor();
 
     @BeforeEach
     void setUp() {
@@ -75,7 +78,7 @@ class ScanServiceTest {
     }
 
     /** O mesmo servico, com outro pool -- serve para testar a fila cheia. */
-    private ScanService serviceUsing(Executor scanExecutor) {
+    private ScanService serviceUsing(AsyncTaskExecutor scanExecutor) {
         NmapProperties properties = new NmapProperties(
                 List.of("/usr/bin/nmap"), "192.168.1.0/24", List.of("-sS"), null, null, null);
         return new ScanService(
@@ -327,10 +330,78 @@ class ScanServiceTest {
     }
 
     @Test
+    @DisplayName("cancelar um scan a decorrer da CANCELLED, e nao FAILED")
+    void cancellingARunningScanIsNotAFailure() {
+        // O que acontece de verdade: o cancel interrompe o thread, o NmapExecutor
+        // apanha a InterruptedException, mata o processo e lanca uma falha de
+        // execucao. Sem a guarda no catch, esse FAILED escrevia por cima do CANCELLED
+        // e o utilizador via um erro por ter carregado no botao.
+        when(executor.execute(anyList(), any())).thenAnswer(invocation -> {
+            service.cancelScan(store.findAll().get(0).id());
+            throw new NmapExecutionException("O scan foi interrompido.");
+        });
+
+        ScanJob started = service.startScan("192.168.1.0/24");
+        ScanJob stopped = store.find(started.id()).orElseThrow();
+
+        assertThat(stopped.status()).isEqualTo(ScanStatus.CANCELLED);
+        assertThat(stopped.errorCode()).isNull();
+        assertThat(stopped.finishedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    @DisplayName("um scan cancelado ainda na fila nao fica preso em PENDING")
+    void cancellingAQueuedScanClosesIt() {
+        // Com a fila a andar devagar, o cancel tira o runnable de la e ninguem o
+        // corre. Se o estado final dependesse do runScan, o job ficava em PENDING para
+        // sempre, sondado por um frontend a espera de um fim que nunca vinha.
+        ScanService queued = serviceUsing(new SyncTaskExecutor() {
+            @Override
+            public void execute(Runnable task) {
+                // Fica em fila: nunca corre.
+            }
+        });
+
+        ScanJob started = queued.startScan("192.168.1.0/24");
+        ScanJob stopped = queued.cancelScan(started.id()).orElseThrow();
+
+        assertThat(stopped.status()).isEqualTo(ScanStatus.CANCELLED);
+        assertThat(store.find(started.id()).orElseThrow().status()).isEqualTo(ScanStatus.CANCELLED);
+
+        // E se a tarefa ainda chegar a correr, sai a cabeca sem tocar no estado.
+        queued.runScan(started.id());
+        assertThat(store.find(started.id()).orElseThrow().status()).isEqualTo(ScanStatus.CANCELLED);
+        verifyNoInteractions(executor);
+    }
+
+    @Test
+    @DisplayName("cancelar um scan ja terminado e recusado, e nao apagado em silencio")
+    void cancellingAFinishedScanIsRejected() {
+        when(executor.execute(anyList(), any())).thenReturn("<nmaprun/>");
+        when(parser.parse(any())).thenReturn(List.of());
+
+        ScanJob started = service.startScan("192.168.1.0/24");
+        assertThat(store.find(started.id()).orElseThrow().status()).isEqualTo(ScanStatus.DONE);
+
+        assertThatThrownBy(() -> service.cancelScan(started.id()))
+                .isInstanceOf(ScanNotCancellableException.class);
+        assertThat(store.find(started.id()).orElseThrow().status()).isEqualTo(ScanStatus.DONE);
+    }
+
+    @Test
+    @DisplayName("cancelar um scan que nao existe devolve vazio, para o controller dar 404")
+    void cancellingAnUnknownScanIsEmpty() {
+        assertThat(service.cancelScan(UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
     @DisplayName("com a fila cheia, o pedido e recusado e o job nao fica preso em PENDING")
     void failsTheJobWhenTheQueueRejectsIt() {
-        ScanService withFullQueue = serviceUsing(task -> {
-            throw new java.util.concurrent.RejectedExecutionException("fila cheia");
+        ScanService withFullQueue = serviceUsing(new SyncTaskExecutor() {
+            @Override
+            public void execute(Runnable task) {
+                throw new java.util.concurrent.RejectedExecutionException("fila cheia");
+            }
         });
 
         assertThatThrownBy(() -> withFullQueue.startScan("192.168.1.0/24"))

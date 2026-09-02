@@ -53,6 +53,19 @@ public record ScanJob(
                 found, null, null, cveLookupDegraded, 100);
     }
 
+    /**
+     * Parado a pedido do utilizador.
+     *
+     * <p>Sem {@code errorCode}: cancelar nao e falhar, e o historico nao deve marcar
+     * como erro uma decisao de quem esta a usar a ferramenta. Sem hosts, tambem: o
+     * nmap so produz o XML no fim, portanto matar o processo a meio nao deixa nada de
+     * aproveitavel -- um scan cancelado nao tem resultados parciais para mostrar.
+     */
+    public ScanJob cancelled(Instant now) {
+        return new ScanJob(id, target, ScanStatus.CANCELLED, createdAt, startedAt, now,
+                List.of(), null, null, false, 0);
+    }
+
     public ScanJob failed(String code, String message, Instant now) {
         return new ScanJob(id, target, ScanStatus.FAILED, createdAt, startedAt, now,
                 List.of(), code, message, false, 0);

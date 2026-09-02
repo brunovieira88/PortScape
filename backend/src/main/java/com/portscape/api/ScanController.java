@@ -89,6 +89,20 @@ public class ScanController {
                 .toList();
     }
 
+    /**
+     * Para um scan que ainda esteja a decorrer.
+     *
+     * <p>Devolve o job ja cancelado em vez de um 204 vazio: o cliente estava a sondar
+     * este scan, e assim actualiza o ecra com esta resposta em vez de esperar pela
+     * sondagem seguinte.
+     */
+    @PostMapping("/{id}/cancel")
+    public ScanResponse cancelScan(@PathVariable UUID id) {
+        return scanService.cancelScan(id)
+                .map(ScanResponse::from)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Scan nao encontrado: " + id));
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteScan(@PathVariable UUID id) {

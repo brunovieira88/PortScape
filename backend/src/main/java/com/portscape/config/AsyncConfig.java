@@ -1,9 +1,8 @@
 package com.portscape.config;
 
-import java.util.concurrent.Executor;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 /**
@@ -16,8 +15,13 @@ public class AsyncConfig {
 
     public static final String SCAN_EXECUTOR = "scanExecutor";
 
+    /**
+     * Declarado como {@code AsyncTaskExecutor} e nao como {@code Executor} para dar
+     * acesso ao {@code submit(...)}: e o {@code Future} que ele devolve que permite
+     * cancelar um scan em curso.
+     */
     @Bean(SCAN_EXECUTOR)
-    public Executor scanExecutor() {
+    public AsyncTaskExecutor scanExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(1);
         executor.setMaxPoolSize(1);

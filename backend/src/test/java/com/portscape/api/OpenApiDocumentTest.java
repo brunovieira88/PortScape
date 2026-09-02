@@ -63,6 +63,7 @@ class OpenApiDocumentTest {
                 .andExpect(jsonPath("$.paths['/api/scans/{id}'].get").exists())
                 .andExpect(jsonPath("$.paths['/api/scans/{id}'].delete").exists())
                 .andExpect(jsonPath("$.paths['/api/scans/{id}/diff'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/scans/{id}/cancel'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/baselines'].get").exists())
                 .andExpect(jsonPath("$.paths['/api/baselines'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/baselines'].delete").exists());
