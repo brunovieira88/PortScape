@@ -1,15 +1,67 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Host, Port, RiskReason } from '../api/types';
 import { bandColor } from '../scene/Building';
 
+/**
+ * O que se pode focar com o Tab, por ordem, dentro de um contentor.
+ *
+ * <p>Le-se o DOM a cada Tab em vez de guardar a lista: metade do conteudo do dialogo e
+ * condicional -- o botao de teleporte so existe para hosts que ainda estao na cidade,
+ * as portas e as razoes de risco variam com o host -- e uma lista guardada uma vez
+ * ficava a apontar para botoes que ja la nao estao.
+ */
+function focusablesIn(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(
+    'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'));
+}
+
 export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, onClose: () => void, onTeleport?: () => void }) {
-  // Fecha com a tecla ESC
+  const dialog = useRef<HTMLDivElement>(null);
+
+  /**
+   * Um dialogo tem de prender o foco enquanto esta aberto.
+   *
+   * <p>Sem isto o Tab continuava a passear pela pagina por baixo -- que esta tapada
+   * mas nao desaparecida -- e o utilizador de teclado ficava a percorrer uma cidade
+   * que nao ve para voltar ao que tinha aberto. E ao fechar, o foco caia no principio
+   * da pagina em vez de voltar ao dispositivo de onde veio.
+   */
   useEffect(() => {
+    const returnTo = document.activeElement as HTMLElement | null;
+    const focusables = dialog.current ? focusablesIn(dialog.current) : [];
+    (focusables[0] ?? dialog.current)?.focus();
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab' || !dialog.current) { return; }
+
+      const current = focusablesIn(dialog.current);
+      if (current.length === 0) { e.preventDefault(); return; }
+
+      const first = current[0];
+      const last = current[current.length - 1];
+      const active = document.activeElement;
+
+      // So se intervem nas pontas: no meio da lista o Tab do browser ja faz o certo.
+      if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      } else if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!dialog.current.contains(active)) {
+        // O foco estava fora do dialogo (a pagina por baixo, ou o body depois de um
+        // clique no fundo escurecido): trazer-lho de volta em vez de o deixar ir.
+        e.preventDefault();
+        first.focus();
+      }
     };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      returnTo?.focus?.();
+    };
   }, [onClose]);
 
   if (!host) return null;
@@ -19,14 +71,23 @@ export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, on
 
   return (
     <div className="absolute inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-8">
-      {/* Modal Container */}
-      <div className="bg-[#030d12] border border-[#00f0ff]/30 rounded-xl shadow-[0_0_50px_rgba(0,240,255,0.15)] w-full max-w-4xl max-h-full overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-200">
+      {/* Modal Container. O aria-modal diz aos leitores de ecra para ignorarem o resto
+          da pagina enquanto isto esta aberto; o nome vem do IP, que e o titulo que ja
+          la estava. */}
+      <div
+        ref={dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="host-details-title"
+        tabIndex={-1}
+        className="bg-[#030d12] border border-[#00f0ff]/30 rounded-xl shadow-[0_0_50px_rgba(0,240,255,0.15)] w-full max-w-4xl max-h-full overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-200"
+      >
         
         {/* Header */}
         <div className="p-6 border-b border-white/10 flex justify-between items-start bg-black/50">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-3xl font-mono text-[#00f0ff] font-bold tracking-wider">{host.ip}</h2>
+              <h2 id="host-details-title" className="text-3xl font-mono text-[#00f0ff] font-bold tracking-wider">{host.ip}</h2>
               {host.change === 'DISAPPEARED' && (
                 <span className="bg-gray-800 text-gray-300 text-xs px-2 py-1 rounded tracking-widest uppercase border border-gray-600">Offline Relic</span>
               )}
@@ -59,6 +120,7 @@ export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, on
             )}
             <button
               onClick={onClose}
+              aria-label="Close host details"
               className="text-gray-500 hover:text-white transition-colors p-2"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>

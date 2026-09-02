@@ -57,6 +57,51 @@ describe('HostDetailsModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('anuncia-se como dialogo, com o IP por nome', () => {
+    render(<HostDetailsModal host={hostOf({ ip: '192.168.1.42' })} onClose={vi.fn()} />);
+
+    expect(screen.getByRole('dialog', { name: '192.168.1.42' })).toBeDefined();
+  });
+
+  it('o foco entra no dialogo ao abrir', () => {
+    render(<HostDetailsModal host={hostOf()} onClose={vi.fn()} onTeleport={vi.fn()} />);
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+
+  it('o Tab nao sai do dialogo', async () => {
+    // Sem isto, o Tab continuava a passear pela pagina por baixo -- que esta tapada
+    // mas nao desaparecida -- e so se voltava ao dialogo depois de a percorrer toda.
+    render(<HostDetailsModal host={hostOf()} onClose={vi.fn()} onTeleport={vi.fn()} />);
+    const dialog = screen.getByRole('dialog');
+
+    for (let i = 0; i < 6; i++) {
+      await userEvent.tab();
+      expect(dialog.contains(document.activeElement)).toBe(true);
+    }
+
+    await userEvent.tab({ shift: true });
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+
+  it('ao fechar, o foco volta ao sitio de onde veio', async () => {
+    // O cartao do dispositivo no inventario e quem abre isto. Sem restaurar o foco,
+    // fecha-se o dialogo e aterra-se no principio da pagina.
+    const origin = document.createElement('button');
+    origin.textContent = 'Open details';
+    document.body.appendChild(origin);
+    origin.focus();
+
+    const { unmount } = render(<HostDetailsModal host={hostOf()} onClose={vi.fn()} />);
+    expect(document.activeElement).not.toBe(origin);
+
+    unmount();
+
+    expect(document.activeElement).toBe(origin);
+    origin.remove();
+  });
+
   it('o botao de teleporte so aparece quando ha para onde ir', async () => {
     const onTeleport = vi.fn();
     const { rerender } = render(
