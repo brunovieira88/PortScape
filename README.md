@@ -26,6 +26,23 @@ colour is the risk band, and anything that wasn't there last time is marked on t
 > HTTP 400. The restriction lives in the code (`TargetValidator`), not just in this
 > README. Only scan networks you own or have explicit permission to test.
 
+## Contents
+
+- [Why this exists](#why-this-exists)
+- [Highlights](#highlights)
+- [Quick start](#quick-start)
+- [How it works](#how-it-works)
+- [The risk model](#the-risk-model)
+- [Baseline and change detection](#baseline-and-change-detection)
+- [The inventory panel](#the-inventory-panel)
+- [API](#api)
+- [A note on OS detection](#a-note-on-os-detection)
+- [Configuration](#configuration)
+- [Tests](#tests)
+- [Project structure](#project-structure)
+- [Stack](#stack)
+- [Author](#author)
+
 ## Why this exists
 
 nmap tells you *what is open*. Portscape tells you *what that means*, and then makes it
@@ -340,6 +357,29 @@ incident: a sort-order inversion in baseline resolution shipped inside an unrela
 commit, two integration tests caught it the same day, and nobody noticed — the suite was
 already red for other reasons, and a suite that already fails stops being a signal.
 
+## Project structure
+
+```
+portscape/
+├── backend/src/main/java/com/portscape/
+│   ├── api/            REST controllers — thin, logic lives below
+│   ├── scan/           nmap execution and XML parsing
+│   ├── risk/           risk scoring
+│   ├── baseline/       baseline resolution and diffing
+│   ├── layout/         3D city layout calculation
+│   ├── domain/         JPA entities (Host, Port, Scan, Baseline)
+│   ├── persistence/    repositories
+│   └── config/         typed @ConfigurationProperties
+├── frontend/src/
+│   ├── scene/          Three.js components (City, Building, StreetControls)
+│   │   ├── buildings/  per-archetype geometry — house, tower, windows
+│   │   └── highlights/ new/changed host markers
+│   ├── ui/             side panels, modals, scan history
+│   ├── api/            REST client
+│   └── mock/           offline demo data (no backend needed)
+└── CLAUDE.md           project conventions for AI-assisted development
+```
+
 ## Stack
 
 - **Backend** — Java 21, Spring Boot 3.5, PostgreSQL, Flyway, JUnit 5, Testcontainers
@@ -348,6 +388,11 @@ already red for other reasons, and a suite that already fails stops being a sign
 
 Deliberately a simple monolith. No message queues, no microservices, no WebSockets — the
 complexity belongs in the visualisation and the scoring, not in the infrastructure.
+
+## Author
+
+**Bruno Vieira** — [GitHub](https://github.com/brunovieira88) ·
+[LinkedIn](https://www.linkedin.com/in/bruno-vieiraaa/)
 
 ## License
 
