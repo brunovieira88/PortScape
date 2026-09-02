@@ -86,6 +86,19 @@ running nmap, it's the two layers on top:
 git clone https://github.com/brunovieira88/PortScape.git
 cd PortScape
 
+npm install
+npm run dev
+```
+
+This starts PostgreSQL (Docker), the backend (`http://localhost:8080`) and the
+frontend (`http://localhost:5173`) together, with all three logs interleaved in one
+terminal. Ctrl+C stops the backend and frontend; `npm run dev:down` stops the database.
+On macOS or Linux, `make dev` does the same thing if you'd rather not touch npm for the
+Java side.
+
+Prefer three separate terminals (cleaner logs, easier to restart just one piece)?
+
+```bash
 docker compose up -d                    # PostgreSQL only — see note below
 cd backend  && mvn spring-boot:run      # http://localhost:8080
 cd frontend && npm install && npm run dev   # http://localhost:5173
@@ -377,6 +390,8 @@ portscape/
 │   ├── ui/             side panels, modals, scan history
 │   ├── api/            REST client
 │   └── mock/           offline demo data (no backend needed)
+├── package.json        root `npm run dev` — orchestration only, no app code
+├── Makefile            same thing via `make dev`, for macOS/Linux habit
 └── CLAUDE.md           project conventions for AI-assisted development
 ```
 

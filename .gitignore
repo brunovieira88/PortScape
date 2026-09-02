@@ -17,6 +17,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Root dev-orchestration deps (see package.json)
+/node_modules
+
 # One-off scratch/patch scripts (should never be committed)
 /patch*.js
 

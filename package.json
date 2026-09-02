@@ -1,0 +1,14 @@
+{
+  "name": "portscape",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Dev orchestration only — the real code lives in backend/ and frontend/.",
+  "scripts": {
+    "postinstall": "cd frontend && npm install",
+    "dev": "docker compose up -d && concurrently -n backend,frontend -c green,cyan \"cd backend && mvn spring-boot:run\" \"cd frontend && npm run dev\"",
+    "dev:down": "docker compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
