@@ -17,6 +17,10 @@ colour is the risk band, and anything that wasn't there last time is marked on t
 
 ![Portscape](docs/screenshot-hero.png)
 
+### [▶ Walk through the demo city](https://brunovieira88.github.io/PortScape/)
+
+*No install, no backend — a sample scan running in your browser.*
+
 </div>
 
 ---
@@ -33,11 +37,12 @@ colour is the risk band, and anything that wasn't there last time is marked on t
 - [Highlights](#highlights)
 - [Prerequisites](#prerequisites)
 - [Quick start](#quick-start)
+  - [Live demo — no install](#just-want-to-look-around-no-install)
 - [How it works](#how-it-works)
 - [The risk model](#the-risk-model)
 - [Baseline and change detection](#baseline-and-change-detection)
 - [The inventory panel](#the-inventory-panel)
-- [API](#api)
+- [API](#api) — and the generated [Swagger UI](#api)
 - [A note on OS detection](#a-note-on-os-detection)
 - [Configuration](#configuration)
 - [Tests](#tests)
@@ -78,7 +83,9 @@ running nmap, it's the two layers on top:
 | **Baseline diffing** | Every scan is compared against a 7-day inventory, or against a snapshot you pin yourself. New and changed devices are marked in the city. |
 | **Honest degradation** | If the NVD is unreachable the scan still completes, flagged `cveLookupDegraded`. "No CVEs found" and "couldn't check" are never shown as the same thing. |
 | **Deterministic architecture** | A building's shape is derived from its IP and its MAC vendor, so the same device looks the same in every scan. A gateway is always a spire. |
-| **306 tests** | 219 unit + 37 integration on the backend (Testcontainers, real PostgreSQL), 50 on the frontend. Every scoring rule, parser and layout calculation is covered. |
+| **Stoppable scans** | A `/24` with version detection takes minutes. Cancelling kills the nmap process itself, not just the job row — a cancel that leaves a scanner running is worse than no button at all, so there's a test that proves the process dies. |
+| **Usable without a mouse** | Every device and scan card is a real button, the details modal is a proper dialog that traps and restores focus, and progress is announced rather than only drawn. Verified in a browser, not just in jsdom. |
+| **360 tests** | 230 unit + 37 integration on the backend (Testcontainers, real PostgreSQL), 93 on the frontend. Every scoring rule, parser and layout calculation is covered. |
 
 ## Prerequisites
 
@@ -387,11 +394,11 @@ VPN), and keeps the target correct when you move between networks.
 
 ```bash
 cd backend
-mvn test        # 229 unit tests, seconds, no Docker needed
+mvn test        # 230 unit tests, seconds, no Docker needed
 mvn verify      # + 37 integration tests (Testcontainers, needs Docker)
 
 cd frontend
-npm test        # 92 tests
+npm test        # 93 tests
 npx tsc -b      # type check
 ```
 
