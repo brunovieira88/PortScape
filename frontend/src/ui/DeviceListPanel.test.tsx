@@ -107,10 +107,41 @@ describe('DeviceListPanel', () => {
   it('clicar num dispositivo abre os detalhes desse dispositivo', async () => {
     const onOpenDetails = renderPanel(scanOf([host('192.168.1.7', { vendor: 'Synology' })]));
 
-    await userEvent.click(screen.getByText('192.168.1.7'));
+    // Por papel e nao por texto: e o papel que prova que isto e alcancavel por quem
+    // nao usa rato. Era um `div onClick`, que o Tab saltava.
+    await userEvent.click(screen.getByRole('button', { name: /192\.168\.1\.7/ }));
 
     expect(onOpenDetails).toHaveBeenCalledTimes(1);
     expect(onOpenDetails.mock.calls[0][0]).toMatchObject({ ip: '192.168.1.7' });
+  });
+
+  it('chega-se a um dispositivo por Tab e abre-se com Enter', async () => {
+    const onOpenDetails = renderPanel(scanOf([host('192.168.1.7')]));
+
+    const card = screen.getByRole('button', { name: /192\.168\.1\.7/ });
+    card.focus();
+    await userEvent.keyboard('{Enter}');
+
+    expect(onOpenDetails).toHaveBeenCalledTimes(1);
+  });
+
+  it('as ruinas tambem se abrem sem rato', async () => {
+    const onOpenDetails = renderPanel(scanOf([], [host('192.168.1.99', { change: 'DISAPPEARED' })]));
+
+    await userEvent.click(screen.getByRole('button', { name: /192\.168\.1\.99/ }));
+
+    expect(onOpenDetails).toHaveBeenCalledTimes(1);
+  });
+
+  it('com o painel fechado, o conteudo sai do alcance do Tab', () => {
+    render(<DeviceListPanel scanData={scanOf([host('192.168.1.7')])}
+                            isOpen={false} onToggle={vi.fn()} />);
+
+    // O painel fechado continua no DOM, so empurrado para fora do ecra. Sem o inert,
+    // o Tab entrava em botoes que ninguem ve.
+    const toggle = screen.getByRole('button', { name: /devices/i });
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(document.getElementById('device-list-content')?.hasAttribute('inert')).toBe(true);
   });
 
   it('mostra o hostname sem o sufixo da rede local, ou o fabricante quando nao ha', () => {

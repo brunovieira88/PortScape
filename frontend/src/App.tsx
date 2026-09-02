@@ -133,11 +133,22 @@ export default function App() {
 
           {isScanning && (
             <div className="mt-6 w-full flex flex-col items-center">
-              <div className="text-[10px] font-mono text-[#00f0ff] mb-2 uppercase tracking-widest flex justify-between w-full px-1">
+              {/* O estado e o progresso mudam sozinhos de 1500 em 1500 ms. Numa
+                  regiao `status`, um leitor de ecra anuncia a mudanca sem roubar o
+                  foco -- sem isto, um scan de varios minutos nao da sinal nenhum a
+                  quem nao esta a olhar para a barra. */}
+              <div role="status" className="text-[10px] font-mono text-[#00f0ff] mb-2 uppercase tracking-widest flex justify-between w-full px-1">
                 <span>{scanStatus}</span>
                 <span>{Math.round(progress)}%</span>
               </div>
-              <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+              <div
+                role="progressbar"
+                aria-label="Scan progress"
+                aria-valuenow={Math.round(progress)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                className="w-full h-1 bg-white/10 rounded-full overflow-hidden"
+              >
                 {/* A transicao longa e o que suaviza os saltos entre sondagens: o
                     valor mostrado e sempre o do backend, so chega la a deslizar. */}
                 <div 
@@ -149,7 +160,7 @@ export default function App() {
           )}
 
           {scanError && (
-            <div className="mt-6 w-full bg-[#ff003c]/10 border border-[#ff003c]/40 rounded-lg p-3 flex items-start gap-3">
+            <div role="alert" className="mt-6 w-full bg-[#ff003c]/10 border border-[#ff003c]/40 rounded-lg p-3 flex items-start gap-3">
               <span className="text-[#ff003c] text-sm leading-none mt-0.5">⚠</span>
               <div className="text-[11px] text-[#ff8a9f] leading-relaxed">{scanError}</div>
             </div>
