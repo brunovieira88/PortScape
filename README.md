@@ -1,51 +1,113 @@
+<div align="center">
+
 # Portscape
 
-Ferramenta de auditoria de rede que transforma o resultado de um scan nmap numa
-cidade 3D navegável: cada dispositivo é um edifício, a altura vem do número de
-portas abertas e a cor do nível de risco.
+**Turn an nmap scan into a 3D city you can walk through.**
 
-> **Uso responsável.** O Portscape só faz scan de redes privadas
-> (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, loopback). Qualquer outro
-> alvo é rejeitado com HTTP 400 — a restrição está no código
-> (`TargetValidator`), não apenas neste README. Faz scan apenas de redes que
-> possuis ou tens autorização explícita para testar.
+Every device on your network becomes a building. Height is the number of open ports,
+colour is the risk band, and anything that wasn't there last time is marked on the ground.
 
-## Estado
+[![CI](https://github.com/brunovieira88/PortScape/actions/workflows/ci.yml/badge.svg)](https://github.com/brunovieira88/PortScape/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Java 21](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/projects/jdk/21/)
+[![Spring Boot 3.5](https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F.svg)](https://spring.io/projects/spring-boot)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev)
+[![Three.js](https://img.shields.io/badge/Three.js-r185-000000.svg)](https://threejs.org)
 
-| Fase | Descrição | Estado |
-|---|---|---|
-| 1 | Backend — scan + parsing | ✅ concluída |
-| 2 | Backend — scoring de risco + persistência | ✅ concluída |
-| 3 | Backend — layout 3D | — |
-| 4–6 | Frontend — cena, integração, polish | — |
-| 7 | Demo estático (GitHub Pages) | — |
+![Portscape](docs/screenshot-hero.png)
 
-> O Portscape contacta a API pública do NVD (`services.nvd.nist.gov`) para obter
-> CVEs. Envia **apenas** identificadores CPE de software (ex.
-> `cpe:2.3:a:openbsd:openssh:9.6`) — nunca endereços IP, nomes de máquinas ou
-> resultados de scan. Podes desligar isto com `portscape.nvd.enabled: false`.
+</div>
 
-## Requisitos
+---
 
-- Java 21
-- Maven 3.9+
-- nmap 7.9+
-- Docker (para o PostgreSQL e para os testes de integração)
+> [!IMPORTANT]
+> **Responsible use.** Portscape only scans private networks — `10.0.0.0/8`,
+> `172.16.0.0/12`, `192.168.0.0/16` and loopback. Any other target is rejected with
+> HTTP 400. The restriction lives in the code (`TargetValidator`), not just in this
+> README. Only scan networks you own or have explicit permission to test.
 
-## Scan privilegiado
+## Contents
 
-A configuração por defeito usa `-sS` (SYN scan) e `-O` (deteção de OS), que
-exigem root. Sem privilégios o scan falha com `NMAP_PRIVILEGE` e uma mensagem a
-explicar as opções.
+- [Why this exists](#why-this-exists)
+- [Highlights](#highlights)
+- [Quick start](#quick-start)
+- [How it works](#how-it-works)
+- [The risk model](#the-risk-model)
+- [Baseline and change detection](#baseline-and-change-detection)
+- [The inventory panel](#the-inventory-panel)
+- [API](#api)
+- [A note on OS detection](#a-note-on-os-detection)
+- [Configuration](#configuration)
+- [Tests](#tests)
+- [Project structure](#project-structure)
+- [Stack](#stack)
+- [Author](#author)
 
-**Opção A — sudoers (recomendada):**
+## Why this exists
+
+nmap tells you *what is open*. Portscape tells you *what that means*, and then makes it
+something you can look at.
+
+Most network tools hand you a table. A table of forty hosts is a table; a street of
+forty buildings is a place — you notice the one that's taller than everything around it,
+and you notice the one that wasn't there yesterday. The interesting engineering isn't
+running nmap, it's the two layers on top:
+
+- **A risk model with an opinion.** A device isn't dangerous because it has many ports
+  open. It's dangerous because it has the *wrong* ports open. Telnet on 23 costs 35
+  points; HTTPS on 443 costs 2. Every point carries a reason string, so the UI can
+  answer "why 78?" instead of just showing the number.
+- **Identity that survives DHCP.** Devices are tracked by MAC address, not by IP. A
+  phone that moves from `.68` to `.70` overnight is the same phone — comparing by
+  address turned every lease renewal into "a host vanished and a new one appeared",
+  which is exactly the alarm this project exists to make trustworthy.
+
+<p align="center">
+  <img src="docs/screenshot-district.png" alt="A CRITICAL district — every red slab is a device with the wrong ports open" width="100%">
+  <br>
+  <sub>A CRITICAL district. The colour is the risk band; the height is the port count. You don't read this street — you notice it.</sub>
+</p>
+
+## Highlights
+
+|   | |
+|---|---|
+| **Real CVEs, not guesses** | Cross-references detected service versions against the NVD, resolving the canonical CPE first — because nmap and NIST rarely agree on a product's name. |
+| **Baseline diffing** | Every scan is compared against a 7-day inventory, or against a snapshot you pin yourself. New and changed devices are marked in the city. |
+| **Honest degradation** | If the NVD is unreachable the scan still completes, flagged `cveLookupDegraded`. "No CVEs found" and "couldn't check" are never shown as the same thing. |
+| **Deterministic architecture** | A building's shape is derived from its IP and its MAC vendor, so the same device looks the same in every scan. A gateway is always a spire. |
+| **306 tests** | 219 unit + 37 integration on the backend (Testcontainers, real PostgreSQL), 50 on the frontend. Every scoring rule, parser and layout calculation is covered. |
+
+## Quick start
+
+**Requirements:** Java 21 · Maven 3.9+ · Node 22+ · nmap 7.9+ · Docker (for PostgreSQL)
+
+```bash
+git clone https://github.com/brunovieira88/PortScape.git
+cd PortScape
+
+docker compose up -d                    # PostgreSQL only — see note below
+cd backend  && mvn spring-boot:run      # http://localhost:8080
+cd frontend && npm install && npm run dev   # http://localhost:5173
+```
+
+Then open http://localhost:5173, leave the target blank, and hit **Initiate Scan**.
+
+> **The database runs in Docker; nmap does not.** On Docker Desktop for macOS,
+> `--network host` is the LinuxKit VM rather than macOS itself — the scan reports hosts
+> that don't exist on the real network. A silent wrong answer is worse than an error,
+> so nmap runs natively on the host.
+
+### Privileged scanning
+
+The default configuration uses `-sS` (SYN scan) and `-O` (OS detection), which need
+root. Without privileges the scan fails with `NMAP_PRIVILEGE` and a message explaining
+the options.
 
 ```bash
 sudo visudo -f /etc/sudoers.d/portscape-nmap
-# <utilizador> ALL=(root) NOPASSWD: /opt/homebrew/Cellar/nmap/*/bin/nmap
+# <user> ALL=(root) NOPASSWD: /opt/homebrew/Cellar/nmap/*/bin/nmap
 ```
-
-e em `application.yml`:
 
 ```yaml
 portscape:
@@ -53,133 +115,141 @@ portscape:
     command: ["sudo", "-n", "/opt/homebrew/bin/nmap"]
 ```
 
-**Opção B — sem privilégios:** remover `-sS` e `-O` de
-`portscape.nmap.arguments` (fica `--open`). O scan funciona, mas sem
-`osGuess`.
+Setting the setuid bit on nmap is *not* recommended: a setuid-root nmap lets anyone run
+NSE scripts as root, and `brew upgrade` resets the permissions anyway.
 
-Não é recomendado pôr o setuid bit no nmap: um nmap setuid-root permite executar
-scripts NSE como root, e o `brew upgrade` repõe as permissões na mesma.
+## How it works
 
-## Scan em duas fases (bug do nmap em macOS)
-
-Em macOS, correr `-sV` (deteção de versão) como root faz o nmap falhar a
-vincular as sondas de versão (`NSOCK ERROR mksock_bind_addr ... Invalid
-argument`) — todas as portas saem como `tcpwrapped`, mesmo as óbvias como um
-SSH ou HTTP normais. Não depende de `-sS` vs. `-sT` nem de `-O`: acontece
-sempre que `-sV` corre como root nesta plataforma.
-
-Por isso o Portscape faz o scan em duas invocações:
-
-1. **Descoberta** (privilegiada, `portscape.nmap.arguments`) — hosts, portas,
-   OS. Sem `-sV`.
-2. **Deteção de versão** (sem privilégios, fixo no código como `-sT -sV`) —
-   só contra os hosts e portas que a fase 1 encontrou abertos.
-
-A app junta os dois resultados (`ScanResultMerger`): portas e OS vêm sempre da
-fase 1; serviço/produto/versão vêm da fase 2 quando disponíveis. Se a fase 2
-falhar, o scan fica `DONE` na mesma, só sem versões — não é razão para reprovar
-o scan todo. Ver `NmapCommandBuilder` para o detalhe.
-
-## Correr
-
-```bash
-docker compose up -d          # PostgreSQL
-cd backend
-mvn test                      # unitários, segundos, sem Docker
-mvn verify                    # + testes de integração (Testcontainers, precisa de Docker)
-mvn spring-boot:run
+```mermaid
+flowchart LR
+    A[POST /api/scans] --> B[TargetValidator]
+    B --> C[Phase 1: discovery<br/>privileged, -sS -O]
+    C --> D[Phase 2: versions<br/>unprivileged, -sT -sV]
+    D --> E[ScanResultMerger]
+    E --> F[RiskScorer<br/>+ NVD CVE lookup]
+    F --> G[BaselineResolver<br/>7-day inventory]
+    G --> H[CityLayoutCalculator<br/>districts by risk band]
+    H --> I[(PostgreSQL)]
+    I --> J[React Three Fiber<br/>the city]
 ```
 
-O `compose.yaml` tem **só** a base de dados. O nmap corre nativamente no host e não
-em container: em Docker Desktop no macOS, `--network host` é a VM LinuxKit e não o
-macOS, e o scan reporta hosts que não existem na rede real — falha silenciosa, pior
-que um erro.
+Scans are asynchronous — a `/24` takes minutes. `POST` returns `202` immediately and the
+client polls `GET /api/scans/{id}`, which reports real progress parsed from nmap's own
+task output.
 
-O schema é gerido pelo Flyway (`backend/src/main/resources/db/migration`) e o
-Hibernate corre em `ddl-auto: validate`, para as entidades e as migrações não
-divergirem sem ninguém dar por isso.
+### Why two nmap invocations
 
-## Deteção automática da rede
+On macOS, running `-sV` as root makes nmap fail to bind its version probes
+(`NSOCK ERROR mksock_bind_addr ... Invalid argument`) and *every* port comes back as
+`tcpwrapped` — even an obvious SSH or HTTP. It doesn't depend on `-sS` vs `-sT`, or on
+`-O`. It happens whenever `-sV` runs as root on this platform.
 
-Se o `POST /api/scans` não indicar `target`, a app pergunta ao sistema
-operativo qual é a interface da rota por defeito (a mesma que qualquer
-aplicação normal usaria para sair para a internet) e deriva a subnet a partir
-daí — sem enviar nenhum pacote. Isto evita escolher a interface errada numa
-máquina com várias ativas (Wi-Fi + Ethernet, VPN), e mantém o `target` correto
-mesmo que mudes de rede entre scans.
+So the scan runs twice:
 
-`portscape.nmap.default-target` no `application.yml` só entra em jogo se essa
-deteção falhar (sem rota por defeito, ambiente isolado).
+1. **Discovery** — privileged, configurable, no `-sV`. Finds hosts, ports and OS.
+2. **Version detection** — unprivileged, fixed as `-sT -sV`, only against the hosts and
+   ports phase 1 found open.
 
-## Scoring de risco
+`ScanResultMerger` joins them field by field: ports and OS always come from phase 1;
+service, product and version come from phase 2 when available. If phase 2 fails
+entirely the scan still finishes `DONE`, just without versions — a weaker second pass
+is not a reason to throw away the first.
 
-O nmap diz o que está aberto; o Portscape diz o que isso significa. O score vai de
-0 a 100 (satura no topo) e cada ponto tem uma razão associada, para o painel de
-detalhes poder responder "porquê 78?" em vez de mostrar só o número.
+## The risk model
 
-| Regra | O que pontua |
+Scores run 0–100 and saturate at the top. Every point has a reason attached.
+
+<p align="center">
+  <img src="docs/screenshot-hologram.png" alt="The in-world info panel, floating over a CRITICAL host: score 100, four exposed Windows ports" width="100%">
+  <br>
+  <sub>Walk up to a building and its score explains itself, right there in the city — no separate dashboard to alt-tab to.</sub>
+</p>
+
+| Rule | What it scores |
 |---|---|
-| `OPEN_PORT` | cada porta aberta, com peso por número de porta — Telnet (23) e SMB (445) pesam muito, HTTPS (443) quase nada. **Não é o número de portas que faz o edifício ficar vermelho, são as portas erradas.** |
-| `KNOWN_CVE` | CVEs reais do NVD para a versão detetada, ponderados pelo CVSS do pior. Uma falha crítica pesa mais que várias menores. |
-| `UNKNOWN_HOST` | o dispositivo não existia no baseline — soma risco só por existir, independentemente das portas |
-| `NEW_PORT` | portas que um host conhecido não tinha abertas no baseline |
+| `OPEN_PORT` | Each open port, weighted by port number. Telnet (23) and SMB (445) cost a lot; HTTPS (443) costs almost nothing. Ports without a weight of their own are capped in total, so a NAS with ten mundane ports can't reach CRITICAL by volume alone. |
+| `KNOWN_CVE` | Real CVEs from the NVD for the detected version, weighted by the worst CVSS. One critical flaw outweighs several minor ones. |
+| `UNKNOWN_HOST` | The device wasn't in the baseline. Costs risk purely for existing, regardless of its ports. |
+| `NEW_PORT` | Ports a known host didn't have open before. |
 
-Os pesos estão todos em `application.yml` sob `portscape.risk` — são um juízo
-editorial, não uma constante do universo.
+All weights live in `application.yml` under `portscape.risk`. They are an editorial
+judgement, not a constant of the universe — and they're meant to be argued with.
 
-**CVEs.** Os CPEs que o nmap emite quase nunca batem certo com o dicionário do NIST
-(o nmap diz `matt_johnston:dropbear_ssh_server`, o NVD conhece
-`dropbear_ssh_project:dropbear_ssh`; para o nginx o nmap diz `igor_sysoev` e o NIST
-diz `f5`). Por isso o cliente faz dois pedidos: resolve primeiro o nome canónico em
-`/cpes/2.0` e só depois pede os CVEs em `/cves/2.0`. Um CPE **sem versão** é ignorado
-de propósito — casaria com todos os CVEs alguma vez publicados para o produto, e
-atribuí-los ao host seria inventar risco.
+<details>
+<summary><b>How CVE lookup actually works</b></summary>
 
-As respostas ficam em cache no Postgres (sem ela, o rate limit do NVD — 5 pedidos por
-30s sem API key — dominava a duração do scan). Podes pôr uma key em
-`PORTSCAPE_NVD_API_KEY` para subir para 50.
+<br>
 
-Se o NVD falhar, **o scan não falha**: termina `DONE` com `cveLookupDegraded: true` e
-o score sai só das regras de portas. A flag existe para não se confundir "não há CVEs"
-com "não foi possível verificar" — ler o segundo como o primeiro faria uma rede
-inteira parecer segura.
+The CPEs nmap emits almost never match the NIST dictionary. nmap says
+`matt_johnston:dropbear_ssh_server`; the NVD knows
+`dropbear_ssh_project:dropbear_ssh`. For nginx, nmap says `igor_sysoev` and NIST says
+`f5`. So the client makes two requests: it resolves the canonical name via `/cpes/2.0`
+first, then asks for CVEs via `/cves/2.0`.
 
-## Baseline e deteção de mudanças
+A CPE **without a version** is deliberately ignored. It would match every CVE ever
+published for that product, and attributing those to the host would be inventing risk.
 
-Cada scan é comparado com uma referência, resolvida por esta ordem:
+Responses are cached in PostgreSQL. Without the cache, the NVD rate limit (5 requests
+per 30s without a key) dominated the scan duration. Set `PORTSCAPE_NVD_API_KEY` to
+raise it to 50.
 
-1. o scan **fixado** para aquela rede, se existir (`POST /api/baselines`);
-2. senão, o **último scan concluído** da mesma rede;
-3. senão, nenhum — no primeiro scan de uma rede não há termo de comparação, e marcar
-   todos os hosts como novos seria ruído, não sinal. Os hosts vêm `UNKNOWN`, que não é
-   o mesmo que `UNCHANGED`.
+The `empty-cache-ttl` is deliberately shorter than `cache-ttl`: "no CVEs" comes both
+from a genuinely clean product and from a name the NVD didn't recognise, and caching
+the second case for a week would hide the problem for a week.
 
-Um host é `CHANGED` se as portas abertas ou o palpite de OS mudarem. A versão do
-serviço não conta: o nmap acerta-a de forma intermitente e trataria isso como mudança
-encheria a cidade de falsos alarmes.
+**Privacy:** only software CPE identifiers are sent to the NVD (e.g.
+`cpe:2.3:a:openbsd:openssh:9.6`) — never IP addresses, hostnames or scan results. Turn
+it off entirely with `portscape.nvd.enabled: false`.
 
-**O score é gravado, o diff é calculado na leitura.** O score depende dos CVEs que o
-NVD conhecia no momento do scan — recalculá-lo semanas depois daria outro número e o
-histórico deixava de ser comparável. O diff depende do baseline *atual*, e gravá-lo
-deixaria as flags a mentir assim que alguém fixasse outro baseline.
+</details>
+
+## Baseline and change detection
+
+Each scan is compared against a reference, resolved in this order:
+
+1. The scan **pinned** for that network, if one exists (`POST /api/baselines`).
+2. Otherwise, a **7-day inventory** — every device seen on that network in the last week,
+   merged by identity, most recent record winning.
+3. Otherwise, nothing. On the first scan of a network there is no term of comparison,
+   and marking every host as new would be noise rather than signal. Hosts come back
+   `UNKNOWN`, which is not the same as `UNCHANGED`.
+
+A host is `CHANGED` if its open ports or its OS fingerprint changed. Service version
+does *not* count: nmap gets it intermittently, and treating that as a change would fill
+the city with false alarms.
+
+> **Scores are stored; diffs are computed on read.** A score depends on the CVEs the NVD
+> knew about at scan time — recomputing it weeks later would give a different number and
+> the history would stop being comparable. A diff depends on the *current* baseline, and
+> storing it would leave the flags lying the moment someone pins a different one.
+
+## The inventory panel
+
+The city is for noticing; the side panel is for finding. Every host, sorted by IP
+address (not alphabetically — `192.168.1.2` sorts before `192.168.1.100`), filterable
+by risk band. Click one and a **Go To** button drops you next to that exact building in
+the 3D city, facing it.
+
+<p align="center">
+  <img src="docs/screenshot-inventory.png" alt="The device inventory panel, sorted by IP and filterable by risk band" width="70%">
+</p>
 
 ## API
 
-| Método | Rota | Resposta |
+| Method | Route | Response |
 |---|---|---|
-| `POST` | `/api/scans` | `202` + `Location` — arranca um scan (body `{"target":"192.168.1.0/24"}`, opcional — sem ele, deteta a rede local automaticamente) |
-| `GET` | `/api/scans/{id}` | estado do scan e, quando `DONE`, os hosts com risco e flags de mudança |
-| `GET` | `/api/scans/{id}/diff` | comparação completa com o baseline, incluindo os hosts que desapareceram |
-| `GET` | `/api/scans` | histórico de scans (sumários) |
-| `POST` | `/api/baselines` | fixa um scan como referência (body `{"scanId":"..."}`) — a rede vem do próprio scan |
-| `DELETE` | `/api/baselines?target=192.168.1.0/24` | volta ao baseline implícito |
-| `GET` | `/api/baselines` | baselines fixados |
+| `POST` | `/api/scans` | `202` + `Location`. Body `{"target":"192.168.1.0/24"}` is optional — without it, the local network is detected automatically. |
+| `GET` | `/api/scans/{id}` | Scan state, and when `DONE`, hosts with risk scores and change flags. |
+| `GET` | `/api/scans/{id}/diff` | Full comparison against the baseline, including hosts that disappeared. |
+| `GET` | `/api/scans` | Scan history (summaries). |
+| `DELETE` | `/api/scans/{id}` | Deletes a scan. |
+| `GET` | `/api/baselines` | Pinned baselines. |
+| `POST` | `/api/baselines` | Pins a scan as reference. Body `{"scanId":"..."}` — the network comes from the scan itself. |
+| `DELETE` | `/api/baselines?target=192.168.1.0/24` | Reverts to the implicit baseline. |
 
-O `target` vai em query e não no caminho porque contém uma barra (`192.168.1.0/24`),
-e uma barra codificada num path variable é rejeitada pelo Tomcat por defeito.
-
-Scans são assíncronos — um `/24` demora minutos. O `POST` devolve logo e o
-cliente faz polling ao `GET`.
+The target goes in the query string rather than the path because it contains a slash
+(`192.168.1.0/24`), and an encoded slash in a path variable is rejected by Tomcat by
+default.
 
 ```bash
 curl -XPOST localhost:8080/api/scans \
@@ -188,20 +258,33 @@ curl -XPOST localhost:8080/api/scans \
 curl localhost:8080/api/scans/<id> | jq
 ```
 
+<p align="center">
+  <img src="docs/screenshot-panel.png" alt="The full host detail modal: risk profile, system identity, security audit log and open ports" width="85%">
+  <br>
+  <sub>The same data the JSON below carries, laid out for a person instead of a parser.</sub>
+</p>
+
+<details>
+<summary><b>Example response</b></summary>
+
+<br>
+
 ```json
 {
   "id": "e910311a-…", "target": "192.168.1.0/24", "status": "DONE",
   "startedAt": "2026-08-28T15:39:31Z", "finishedAt": "2026-08-28T15:41:43Z",
-  "durationMs": 132000, "hostsUp": 1,
+  "durationMs": 132000, "hostsUp": 1, "progress": 100,
   "baselineScanId": "dd1a1521-…", "cveLookupDegraded": false,
   "hosts": [
-    { "ip": "192.168.1.254", "hostname": "router.lan",
+    { "ip": "192.168.1.254", "mac": "68:AA:C4:F8:93:9F", "vendor": "Altice Labs",
+      "hostname": "router.lan",
       "osGuess": "Linux 5.4 - 5.15", "osAccuracy": 94, "portCount": 2,
-      "riskScore": 100,
+      "riskScore": 100, "riskBand": "CRITICAL",
+      "position": { "x": 0, "z": 0 },
       "riskReasons": [
-        {"code": "OPEN_PORT", "description": "Porta 23/tcp aberta (telnet)", "points": 35},
+        {"code": "OPEN_PORT", "description": "Port 23/tcp open (telnet)", "points": 35},
         {"code": "KNOWN_CVE",
-         "description": "CVE-2020-36254 (CVSS 8.1) em Dropbear sshd 2017.75 na porta 22 -- e mais 4 CVE(s) conhecido(s)",
+         "description": "CVE-2020-36254 (CVSS 8.1) in Dropbear sshd 2017.75 on port 22 -- and 4 more known CVE(s)",
          "points": 35}
       ],
       "change": "UNCHANGED", "isNew": false, "isChanged": false,
@@ -216,23 +299,101 @@ curl localhost:8080/api/scans/<id> | jq
 }
 ```
 
-Quando o scan falha, o estado é `FAILED` e a resposta traz
-`error: {code, message}` — por exemplo `NMAP_PRIVILEGE`,
-`NMAP_NOT_FOUND`, `NMAP_XML_PARSE_FAILED`.
+When a scan fails, the status is `FAILED` and the response carries
+`error: {code, message}` — for example `NMAP_PRIVILEGE`, `NMAP_NOT_FOUND` or
+`NMAP_XML_PARSE_FAILED`. Client errors follow RFC 7807 with a Portscape-specific `code`.
 
-## Configuração
+</details>
 
-Tudo em `backend/src/main/resources/application.yml`:
+## A note on OS detection
 
-- `portscape.nmap` — `command`, `default-target`, `arguments`, `timeout`, `host-timeout`
-- `portscape.nvd` — `enabled`, `base-url`, `api-key`, `timeout`,
-  `min-request-interval`, `cache-ttl`, `empty-cache-ttl`
-- `portscape.risk` — `port-weights` e os pesos de cada regra
-- Base de dados por variáveis de ambiente: `POSTGRES_URL`, `POSTGRES_USER`,
-  `POSTGRES_PASSWORD` (com defaults de desenvolvimento)
+nmap doesn't read a device's operating system. It compares the signature of its TCP
+stack against a database and returns the closest neighbour it knows. A device that
+isn't in that database comes back as something else entirely — with high confidence.
 
-## Notas
+Two scans of the same Xiaomi TV, four hours apart, produced *Nintendo Switch (97%)* and
+*Android 10–12 (97%)*. The percentage is nmap's confidence in the resemblance, not in
+the answer. So the UI labels it `OS Fingerprint` rather than "OS detected", and where
+the fingerprint disagrees with the MAC vendor, the vendor wins — that one is derived
+from an IEEE-registered prefix and is verifiable.
 
-O `empty-cache-ttl` é mais curto que o `cache-ttl` de propósito: "sem CVEs" tanto sai
-de um produto sem vulnerabilidades como de um nome que o NVD não reconheceu, e guardar
-o segundo caso durante uma semana esconderia o problema durante uma semana.
+## Configuration
+
+Everything lives in `backend/src/main/resources/application.yml`:
+
+| Prefix | Controls |
+|---|---|
+| `portscape.nmap` | `command`, `default-target`, `arguments`, `timeout`, `host-timeout` |
+| `portscape.nvd` | `enabled`, `base-url`, `api-key`, `timeout`, `min-request-interval`, `cache-ttl`, `empty-cache-ttl` |
+| `portscape.risk` | `port-weights` and the weight of every scoring rule |
+| `portscape.baseline` | `window` — how far back the inventory reaches (default 7 days) |
+| `portscape.layout` | `spacing`, `grid-width`, `district-gap` for the 3D layout |
+
+The database is configured by environment variables — `POSTGRES_URL`, `POSTGRES_USER`,
+`POSTGRES_PASSWORD` — with development defaults.
+
+If `POST /api/scans` doesn't name a target, the app asks the OS which interface holds
+the default route and derives the subnet from it, without sending a single packet. This
+avoids picking the wrong interface on a machine with several active (Wi-Fi + Ethernet,
+VPN), and keeps the target correct when you move between networks.
+
+## Tests
+
+```bash
+cd backend
+mvn test        # 219 unit tests, seconds, no Docker needed
+mvn verify      # + 37 integration tests (Testcontainers, needs Docker)
+
+cd frontend
+npm test        # 50 tests
+npx tsc -b      # type check
+```
+
+The schema is owned by Flyway (`backend/src/main/resources/db/migration`) and Hibernate
+runs with `ddl-auto: validate`, so entities and migrations can't drift apart unnoticed.
+
+CI runs both suites on every push and pull request. It exists because of a specific
+incident: a sort-order inversion in baseline resolution shipped inside an unrelated
+commit, two integration tests caught it the same day, and nobody noticed — the suite was
+already red for other reasons, and a suite that already fails stops being a signal.
+
+## Project structure
+
+```
+portscape/
+├── backend/src/main/java/com/portscape/
+│   ├── api/            REST controllers — thin, logic lives below
+│   ├── scan/           nmap execution and XML parsing
+│   ├── risk/           risk scoring
+│   ├── baseline/       baseline resolution and diffing
+│   ├── layout/         3D city layout calculation
+│   ├── domain/         JPA entities (Host, Port, Scan, Baseline)
+│   ├── persistence/    repositories
+│   └── config/         typed @ConfigurationProperties
+├── frontend/src/
+│   ├── scene/          Three.js components (City, Building, StreetControls)
+│   │   ├── buildings/  per-archetype geometry — house, tower, windows
+│   │   └── highlights/ new/changed host markers
+│   ├── ui/             side panels, modals, scan history
+│   ├── api/            REST client
+│   └── mock/           offline demo data (no backend needed)
+└── CLAUDE.md           project conventions for AI-assisted development
+```
+
+## Stack
+
+- **Backend** — Java 21, Spring Boot 3.5, PostgreSQL, Flyway, JUnit 5, Testcontainers
+- **Frontend** — React 19, TypeScript, Vite, Three.js via React Three Fiber, Tailwind CSS
+- **Scanning** — nmap, parsed from its XML output
+
+Deliberately a simple monolith. No message queues, no microservices, no WebSockets — the
+complexity belongs in the visualisation and the scoring, not in the infrastructure.
+
+## Author
+
+**Bruno Vieira** — [GitHub](https://github.com/brunovieira88) ·
+[LinkedIn](https://www.linkedin.com/in/bruno-vieiraaa/)
+
+## License
+
+[MIT](LICENSE) © Bruno Vieira
