@@ -57,7 +57,7 @@ export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen
         // Sem isto, um backend em baixo dava um historico vazio indistinguivel de
         // "ainda nao ha scans" -- e ninguem percebia que o problema era a ligacao.
         if (alive.current) {
-          setLoadError(err instanceof ApiError ? err.message : 'Histórico indisponível.');
+          setLoadError(err instanceof ApiError ? err.message : 'Scan history unavailable.');
         }
       });
   };
@@ -87,7 +87,7 @@ export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen
       } catch (err) {
         if (!alive.current) { return; }
         setScanToDestroy(null);
-        setLoadError(err instanceof ApiError ? err.message : 'Não foi possível apagar o scan.');
+        setLoadError(err instanceof ApiError ? err.message : 'Could not delete the scan.');
       }
     }, 800);
   };

@@ -85,7 +85,7 @@ export default function App() {
       setScanError(null);
     } catch (e) {
       if (seq === loadSeq.current) {
-        setScanError(e instanceof ApiError ? e.message : 'Não foi possível carregar o scan.');
+        setScanError(e instanceof ApiError ? e.message : 'Could not load the scan.');
       }
     }
   };
@@ -110,7 +110,7 @@ export default function App() {
       // O backend explica-se: alvo fora de uma rede privada, fila cheia, nmap sem
       // permissoes. Mostrar essa mensagem em vez de um erro generico e a diferenca
       // entre o utilizador perceber o que fez e ficar a adivinhar.
-      setScanError(e instanceof ApiError ? e.message : 'Não foi possível iniciar o scan.');
+      setScanError(e instanceof ApiError ? e.message : 'Could not start the scan.');
       setScanStatus('');
       setIsScanning(false);
       return;
@@ -128,7 +128,7 @@ export default function App() {
         stopPolling();
 
         if (current.status === 'FAILED') {
-          setScanError(current.error?.message || 'O scan falhou.');
+          setScanError(current.error?.message || 'The scan failed.');
           setIsScanning(false);
           return;
         }
@@ -146,7 +146,7 @@ export default function App() {
         // Um scan apagado a meio, ou o backend em baixo: parar em vez de sondar
         // para sempre, que era o que acontecia antes.
         stopPolling();
-        setScanError(e instanceof ApiError ? e.message : 'Perdeu-se o contacto com o scan.');
+        setScanError(e instanceof ApiError ? e.message : 'Lost contact with the scan.');
         setIsScanning(false);
       }
     }, 1500);

@@ -54,23 +54,23 @@ export async function startScan(target?: string, signal?: AbortSignal): Promise<
     body: JSON.stringify(req),
     signal,
   });
-  if (!res.ok) throw await failureOf(res, 'Não foi possível iniciar o scan.');
+  if (!res.ok) throw await failureOf(res, 'Could not start the scan.');
   return res.json() as Promise<Scan>; // em PENDING ou RUNNING
 }
 
 export async function getScan(id: string, signal?: AbortSignal): Promise<Scan> {
   const res = await fetch(`${API_BASE}/scans/${id}`, { signal });
-  if (!res.ok) throw await failureOf(res, 'Não foi possível carregar o scan.');
+  if (!res.ok) throw await failureOf(res, 'Could not load the scan.');
   return res.json() as Promise<Scan>;
 }
 
 export async function listScans(signal?: AbortSignal): Promise<Scan[]> {
   const res = await fetch(`${API_BASE}/scans`, { signal });
-  if (!res.ok) throw await failureOf(res, 'Não foi possível carregar o histórico.');
+  if (!res.ok) throw await failureOf(res, 'Could not load the scan history.');
   return res.json() as Promise<Scan[]>;
 }
 
 export async function deleteScan(id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/scans/${id}`, { method: 'DELETE' });
-  if (!res.ok) throw await failureOf(res, 'Não foi possível apagar o scan.');
+  if (!res.ok) throw await failureOf(res, 'Could not delete the scan.');
 }

@@ -51,7 +51,7 @@ export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, on
               <button
                 onClick={onTeleport}
                 className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-widest text-[#00f0ff] border border-[#00f0ff]/40 px-3 py-2 rounded hover:bg-[#00f0ff]/10 hover:border-[#00f0ff] transition-colors"
-                title="Teleportar para este dispositivo na cidade"
+                title="Teleport to this device in the city"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 Go To
@@ -106,10 +106,10 @@ export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, on
                     quando os dois discordam. */}
                 {host.osGuess && (
                   <div className="text-[10px] text-gray-600 leading-relaxed border-t border-white/5 pt-3">
-                    Assinatura da pilha TCP comparada com a base do nmap — é o
-                    dispositivo <span className="text-gray-500">mais parecido</span> que
-                    ela conhece, não uma leitura do sistema. Quando discordar do
-                    fabricante{host.vendor && <span className="text-gray-400"> ({host.vendor})</span>}, é o fabricante que vale.
+                    TCP stack signature matched against nmap's database — this is the
+                    <span className="text-gray-500"> closest device</span> it knows about,
+                    not a reading of the system itself. Where it disagrees with the
+                    vendor{host.vendor && <span className="text-gray-400"> ({host.vendor})</span>}, the vendor wins.
                   </div>
                 )}
               </div>
