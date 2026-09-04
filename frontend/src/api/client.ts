@@ -1,3 +1,5 @@
+import type { Scan } from './types';
+
 const API_BASE = '/api';
 
 export interface StartScanRequest {
@@ -42,7 +44,7 @@ async function failureOf(res: Response, fallback: string): Promise<ApiError> {
   }
 }
 
-export async function startScan(target?: string, signal?: AbortSignal) {
+export async function startScan(target?: string, signal?: AbortSignal): Promise<Scan> {
   const req: StartScanRequest = {};
   if (target) req.target = target;
 
@@ -52,23 +54,36 @@ export async function startScan(target?: string, signal?: AbortSignal) {
     body: JSON.stringify(req),
     signal,
   });
-  if (!res.ok) throw await failureOf(res, 'Não foi possível iniciar o scan.');
-  return res.json(); // ScanResponse em PENDING ou RUNNING
+  if (!res.ok) throw await failureOf(res, 'Could not start the scan.');
+  return res.json() as Promise<Scan>; // em PENDING ou RUNNING
 }
 
-export async function getScan(id: string, signal?: AbortSignal) {
+export async function getScan(id: string, signal?: AbortSignal): Promise<Scan> {
   const res = await fetch(`${API_BASE}/scans/${id}`, { signal });
-  if (!res.ok) throw await failureOf(res, 'Não foi possível carregar o scan.');
-  return res.json();
+  if (!res.ok) throw await failureOf(res, 'Could not load the scan.');
+  return res.json() as Promise<Scan>;
 }
 
-export async function listScans(signal?: AbortSignal) {
+export async function listScans(signal?: AbortSignal): Promise<Scan[]> {
   const res = await fetch(`${API_BASE}/scans`, { signal });
-  if (!res.ok) throw await failureOf(res, 'Não foi possível carregar o histórico.');
-  return res.json();
+  if (!res.ok) throw await failureOf(res, 'Could not load the scan history.');
+  return res.json() as Promise<Scan[]>;
 }
 
-export async function deleteScan(id: string) {
+/**
+ * Para um scan a decorrer. Devolve o scan ja parado, para o ecra nao ter de esperar
+ * pela sondagem seguinte.
+ *
+ * <p>Um 409 quer dizer que o scan acabou entretanto -- quem sonda de 1500 em 1500 ms
+ * pode sempre carregar no botao no mesmo instante em que ele termina.
+ */
+export async function cancelScan(id: string): Promise<Scan> {
+  const res = await fetch(`${API_BASE}/scans/${id}/cancel`, { method: 'POST' });
+  if (!res.ok) throw await failureOf(res, 'Could not cancel the scan.');
+  return res.json() as Promise<Scan>;
+}
+
+export async function deleteScan(id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/scans/${id}`, { method: 'DELETE' });
-  if (!res.ok) throw await failureOf(res, 'Não foi possível apagar o scan.');
+  if (!res.ok) throw await failureOf(res, 'Could not delete the scan.');
 }

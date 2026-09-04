@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { listScans, deleteScan, ApiError } from '../api/client';
+import type { Scan } from '../api/types';
 
 function CrumblingBlocks() {
   const blocks = Array.from({ length: 24 }); // 6 colunas x 4 linhas
@@ -24,7 +25,7 @@ function CrumblingBlocks() {
               '--rx': `${rX}deg`,
               '--ry': `${rY}deg`,
               '--rz': `${rZ}deg`,
-            } as any}
+            } as CSSProperties}
           />
         );
       })}
@@ -32,8 +33,17 @@ function CrumblingBlocks() {
   );
 }
 
-export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen, onToggle, isHidden }: { activeScanId?: string, onSelectScan: (id: string) => void, onScanDeleted?: (id: string) => void, isOpen: boolean, onToggle: () => void, isHidden?: boolean }) {
-  const [scans, setScans] = useState<any[]>([]);
+interface HistoryPanelProps {
+  activeScanId?: string;
+  onSelectScan: (id: string) => void;
+  onScanDeleted?: (id: string) => void;
+  isOpen: boolean;
+  onToggle: () => void;
+  isHidden?: boolean;
+}
+
+export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen, onToggle, isHidden }: HistoryPanelProps) {
+  const [scans, setScans] = useState<Scan[]>([]);
   const [scanToDelete, setScanToDelete] = useState<string | null>(null);
   const [scanToDestroy, setScanToDestroy] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -47,7 +57,7 @@ export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen
         // Sem isto, um backend em baixo dava um historico vazio indistinguivel de
         // "ainda nao ha scans" -- e ninguem percebia que o problema era a ligacao.
         if (alive.current) {
-          setLoadError(err instanceof ApiError ? err.message : 'Histórico indisponível.');
+          setLoadError(err instanceof ApiError ? err.message : 'Scan history unavailable.');
         }
       });
   };
@@ -77,13 +87,16 @@ export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen
       } catch (err) {
         if (!alive.current) { return; }
         setScanToDestroy(null);
-        setLoadError(err instanceof ApiError ? err.message : 'Não foi possível apagar o scan.');
+        setLoadError(err instanceof ApiError ? err.message : 'Could not delete the scan.');
       }
     }, 800);
   };
 
   return (
-    <div className={`transition-opacity duration-300 ${isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+    // Escondido por outro painel ou pelo menu: sai tambem do alcance do Tab, e nao
+    // so da vista. Ver a mesma nota no DeviceListPanel.
+    <div inert={isHidden}
+         className={`transition-opacity duration-300 ${isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
       <div 
         className={`absolute top-0 left-0 h-full w-[350px] bg-[#030d12]/95 backdrop-blur-2xl border-r border-[#00f0ff]/30 z-[998] transform transition-transform duration-300 shadow-[10px_0_30px_rgba(0,240,255,0.05)] flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
@@ -91,6 +104,8 @@ export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen
       >
         <button 
           onClick={onToggle}
+          aria-expanded={isOpen}
+          aria-controls="scan-history-content"
           className="absolute top-1/2 right-0 translate-x-full -translate-y-1/2 bg-[#030d12]/95 backdrop-blur-xl border border-[#00f0ff]/40 border-l-0 text-[#00f0ff] px-2.5 py-12 text-[10px] font-mono font-bold tracking-[0.3em] hover:bg-[#00f0ff]/20 hover:text-white transition-all shadow-[5px_0_20px_rgba(0,240,255,0.1)] hover:shadow-[10px_0_30px_rgba(0,240,255,0.3)] flex flex-col items-center justify-center gap-4 group"
           style={{ clipPath: 'polygon(0 0, 100% 10px, 100% calc(100% - 10px), 0 100%)' }}
         >
@@ -130,7 +145,8 @@ export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen
           </p>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar pointer-events-auto overflow-x-hidden">
+        <div id="scan-history-content" inert={!isOpen}
+             className="flex-1 overflow-y-auto p-4 custom-scrollbar pointer-events-auto overflow-x-hidden">
           <div className="flex flex-col">
             {scans.map(scan => {
               const isActive = scan.id === activeScanId;
@@ -143,9 +159,6 @@ export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen
               return (
                 <div 
                   key={scan.id}
-                  onClick={() => {
-                    if (!isDeleting && !isDestroying) onSelectScan(scan.id);
-                  }}
                   className={`relative mb-2 p-3 border group ${
                     isActive && !isDestroying
                       ? 'bg-[#00f0ff]/10 border-[#00f0ff]/50' 
@@ -154,6 +167,21 @@ export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen
                   ${isDestroying ? 'animate-collapse-gap border-transparent pointer-events-none' : 'overflow-hidden transition-colors'}`}
                   style={!isDestroying ? { clipPath: 'polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)' } : {}}
                 >
+                  {/* Um botao esticado por cima do cartao inteiro. O cartao era um
+                      `div onClick`, que o teclado nao alcanca; converte-lo em botao
+                      nao da, porque ele contem o botao de apagar e um botao dentro de
+                      outro e HTML invalido. Assim ficam dois botoes a serio, e a area
+                      clicavel com o rato e exactamente a de antes. */}
+                  {!isDeleting && !isDestroying && (
+                    <button
+                      type="button"
+                      onClick={() => onSelectScan(scan.id)}
+                      aria-current={isActive ? 'true' : undefined}
+                      aria-label={`Open scan from ${date} (${scan.target || 'auto-detected'})`}
+                      className="absolute inset-0 z-10 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-2px] focus-visible:outline-[#00f0ff]"
+                    />
+                  )}
+
                   {!isDestroying && (
                     <div className={`absolute top-0 left-0 h-[1px] transition-all duration-500 ${isActive ? 'w-full bg-[#00f0ff]' : 'w-8 bg-[#00f0ff]/30 group-hover:w-full group-hover:bg-[#00f0ff]'}`}></div>
                   )}
@@ -177,10 +205,16 @@ export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen
                             {scan.status === 'FAILED' && (
                               <span className="text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-mono uppercase">Error</span>
                             )}
+                            {/* Cinzento e nao vermelho: parar um scan foi uma decisao
+                                de quem o pediu, nao uma avaria. */}
+                            {scan.status === 'CANCELLED' && (
+                              <span className="text-[9px] bg-gray-700/40 text-gray-400 px-1.5 py-0.5 rounded font-mono uppercase">Cancelled</span>
+                            )}
                             <button 
                               onClick={(e) => { e.stopPropagation(); setScanToDelete(scan.id); }}
-                              className="text-gray-500 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                              className="relative z-20 text-gray-500 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                               title="Delete Scan"
+                              aria-label={`Delete scan from ${date}`}
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                             </button>
@@ -188,12 +222,13 @@ export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen
                         )}
 
                         {isDeleting && !isDestroying && (
-                          <div className="flex items-center gap-1.5 bg-red-950/90 px-1.5 py-0.5 rounded border border-red-500/40">
+                          <div className="relative z-20 flex items-center gap-1.5 bg-red-950/90 px-1.5 py-0.5 rounded border border-red-500/40">
                             <span className="text-[9px] text-red-400 font-bold uppercase tracking-wider pr-1">Sure?</span>
                             <button 
                               onClick={(e) => handleDeleteConfirm(e, scan.id)}
                               className="text-red-400 hover:text-white transition-colors"
                               title="Confirm"
+                              aria-label={`Confirm deleting the scan from ${date}`}
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                             </button>
@@ -201,6 +236,7 @@ export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen
                               onClick={(e) => { e.stopPropagation(); setScanToDelete(null); }}
                               className="text-gray-400 hover:text-white transition-colors ml-1"
                               title="Cancel"
+                              aria-label="Keep the scan"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
@@ -217,7 +253,7 @@ export function HistoryPanel({ activeScanId, onSelectScan, onScanDeleted, isOpen
             })}
           </div>
           {loadError ? (
-            <div className="mt-10 mx-2 bg-[#ff003c]/10 border border-[#ff003c]/40 rounded p-3 text-center">
+            <div role="alert" className="mt-10 mx-2 bg-[#ff003c]/10 border border-[#ff003c]/40 rounded p-3 text-center">
               <div className="text-[#ff003c] mb-1">⚠</div>
               <div className="text-[10px] font-mono text-[#ff8a9f] leading-relaxed">{loadError}</div>
             </div>

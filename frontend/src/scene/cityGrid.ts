@@ -5,6 +5,7 @@
  * um bug passou despercebido durante toda a fase 3 -- o frontend recompactava as
  * coordenadas e desfazia o trabalho do CityLayoutCalculator. Fora do React, testa-se.
  */
+import type { District, Host, Scan } from '../api/types';
 import { deviceKindOf } from './buildings/deviceKind';
 import { footprintHalfWidth, seedOf } from './buildings/towerForm';
 
@@ -54,11 +55,11 @@ export interface CityGrid {
   occupied: Map<string, number>;
 }
 
-export interface PlacedHost {
-  [key: string]: any;
+/** Um host do scan com o quarteirao onde calha. */
+export type PlacedHost = Host & {
   gridX: number;
   gridZ: number;
-}
+};
 
 export interface PlacedDistrict {
   band: string;
@@ -80,11 +81,11 @@ export interface PlacedDistrict {
  * Se a cidade voltar a parecer vazia, o sitio de a apertar e o CityLayoutCalculator,
  * onde e determinista e tem testes.
  */
-export function buildCityGrid(scanData: any): CityGrid {
+export function buildCityGrid(scanData: Scan | null | undefined): CityGrid {
   const spacing = scanData?.layout?.spacing || 1.0;
   const cell = (value: number) => Math.round(value / spacing);
 
-  const place = (host: any): PlacedHost => ({
+  const place = (host: Host): PlacedHost => ({
     ...host,
     gridX: cell(host?.position?.x ?? 0),
     gridZ: cell(host?.position?.z ?? 0),
@@ -102,7 +103,7 @@ export function buildCityGrid(scanData: any): CityGrid {
     spacing,
     hosts,
     ruins,
-    districts: (scanData?.layout?.districts ?? []).map((district: any) => ({
+    districts: (scanData?.layout?.districts ?? []).map((district: District) => ({
       band: district.band,
       startX: cell(district.x),
       columns: Math.max(1, cell(district.width)),

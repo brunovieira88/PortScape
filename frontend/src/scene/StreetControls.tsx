@@ -1,4 +1,5 @@
 import { useRef, useEffect, useMemo } from 'react';
+import type { Scan } from '../api/types';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { buildCityGrid, collidesAt, spawnPointFor, worldX, worldZ } from './cityGrid';
@@ -7,7 +8,7 @@ import { stepDelta } from './frame';
 
 interface TeleportRequest { ip: string; nonce: number; }
 
-export function StreetControls({ scanData, teleportTarget }: { scanData: any, teleportTarget?: TeleportRequest | null }) {
+export function StreetControls({ scanData, teleportTarget }: { scanData: Scan, teleportTarget?: TeleportRequest | null }) {
   const { camera, gl } = useThree();
   const keys = useRef<{ [key: string]: boolean }>({});
   

@@ -1,70 +1,31 @@
 import { Canvas } from '@react-three/fiber';
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { City } from './scene/City';
+import { DEMO_MODE } from './demoMode';
 import { ErrorBoundary } from './ErrorBoundary';
-import mockData from './mock/demo-scan.json';
-import { startScan, getScan, listScans, ApiError } from './api/client';
+import { useScanJob } from './api/useScanJob';
+import { demoScan } from './mock/demoScan';
+import type { Host } from './api/types';
 import { DeviceListPanel } from './ui/DeviceListPanel';
 import { HostDetailsModal } from './ui/HostDetailsModal';
 import { HistoryPanel } from './ui/HistoryPanel';
 
-// Set only by `npm run build:demo` (see vite.config.ts and .env.demo) -- the GitHub
-// Pages build, which has no backend behind it. Every network call in this file is
-// gated on it so the static demo shows the sample city instead of a wall of failed
-// fetches to an /api that doesn't exist there.
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
-
 export default function App() {
-  const [selectedHost, setSelectedHost] = useState<any | null>(null);
-  const [detailedHost, setDetailedHost] = useState<any | null>(null);
+  const [selectedHost, setSelectedHost] = useState<Host | null>(null);
+  const [detailedHost, setDetailedHost] = useState<Host | null>(null);
   const [teleportTarget, setTeleportTarget] = useState<{ ip: string, nonce: number } | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
-  const [scanData, setScanData] = useState<any>(mockData);
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanStatus, setScanStatus] = useState<string>('');
-  // O progresso vem do backend. Ja foi uma curva inventada que assintotava nos 95%,
-  // enquanto o campo `progress` real chegava em cada sondagem e era deitado fora.
-  const [progress, setProgress] = useState<number>(0);
-  const [scanError, setScanError] = useState<string | null>(null);
   const [targetIp, setTargetIp] = useState<string>('');
   const [showMenu, setShowMenu] = useState(true); // Menu no centro do ecrã
-  // Enquanto nao se sabe se ha um scan guardado, nao se desenha cidade nenhuma. Sem
-  // isto o voo de chegada corria primeiro sobre o cenario de exemplo e reiniciava
-  // meio segundo depois, quando o scan real chegava -- duas aterragens seguidas.
-  const [isBooting, setIsBooting] = useState(true);
 
-  // Sondagem e temporizadores em curso, para poderem ser cancelados no desmonte.
-  const poll = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Cada coisa que possa vir a pintar o ecra -- um scan carregado do historico ou um
-  // scan novo a decorrer -- leva um numero. So o mais recente escreve. Sem isto,
-  // clicar em dois scans seguidos deixava a resposta mais lenta sobrepor-se, e um scan
-  // a decorrer roubava o ecra a um scan antigo que o utilizador tivesse aberto no meio.
-  const loadSeq = useRef(0);
-
-  const reveal = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const stopPolling = () => {
-    if (poll.current) {
-      clearInterval(poll.current);
-      poll.current = null;
-    }
-    if (reveal.current) {
-      clearTimeout(reveal.current);
-      reveal.current = null;
-    }
-  };
-
-  useEffect(() => {
-    if (DEMO_MODE) { setIsBooting(false); return; }
-    listScans()
-      .then(scans => (scans?.length ? getScan(scans[0].id) : null))
-      .then(latest => { if (latest) setScanData(latest); })
-      // Sem backend fica-se no cenario de exemplo, que e o comportamento util aqui.
-      .catch(() => {})
-      .finally(() => setIsBooting(false));
-    return stopPolling;
-  }, []);
+  // A conversa com o backend -- sondagem, progresso, erros -- vive no useScanJob.
+  // Aqui fica so o que e ecra: que paineis estao abertos e que host esta seleccionado.
+  const { scanData, isBooting, isScanning, scanStatus, progress, scanError,
+          startScan, cancelScan, loadScan, forgetScan } = useScanJob({
+    onScanShown: () => { setSelectedHost(null); setShowMenu(false); },
+    onScanForgotten: () => { setSelectedHost(null); setDetailedHost(null); },
+  });
 
   useEffect(() => {
     if (!selectedHost) { return; }
@@ -73,85 +34,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedHost]);
 
-  const handleLoadScan = async (id: string) => {
-    const seq = ++loadSeq.current;
-    try {
-      const fullScan = await getScan(id);
-      if (seq !== loadSeq.current) { return; }
-      setScanData(fullScan);
-      setSelectedHost(null);
-      setShowMenu(false);
-      setScanError(null);
-    } catch (e) {
-      if (seq === loadSeq.current) {
-        setScanError(e instanceof ApiError ? e.message : 'Não foi possível carregar o scan.');
-      }
-    }
-  };
-
-  const handleStartScan = async () => {
-    if (DEMO_MODE) {
-      setScanError('This is a static demo running on sample data — clone the repo and run the backend to scan a real network.');
-      return;
-    }
-
-    stopPolling();
-    const seq = ++loadSeq.current;
-    setIsScanning(true);
-    setScanError(null);
-    setScanStatus('INITIALIZING SCAN...');
-    setProgress(0);
-
-    let started;
-    try {
-      started = await startScan(targetIp || undefined);
-    } catch (e) {
-      // O backend explica-se: alvo fora de uma rede privada, fila cheia, nmap sem
-      // permissoes. Mostrar essa mensagem em vez de um erro generico e a diferenca
-      // entre o utilizador perceber o que fez e ficar a adivinhar.
-      setScanError(e instanceof ApiError ? e.message : 'Não foi possível iniciar o scan.');
-      setScanStatus('');
-      setIsScanning(false);
-      return;
-    }
-
-    poll.current = setInterval(async () => {
-      try {
-        const current = await getScan(started.id);
-        // O utilizador abriu outro scan entretanto: deixa-lo ver o que escolheu.
-        if (seq !== loadSeq.current) { stopPolling(); return; }
-        setScanStatus(`SCAN STATUS: ${current.status}`);
-        setProgress(current.progress ?? 0);
-
-        if (current.status !== 'DONE' && current.status !== 'FAILED') { return; }
-        stopPolling();
-
-        if (current.status === 'FAILED') {
-          setScanError(current.error?.message || 'O scan falhou.');
-          setIsScanning(false);
-          return;
-        }
-
-        setProgress(100);
-        // Pequeno atraso para a barra se ver a chegar aos 100%.
-        reveal.current = setTimeout(() => {
-          setIsScanning(false);
-          if (seq !== loadSeq.current) { return; }
-          setScanData(current);
-          setSelectedHost(null);
-          setShowMenu(false);
-        }, 600);
-      } catch (e) {
-        // Um scan apagado a meio, ou o backend em baixo: parar em vez de sondar
-        // para sempre, que era o que acontecia antes.
-        stopPolling();
-        setScanError(e instanceof ApiError ? e.message : 'Perdeu-se o contacto com o scan.');
-        setIsScanning(false);
-      }
-    }, 1500);
-  };
-
-  const handleTeleport = (host: any) => {
+  const handleTeleport = (host: Host) => {
     setTeleportTarget({ ip: host.ip, nonce: Date.now() });
     setDetailedHost(null);
     setIsInventoryOpen(false);
@@ -164,7 +47,7 @@ export default function App() {
     <div className="w-screen h-screen bg-black overflow-hidden relative font-sans text-white select-none">
       
       {/* AVISO DE MOCK DATA GLOBAL */}
-      {scanData.id === mockData.id && (
+      {scanData.id === demoScan.id && (
         <div className="absolute top-0 left-0 w-full bg-red-600/90 text-white font-mono text-[10px] sm:text-xs text-center py-2 z-[9999] tracking-[0.3em] font-bold shadow-[0_0_30px_rgba(255,0,0,0.8)] border-b border-red-500 uppercase flex justify-center items-center gap-4">
           <span className="animate-pulse">⚠️</span>
           SIMULATION MODE: DISPLAYING OFFLINE MOCK DATA. INITIATE A REAL SCAN TO OBSERVE ACTUAL NETWORK TOPOLOGY.
@@ -173,7 +56,7 @@ export default function App() {
       )}
 
       {/* Top Left - Título Minimalista Estilo RuView */}
-      <div className={`absolute left-8 z-[999] pointer-events-none transition-all duration-300 ${scanData.id === mockData.id ? 'top-14' : 'top-6'} ${anyPanelOpen || showMenu ? 'opacity-0' : 'opacity-100'}`}>
+      <div className={`absolute left-8 z-[999] pointer-events-none transition-all duration-300 ${scanData.id === demoScan.id ? 'top-14' : 'top-6'} ${anyPanelOpen || showMenu ? 'opacity-0' : 'opacity-100'}`}>
         <h1 className="text-2xl font-bold text-[#00f0ff] tracking-widest flex items-center gap-2 font-mono">
           PortScape
         </h1>
@@ -237,7 +120,7 @@ export default function App() {
           />
 
           <button 
-            onClick={handleStartScan}
+            onClick={() => startScan(targetIp)}
             disabled={isScanning}
             className={`w-full py-4 rounded-xl text-sm font-bold tracking-widest uppercase transition-all
               ${isScanning 
@@ -250,11 +133,22 @@ export default function App() {
 
           {isScanning && (
             <div className="mt-6 w-full flex flex-col items-center">
-              <div className="text-[10px] font-mono text-[#00f0ff] mb-2 uppercase tracking-widest flex justify-between w-full px-1">
+              {/* O estado e o progresso mudam sozinhos de 1500 em 1500 ms. Numa
+                  regiao `status`, um leitor de ecra anuncia a mudanca sem roubar o
+                  foco -- sem isto, um scan de varios minutos nao da sinal nenhum a
+                  quem nao esta a olhar para a barra. */}
+              <div role="status" className="text-[10px] font-mono text-[#00f0ff] mb-2 uppercase tracking-widest flex justify-between w-full px-1">
                 <span>{scanStatus}</span>
                 <span>{Math.round(progress)}%</span>
               </div>
-              <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+              <div
+                role="progressbar"
+                aria-label="Scan progress"
+                aria-valuenow={Math.round(progress)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                className="w-full h-1 bg-white/10 rounded-full overflow-hidden"
+              >
                 {/* A transicao longa e o que suaviza os saltos entre sondagens: o
                     valor mostrado e sempre o do backend, so chega la a deslizar. */}
                 <div 
@@ -262,11 +156,21 @@ export default function App() {
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>
+
+              {/* Parar o scan a serio, e nao so fechar o menu -- que e o que o
+                  "Cancel / View Map" ali abaixo faz. Um /24 com deteccao de versao
+                  demora minutos, e ate aqui o unico caminho para sair era esperar. */}
+              <button
+                onClick={() => cancelScan()}
+                className="mt-4 text-xs font-mono uppercase tracking-widest text-[#ff8a9f] border border-[#ff003c]/40 px-4 py-2 rounded hover:bg-[#ff003c]/10 hover:text-white hover:border-[#ff003c] focus-visible:border-[#ff003c] focus-visible:outline-none transition-colors"
+              >
+                Cancel scan
+              </button>
             </div>
           )}
 
           {scanError && (
-            <div className="mt-6 w-full bg-[#ff003c]/10 border border-[#ff003c]/40 rounded-lg p-3 flex items-start gap-3">
+            <div role="alert" className="mt-6 w-full bg-[#ff003c]/10 border border-[#ff003c]/40 rounded-lg p-3 flex items-start gap-3">
               <span className="text-[#ff003c] text-sm leading-none mt-0.5">⚠</span>
               <div className="text-[11px] text-[#ff8a9f] leading-relaxed">{scanError}</div>
             </div>
@@ -286,20 +190,9 @@ export default function App() {
       {/* Painel de Histórico (Canto Esquerdo) -- sem sentido no demo estático: não há
           backend a guardar scans, só o exemplo fixo. */}
       {!DEMO_MODE && <HistoryPanel
-        onScanDeleted={(id: string) => {
-          // A cidade estava a mostrar este scan: sem isto ficava um fantasma no ecra,
-          // e voltar a clicar nele dava 404.
-          if (scanData?.id === id) {
-            loadSeq.current++;
-            stopPolling();
-            setScanData(mockData);
-            setSelectedHost(null);
-            setDetailedHost(null);
-          }
-        }}
-
-        activeScanId={scanData?.id} 
-        onSelectScan={handleLoadScan} 
+        onScanDeleted={forgetScan}
+        activeScanId={scanData?.id}
+        onSelectScan={loadScan}
         isOpen={isHistoryOpen} 
         onToggle={() => setIsHistoryOpen(!isHistoryOpen)} 
         isHidden={isInventoryOpen || showMenu}

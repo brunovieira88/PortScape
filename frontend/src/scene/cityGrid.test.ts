@@ -1,18 +1,30 @@
 import { describe, it, expect } from 'vitest';
 import { buildCityGrid, collidesAt, spawnPointFor, walkableBounds, worldX, worldZ,
          BLOCK_SCALE } from './cityGrid';
-import sampleScan from '../mock/sample-scan.json';
+import type { CityLayout, Host, Scan } from '../api/types';
+import { asScan } from '../mock/fixture';
+import sampleScanJson from '../mock/sample-scan.json';
+
+const sampleScan = asScan(sampleScanJson);
+
+/** O envelope do scan, para os testes so terem de escrever o que lhes interessa. */
+const envelope = {
+  id: 'test-scan', target: '192.168.1.0/24', status: 'DONE',
+  createdAt: '2026-01-01T00:00:00Z', hostsUp: 0,
+} satisfies Pick<Scan, 'id' | 'target' | 'status' | 'createdAt' | 'hostsUp'>;
 
 /** Um scan minimo com o layout no formato que o backend serve. */
-function scanWith(hosts: any[], layout: any = {}) {
+function scanWith(hosts: Host[], layout: Partial<CityLayout> = {}): Scan {
   return {
+    ...envelope,
     layout: { spacing: 4.0, width: 8.0, depth: 4.0, districts: [], ...layout },
     hosts,
     ruins: [],
   };
 }
 
-const host = (ip: string, x: number, z: number) => ({ ip, position: { x, z } });
+const host = (ip: string, x: number, z: number): Host =>
+  ({ ip, portCount: 0, position: { x, z } });
 
 describe('buildCityGrid', () => {
 
@@ -60,7 +72,7 @@ describe('buildCityGrid', () => {
 
   it('um scan sem layout da uma cidade vazia em vez de rebentar', () => {
     // E o que a listagem devolve: sumarios sem layout nem hosts.
-    const grid = buildCityGrid({ id: 'abc', status: 'DONE' });
+    const grid = buildCityGrid({ ...envelope, id: 'abc' });
 
     expect(grid.hosts).toEqual([]);
     expect(grid.districts).toEqual([]);
@@ -69,7 +81,7 @@ describe('buildCityGrid', () => {
   });
 
   it('um host sem posicao nao rebenta a cena', () => {
-    const grid = buildCityGrid(scanWith([{ ip: '192.168.1.1' }]));
+    const grid = buildCityGrid(scanWith([{ ip: '192.168.1.1', portCount: 0 }]));
 
     expect(grid.hosts[0]).toMatchObject({ gridX: 0, gridZ: 0 });
   });
@@ -260,7 +272,7 @@ describe('spawnPointFor', () => {
   });
 
   it('uma cidade sem hosts e toda atravessavel', () => {
-    const grid = buildCityGrid({ layout: { spacing: 4.0, width: 0, depth: 0, districts: [] } });
+    const grid = buildCityGrid({ ...envelope, layout: { spacing: 4.0, width: 0, depth: 0, districts: [] } });
 
     expect(collidesAt(grid, 0, 0)).toBe(false);
     expect(walkableBounds(grid).maxX).toBe(8 * BLOCK_SCALE);

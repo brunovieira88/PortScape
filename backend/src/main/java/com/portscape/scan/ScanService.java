@@ -6,14 +6,17 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import com.portscape.baseline.BaselineResolver;
@@ -22,11 +25,13 @@ import com.portscape.config.AsyncConfig;
 import com.portscape.config.NmapProperties;
 import com.portscape.domain.Host;
 import com.portscape.domain.Port;
+import com.portscape.domain.ScanStatus;
 import com.portscape.risk.RiskScore;
 import com.portscape.risk.RiskScorer;
 import com.portscape.risk.nvd.CveLookupResult;
 import com.portscape.risk.nvd.CveLookupService;
 import com.portscape.scan.exception.ScanException;
+import com.portscape.scan.exception.ScanNotCancellableException;
 import com.portscape.scan.exception.ScanQueueFullException;
 
 /**
@@ -67,8 +72,27 @@ public class ScanService {
     private final CveLookupService cveLookupService;
     private final RiskScorer riskScorer;
     private final BaselineResolver baselineResolver;
-    private final Executor scanExecutor;
+    private final AsyncTaskExecutor scanExecutor;
     private final Clock clock;
+
+    /**
+     * Os scans agendados ou a correr, para lhes poder chamar {@code cancel}.
+     *
+     * <p>Em memoria de proposito: um {@code Future} nao sobrevive a um reinicio, e nao
+     * ha nada para cancelar depois dele -- o processo do nmap morre com a aplicacao, e
+     * quem fecha os jobs orfaos e o {@link InterruptedScanReaper} no arranque
+     * seguinte. Isto e um monolito de um so utilizador; nao ha uma segunda instancia
+     * onde o scan pudesse estar a correr.
+     */
+    private final Map<UUID, Future<?>> inFlight = new ConcurrentHashMap<>();
+
+    /**
+     * Cancelamentos pedidos. E o que distingue, no {@code catch} do {@link #runScan},
+     * um scan que o utilizador parou de um que rebentou: os dois chegam la como a
+     * mesma {@code NmapExecutionException}, porque interromper o thread e exactamente
+     * o que mata o processo do nmap.
+     */
+    private final Set<UUID> cancelRequested = ConcurrentHashMap.newKeySet();
 
     public ScanService(TargetValidator targetValidator,
                        NmapCommandBuilder commandBuilder,
@@ -80,7 +104,7 @@ public class ScanService {
                        CveLookupService cveLookupService,
                        RiskScorer riskScorer,
                        BaselineResolver baselineResolver,
-                       @Qualifier(AsyncConfig.SCAN_EXECUTOR) Executor scanExecutor,
+                       @Qualifier(AsyncConfig.SCAN_EXECUTOR) AsyncTaskExecutor scanExecutor,
                        Clock clock) {
         this.targetValidator = targetValidator;
         this.commandBuilder = commandBuilder;
@@ -111,7 +135,7 @@ public class ScanService {
         ScanJob job = ScanJob.pending(UUID.randomUUID(), target, clock.instant());
         store.save(job);
         try {
-            scanExecutor.execute(() -> runScan(job.id()));
+            inFlight.put(job.id(), scanExecutor.submit(() -> runScan(job.id())));
         } catch (RejectedExecutionException e) {
             // A fila encheu. Deixar o job em PENDING era o pior dos mundos: ninguem o ia
             // correr e o frontend ficava a fazer polling de um scan que nunca comeca.
@@ -156,6 +180,46 @@ public class ScanService {
     }
 
     /**
+     * Para um scan que ainda nao acabou.
+     *
+     * <p>Cancelar e interromper o thread do scan: o {@link NmapExecutor} ja apanha a
+     * {@code InterruptedException} do {@code waitFor} e ja faz {@code destroyForcibly}
+     * no processo -- e o mesmo caminho por onde a aplicacao passa ao encerrar.
+     *
+     * <p>O estado final e escrito <b>aqui</b> e nao no {@link #runScan}, e isso e
+     * essencial: um scan que ainda esteja em fila e removido pelo {@code cancel} e o
+     * runnable nunca chega a correr, portanto nao havia ninguem para o escrever por
+     * ele -- ficava em PENDING para sempre, sondado por um frontend a espera de um fim
+     * que nunca vinha.
+     *
+     * @return o job ja cancelado, ou vazio se o id nao existir
+     * @throws ScanNotCancellableException se o scan ja tiver terminado
+     */
+    public Optional<ScanJob> cancelScan(UUID id) {
+        Optional<ScanJob> found = store.find(id);
+        if (found.isEmpty()) {
+            return Optional.empty();
+        }
+
+        ScanJob job = found.get();
+        if (job.status() != ScanStatus.PENDING && job.status() != ScanStatus.RUNNING) {
+            throw new ScanNotCancellableException(
+                    "O scan ja terminou (" + job.status() + ") e nao ha nada para cancelar.");
+        }
+
+        cancelRequested.add(id);
+        Future<?> running = inFlight.get(id);
+        if (running != null) {
+            running.cancel(true);
+        }
+
+        ScanJob stopped = job.cancelled(clock.instant());
+        store.save(stopped);
+        log.info("Scan {} cancelado a pedido", id);
+        return Optional.of(stopped);
+    }
+
+    /**
      * Corre o scan e escreve o resultado no store. Nao deixa escapar excecoes: uma
      * falha aqui e um estado FAILED do job, nao um erro perdido no pool de threads.
      *
@@ -167,6 +231,22 @@ public class ScanService {
      * si so, e nao vale a pena deitar fora so por faltar a versao do servico.
      */
     void runScan(UUID id) {
+        try {
+            execute(id);
+        } finally {
+            inFlight.remove(id);
+            cancelRequested.remove(id);
+        }
+    }
+
+    private void execute(UUID id) {
+        // Cancelado enquanto esperava a sua vez na fila, e o cancel nao chegou a tempo
+        // de o tirar de la. O estado final ja foi escrito pelo cancelScan.
+        if (cancelRequested.contains(id)) {
+            log.info("Scan {} foi cancelado antes de comecar", id);
+            return;
+        }
+
         Optional<ScanJob> pending = store.find(id);
         if (pending.isEmpty()) {
             // Apagado entre o agendamento e a sua vez na fila. Nada a fazer -- e deixar
@@ -189,9 +269,20 @@ public class ScanService {
             store.save(job.done(scored.hosts(), clock.instant(), scored.cveLookupDegraded()));
             log.info("Scan {} concluido: {} host(s)", id, scored.hosts().size());
         } catch (ScanException e) {
+            // Um scan cancelado chega aqui como uma falha de execucao -- interromper o
+            // thread e o que mata o nmap. Sem esta guarda, o FAILED escrevia por cima
+            // do CANCELLED e o utilizador via um erro por ter carregado no botao.
+            if (cancelRequested.contains(id)) {
+                log.info("Scan {} parou por cancelamento", id);
+                return;
+            }
             log.warn("Scan {} falhou [{}]: {}", id, e.code(), e.getMessage());
             store.save(job.failed(e.code(), e.getMessage(), clock.instant()));
         } catch (RuntimeException e) {
+            if (cancelRequested.contains(id)) {
+                log.info("Scan {} parou por cancelamento", id);
+                return;
+            }
             log.error("Scan {} falhou de forma inesperada", id, e);
             store.save(job.failed("UNEXPECTED_ERROR", e.toString(), clock.instant()));
         }

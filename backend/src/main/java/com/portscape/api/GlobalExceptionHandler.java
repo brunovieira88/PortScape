@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.portscape.baseline.BaselineNotAllowedException;
 import com.portscape.scan.exception.InvalidTargetException;
 import com.portscape.scan.exception.ScanException;
+import com.portscape.scan.exception.ScanNotCancellableException;
 import com.portscape.scan.exception.ScanQueueFullException;
 
 /**
@@ -43,6 +44,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ScanQueueFullException.class)
     public ProblemDetail handleQueueFull(ScanQueueFullException e) {
         return problem(HttpStatus.SERVICE_UNAVAILABLE, "Fila de scans cheia", e);
+    }
+
+    /**
+     * 409 e nao 400: o pedido esta bem formado e o scan existe -- o que nao encaixa e
+     * o estado dele. Um cliente que sonde de 1500 em 1500 ms pode sempre carregar em
+     * cancelar no mesmo instante em que o scan acaba, e isso nao e um erro dele.
+     */
+    @ExceptionHandler(ScanNotCancellableException.class)
+    public ProblemDetail handleNotCancellable(ScanNotCancellableException e) {
+        return problem(HttpStatus.CONFLICT, "Scan ja terminado", e);
     }
 
     @ExceptionHandler(BaselineNotAllowedException.class)

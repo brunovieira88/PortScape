@@ -28,6 +28,7 @@ import com.portscape.baseline.BaselineService;
 import com.portscape.baseline.ScanDiff;
 import com.portscape.scan.ScanService;
 import com.portscape.scan.exception.InvalidTargetException;
+import com.portscape.scan.exception.ScanNotCancellableException;
 import com.portscape.layout.CityLayoutCalculator;
 import com.portscape.layout.CityLayout;
 
@@ -79,6 +80,41 @@ class ScanControllerTest {
 
         mockMvc.perform(post("/api/scans"))
                 .andExpect(status().isAccepted());
+    }
+
+    @Test
+    @DisplayName("cancelar devolve o scan ja parado, para o cliente nao esperar pela sondagem")
+    void cancelReturnsTheStoppedScan() throws Exception {
+        when(scanService.cancelScan(ID)).thenReturn(Optional.of(
+                ScanJob.pending(ID, "192.168.1.0/24", NOW).running(NOW).cancelled(NOW)));
+
+        mockMvc.perform(post("/api/scans/" + ID + "/cancel"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.error").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("cancelar um scan que nao existe da 404")
+    void cancelUnknownScanIsNotFound() throws Exception {
+        when(scanService.cancelScan(ID)).thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/api/scans/" + ID + "/cancel"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("cancelar um scan ja terminado da 409, e nao 400")
+    void cancelFinishedScanIsAConflict() throws Exception {
+        // Quem sonda de 1500 em 1500 ms pode sempre carregar em cancelar no mesmo
+        // instante em que o scan acaba. O pedido nao esta errado -- o estado e que ja
+        // nao da, e o cliente distingue-o pelo code.
+        when(scanService.cancelScan(ID))
+                .thenThrow(new ScanNotCancellableException("O scan ja terminou (DONE) e nao ha nada para cancelar."));
+
+        mockMvc.perform(post("/api/scans/" + ID + "/cancel"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SCAN_NOT_CANCELLABLE"));
     }
 
     @Test

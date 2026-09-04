@@ -1,4 +1,5 @@
 import { Stars } from '@react-three/drei';
+import type { Host, Scan } from '../api/types';
 import * as THREE from 'three';
 import { useMemo } from 'react';
 import { Building } from './Building';
@@ -14,10 +15,10 @@ import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
 
 interface CityProps {
-  scanData: any;
-  selectedHost: any;
-  onSelectHost: (host: any) => void;
-  onOpenDetails: (host: any) => void;
+  scanData: Scan;
+  selectedHost: Host | null;
+  onSelectHost: (host: Host | null) => void;
+  onOpenDetails: (host: Host) => void;
   teleportTarget?: { ip: string, nonce: number } | null;
 }
 
@@ -142,14 +143,14 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails, tele
           entre eles. O District continua a viajar no JSON para quem o queira usar. */}
 
       {/* Edifícios Host (Hosts Ativos) */}
-      {processedHosts.map((host: any) => (
+      {processedHosts.map(host => (
         <Building
           key={`${scanData.id}-${host.ip}`}
           label={host.ip}
           x={(host.gridX + offsetX) * SCALE}
           z={(host.gridZ + offsetZ) * SCALE}
           portCount={host.portCount}
-          riskBand={host.riskBand as any}
+          riskBand={host.riskBand ?? 'UNKNOWN'}
           vendor={host.vendor}
           isRuin={false}
           hostData={host}
@@ -163,14 +164,14 @@ export function City({ scanData, selectedHost, onSelectHost, onOpenDetails, tele
       ))}
 
       {/* Relíquias (Ruins) */}
-      {processedRuins.map((ruin: any) => (
+      {processedRuins.map(ruin => (
         <Building
           key={`${scanData.id}-ruin-${ruin.ip}`}
           label={ruin.ip}
           x={(ruin.gridX + offsetX) * SCALE}
           z={(ruin.gridZ + offsetZ) * SCALE}
           portCount={ruin.portCount || RUIN_MIN_PORTS}
-          riskBand={ruin.riskBand as any}
+          riskBand={ruin.riskBand ?? 'UNKNOWN'}
           vendor={ruin.vendor}
           isRuin={true}
           onClick={() => onSelectHost(ruin)}

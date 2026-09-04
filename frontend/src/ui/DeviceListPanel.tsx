@@ -1,12 +1,9 @@
 import { useMemo, useState } from 'react';
-import { BAND_COLORS } from '../scene/Building';
-
-function bandColor(band: string): string {
-  return BAND_COLORS[band as keyof typeof BAND_COLORS] || BAND_COLORS.UNKNOWN;
-}
+import type { Host, RiskBand, Scan } from '../api/types';
+import { bandColor } from '../scene/Building';
 
 /** Todas as faixas, na mesma ordem de gravidade usada na cidade. */
-const ALL_BANDS = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN'] as const;
+const ALL_BANDS: readonly RiskBand[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN'];
 
 /**
  * IP para numero, para ordenar como um endereco e nao como texto -- em ordem
@@ -22,12 +19,20 @@ function ipSortKey(ip: string): number {
   return octets.reduce((acc, n) => acc * 256 + n, 0);
 }
 
-function byIp(a: any, b: any): number {
+function byIp(a: Host, b: Host): number {
   const diff = ipSortKey(a.ip) - ipSortKey(b.ip);
   return Number.isFinite(diff) ? diff : (a.ip || '').localeCompare(b.ip || '');
 }
 
-export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isHidden }: { scanData: any, onOpenDetails?: (host: any) => void, isOpen: boolean, onToggle: () => void, isHidden?: boolean }) {
+interface DeviceListPanelProps {
+  scanData: Scan;
+  onOpenDetails?: (host: Host) => void;
+  isOpen: boolean;
+  onToggle: () => void;
+  isHidden?: boolean;
+}
+
+export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isHidden }: DeviceListPanelProps) {
   const [activeBands, setActiveBands] = useState<Set<string>>(new Set(ALL_BANDS));
 
   const toggleBand = (band: string) => {
@@ -50,7 +55,10 @@ export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isH
   );
 
   return (
-    <div className={`transition-opacity duration-300 ${isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+    // Escondido por outro painel ou pelo menu: sai tambem do alcance do Tab, e nao
+    // so da vista. Sem isto o teclado entrava em botoes invisiveis.
+    <div inert={isHidden}
+         className={`transition-opacity duration-300 ${isHidden ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
       {/* Painel Lateral Direito */}
       <div 
         className={`absolute top-0 right-0 h-full w-[350px] bg-[#030d12]/95 backdrop-blur-2xl border-l border-[#00f0ff]/30 z-[998] transform transition-transform duration-300 shadow-[-10px_0_30px_rgba(0,240,255,0.05)] flex flex-col ${
@@ -60,6 +68,8 @@ export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isH
         {/* Botão de Toggle ancorado ao painel (desliza com ele) */}
         <button 
           onClick={onToggle}
+          aria-expanded={isOpen}
+          aria-controls="device-list-content"
           className="absolute top-1/2 left-0 -translate-x-full -translate-y-1/2 bg-[#030d12]/95 backdrop-blur-xl border border-[#00f0ff]/40 border-r-0 text-[#00f0ff] px-2.5 py-12 text-[10px] font-mono font-bold tracking-[0.3em] hover:bg-[#00f0ff]/20 hover:text-white transition-all shadow-[-5px_0_20px_rgba(0,240,255,0.1)] hover:shadow-[-10px_0_30px_rgba(0,240,255,0.3)] flex flex-col items-center justify-center gap-4 group"
           style={{ clipPath: 'polygon(0 10px, 100% 0, 100% 100%, 0 calc(100% - 10px))' }}
         >
@@ -99,7 +109,8 @@ export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isH
           </p>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar pointer-events-auto relative z-10">
+        <div id="device-list-content" inert={!isOpen}
+             className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar pointer-events-auto relative z-10">
           
           {/* Active Hosts */}
           <div>
@@ -139,13 +150,14 @@ export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isH
             )}
 
             <div className="flex flex-col gap-2">
-              {activeHosts.map((host: any) => (
-                <div 
+              {activeHosts.map(host => (
+                <button
+                  type="button"
                   key={host.ip} 
                   onClick={() => {
                     if (onOpenDetails) onOpenDetails(host);
                   }}
-                  className="relative p-3 bg-black/60 border border-[#00f0ff]/10 hover:border-[#00f0ff]/50 cursor-pointer transition-colors group"
+                  className="relative w-full text-left p-3 bg-black/60 border border-[#00f0ff]/10 hover:border-[#00f0ff]/50 focus-visible:border-[#00f0ff] focus-visible:outline-none transition-colors group"
                   style={{ clipPath: 'polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)' }}
                 >
                   <div className="absolute top-0 left-0 h-[1px] bg-[#00f0ff]/30 group-hover:bg-[#00f0ff] w-8 group-hover:w-full transition-all duration-500"></div>
@@ -175,7 +187,7 @@ export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isH
                         leitura do sistema. Ver a nota no HostDetailsModal. */}
                     <span className="bg-white/5 px-1 py-0.5 rounded truncate">OS ~ <span className="text-gray-300">{host.osGuess || 'UNKNOWN'}</span></span>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -188,13 +200,14 @@ export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isH
                 <span className="text-[9px] bg-gray-800 text-gray-400 px-1.5 py-0.5 rounded font-mono">{ruins.length}</span>
               </div>
               <div className="flex flex-col gap-2">
-                {ruins.map((ruin: any) => (
-                  <div 
-                    key={ruin.ip} 
+                {ruins.map(ruin => (
+                  <button
+                    type="button"
+                    key={ruin.ip}
                     onClick={() => {
                       if (onOpenDetails) onOpenDetails(ruin);
                     }}
-                    className="relative p-3 bg-black/20 border border-gray-800 opacity-60 hover:opacity-100 hover:border-gray-600 hover:bg-gray-900 cursor-pointer transition-colors group"
+                    className="relative w-full text-left p-3 bg-black/20 border border-gray-800 opacity-60 hover:opacity-100 hover:border-gray-600 hover:bg-gray-900 focus-visible:opacity-100 focus-visible:border-gray-400 focus-visible:outline-none transition-colors group"
                     style={{ clipPath: 'polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)' }}
                   >
                     <div className="absolute top-0 left-0 h-[1px] bg-gray-700 w-8 group-hover:w-full transition-all duration-500"></div>
@@ -206,7 +219,7 @@ export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isH
                     <div className="text-[10px] text-gray-500">
                       {ruin.hostname?.replace(/\.(home|lan|local)$/i, '') || 'Unknown Host'}
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
