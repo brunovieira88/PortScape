@@ -40,6 +40,7 @@ colour is the risk band, and anything that wasn't there last time is marked on t
   - [Live demo — no install](#just-want-to-look-around-no-install)
 - [How it works](#how-it-works)
 - [The risk model](#the-risk-model)
+- [What to fix first](#what-to-fix-first)
 - [Reading a port](#reading-a-port)
 - [Baseline and change detection](#baseline-and-change-detection)
 - [The inventory panel](#the-inventory-panel)
@@ -88,7 +89,7 @@ running nmap, it's the two layers on top:
 | **Deterministic architecture** | A building's shape is derived from its IP and its MAC vendor, so the same device looks the same in every scan. A gateway is always a spire. |
 | **Stoppable scans** | A `/24` with version detection takes minutes. Cancelling kills the nmap process itself, not just the job row — a cancel that leaves a scanner running is worse than no button at all, so there's a test that proves the process dies. |
 | **Usable without a mouse** | Every device and scan card is a real button, the details modal is a proper dialog that traps and restores focus, and progress is announced rather than only drawn. Verified in a browser, not just in jsdom. |
-| **404 tests** | 247 unit + 38 integration on the backend (Testcontainers, real PostgreSQL), 119 on the frontend. Every scoring rule, parser and layout calculation is covered. |
+| **418 tests** | 256 unit + 39 integration on the backend (Testcontainers, real PostgreSQL), 123 on the frontend. Every scoring rule, parser and layout calculation is covered. |
 
 ## Prerequisites
 
@@ -299,6 +300,41 @@ When the fetch fails, the previous catalog is kept rather than emptied. The asym
 the point — an unreachable catalog means *"I couldn't check"*, never *"it isn't being
 exploited"*, and stale information beats silence that reads as safety. Turn it off with
 `portscape.kev.enabled: false`.
+
+</details>
+
+## What to fix first
+
+A score you cannot act on is just a number. Every host carries a plan, ordered by what
+each action actually removes:
+
+```
+WHAT TO FIX FIRST
+  Close 445/tcp (microsoft-ds)            −69   score → 73
+  Update Samba smbd 4.6.2 on 445/tcp      −39   still CRITICAL (100)
+```
+
+Simulating a fix is re-running the scorer with that port gone — `RiskScorer.score` is a
+pure function, so **no rule is duplicated** and the answer cannot drift from the real
+number. Subtracting a reason's points would be wrong: unweighted ports share a cap, so
+closing one can remove nothing at all.
+
+<details>
+<summary><b>Why each action carries two numbers</b></summary>
+
+<br>
+
+The score saturates at 100; the reasons behind it do not. A host whose reasons total 142
+shows 100, and removing 39 of them leaves 103 — still 100 on screen. Reporting only the
+visible score would print *"−39, score → 100"* and read like a bug.
+
+So `pointsRemoved` comes from the **unsaturated** total and does the ordering, while
+`scoreAfter` is the saturated number the city uses. When they disagree, that is the
+honest message: this host does not get fixed by one action.
+
+Being new to the network generates no action. A device that appeared without permission
+is not *fixed* by closing a port — it is authorised, and that is an action on the scan
+(`POST /api/baselines`), not on the host.
 
 </details>
 
@@ -549,11 +585,11 @@ VPN), and keeps the target correct when you move between networks.
 
 ```bash
 cd backend
-mvn test        # 247 unit tests, seconds, no Docker needed
-mvn verify      # + 38 integration tests (Testcontainers, needs Docker)
+mvn test        # 256 unit tests, seconds, no Docker needed
+mvn verify      # + 39 integration tests (Testcontainers, needs Docker)
 
 cd frontend
-npm test        # 119 tests
+npm test        # 123 tests
 npx tsc -b      # type check
 ```
 
