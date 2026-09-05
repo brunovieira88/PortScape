@@ -66,12 +66,14 @@
           "version": "1.24.0",
           "cpes": [
             "cpe:/a:nginx:nginx:1.24.0"
-          ]
+          ],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 12
         }
@@ -104,7 +106,9 @@
           "version": "2017.75",
           "cpes": [
             "cpe:/a:dropbear_ssh_project:dropbear_ssh:2017.75"
-          ]
+          ],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 445,
@@ -113,7 +117,9 @@
           "service": "microsoft-ds",
           "product": "Samba smbd",
           "version": "4.6.2",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 21,
@@ -122,22 +128,24 @@
           "service": "ftp",
           "product": "vsftpd",
           "version": "2.3.4",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "Telnet (23/tcp) expoe credenciais em texto limpo",
           "points": 40
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "SMB (445/tcp) exposto na rede",
           "points": 25
         },
         {
-          "code": "VULNERABLE_SERVICE",
+          "code": "KNOWN_CVE",
           "description": "Dropbear 2017.75: CVE-2020-36254",
           "points": 30
         }
@@ -167,7 +175,9 @@
           "service": "ssh",
           "product": "OpenSSH",
           "version": "8.4p1",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 3389,
@@ -176,17 +186,19 @@
           "service": "ms-wbt-server",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "RDP (3389/tcp) exposto na rede",
           "points": 35
         },
         {
-          "code": "NOT_IN_BASELINE",
+          "code": "UNKNOWN_HOST",
           "description": "Host novo, nao visto em scans anteriores",
           "points": 25
         }
@@ -215,7 +227,9 @@
           "service": "ipp",
           "product": "CUPS",
           "version": "2.3",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 9100,
@@ -224,12 +238,14 @@
           "service": "jetdirect",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "UNWEIGHTED_PORTS",
+          "code": "OPEN_PORT",
           "description": "2 portas comuns expostas (631, 9100)",
           "points": 35
         }

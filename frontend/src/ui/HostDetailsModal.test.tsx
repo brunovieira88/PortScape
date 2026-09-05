@@ -27,7 +27,7 @@ describe('HostDetailsModal', () => {
         { number: 445, protocol: 'tcp', state: 'open', service: 'microsoft-ds' },
       ],
       riskReasons: [
-        { code: 'HIGH_RISK_PORT', description: 'Telnet exposed (23)', points: 40 },
+        { code: 'OPEN_PORT', description: 'Telnet exposed (23)', points: 40 },
       ],
     })} onClose={vi.fn()} />);
 
@@ -38,6 +38,95 @@ describe('HostDetailsModal', () => {
     expect(screen.getByText('Telnet exposed (23)')).toBeDefined();
     // O sufixo da rede local so faz ruido numa lista onde todos o tem.
     expect(screen.getByText('nas')).toBeDefined();
+  });
+
+
+  it('cada porta diz o que la corre -- sem versao nao ha CVE que se interprete', () => {
+    render(<HostDetailsModal host={hostOf({
+      portCount: 1,
+      ports: [{ number: 22, protocol: 'tcp', state: 'open', service: 'ssh',
+                product: 'OpenSSH', version: '9.3' }],
+    })} onClose={vi.fn()} />);
+
+    expect(screen.getByText(/OpenSSH 9.3/)).toBeDefined();
+  });
+
+  it('a porta abre para as falhas conhecidas, com o vector traduzido e o link para o NVD', async () => {
+    const user = userEvent.setup();
+    render(<HostDetailsModal host={hostOf({
+      portCount: 1,
+      ports: [{
+        number: 445, protocol: 'tcp', state: 'open', service: 'microsoft-ds',
+        product: 'Samba smbd', version: '4.6.2', cveTotal: 12,
+        cves: [{
+          id: 'CVE-2017-7494', cvssScore: 9.8, severity: 'CRITICAL',
+          vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H',
+          description: 'Samba allows remote code execution, aka SambaCry.',
+          url: 'https://nvd.nist.gov/vuln/detail/CVE-2017-7494',
+          kev: { dateAdded: '2023-03-30', knownRansomwareUse: true,
+                 vulnerabilityName: 'Samba Remote Code Execution Vulnerability',
+                 requiredAction: 'Apply updates per vendor instructions.' },
+        }],
+      }],
+    })} onClose={vi.fn()} />);
+
+    // Fechada, a porta anuncia quantas falhas tem sem as listar.
+    expect(screen.getByText('12 CVES')).toBeDefined();
+    expect(screen.queryByText('CVE-2017-7494')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: /microsoft-ds/i }));
+
+    const link = screen.getByRole('link', { name: 'CVE-2017-7494' });
+    expect(link.getAttribute('href')).toBe('https://nvd.nist.gov/vuln/detail/CVE-2017-7494');
+    expect(screen.getByText('9.8 CRITICAL')).toBeDefined();
+    // O vector deixa de ser jargao e passa a dizer porque e que 9.8 e 9.8.
+    expect(screen.getByText('reachable from the network')).toBeDefined();
+    expect(screen.getByText('no account needed')).toBeDefined();
+    // Truncado: mostrar 1 sem dizer que eram 12 seria mentir por omissao.
+    expect(screen.getByText(/Showing the 1 highest-scoring of 12 known CVEs/)).toBeDefined();
+  });
+
+  it('um CVE em exploracao activa diz-se, e diz-se que e ransomware', async () => {
+    const user = userEvent.setup();
+    render(<HostDetailsModal host={hostOf({
+      portCount: 1,
+      ports: [{
+        number: 3389, protocol: 'tcp', state: 'open', service: 'ms-wbt-server',
+        cveTotal: 1,
+        cves: [{
+          id: 'CVE-2019-0708', cvssScore: 9.8, severity: 'CRITICAL',
+          kev: { dateAdded: '2021-11-03', knownRansomwareUse: true,
+                 vulnerabilityName: 'BlueKeep', requiredAction: 'Apply updates per vendor instructions.' },
+        }],
+      }],
+    })} onClose={vi.fn()} />);
+
+    // O aviso tem de ser legivel com a porta fechada: e o sinal mais forte que ha.
+    expect(screen.getByText('Exploited')).toBeDefined();
+
+    await user.click(screen.getByRole('button', { name: /ms-wbt-server/i }));
+
+    expect(screen.getByText(/Actively exploited/)).toBeDefined();
+    expect(screen.getByText(/ransomware/)).toBeDefined();
+    // A CISA nao diz so que esta a ser explorado -- diz o que fazer a seguir.
+    expect(screen.getByText(/Apply updates per vendor instructions/)).toBeDefined();
+  });
+
+  it('uma porta sem CVEs nao vira botao -- nao ha nada para abrir', () => {
+    render(<HostDetailsModal host={hostOf({
+      portCount: 1,
+      ports: [{ number: 80, protocol: 'tcp', state: 'open', service: 'http' }],
+    })} onClose={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: /http/i })).toBeNull();
+  });
+
+  it('avisa dentro do dialogo quando a consulta de CVEs ficou incompleta', () => {
+    // O aviso global do App esconde-se com um painel aberto, ou seja, desaparece
+    // exactamente quando o utilizador vem ler os CVEs.
+    render(<HostDetailsModal host={hostOf()} onClose={vi.fn()} cveLookupDegraded />);
+
+    expect(screen.getByText(/this list may be incomplete/i)).toBeDefined();
   });
 
   it('um host sem risco nem portas diz que nao ha, em vez de duas caixas vazias', () => {

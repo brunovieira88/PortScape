@@ -24,6 +24,41 @@ export type RiskBand = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
 /** Como o host se compara com o baseline. Ver `baseline/HostChange.java`. */
 export type HostChange = 'NEW' | 'CHANGED' | 'UNCHANGED' | 'UNKNOWN' | 'DISAPPEARED';
 
+/**
+ * A confirmacao da CISA de que a falha foi observada a ser explorada. Ver `KevDto`.
+ *
+ * A ausencia deste objeto num CVE NAO e um atestado de seguranca: significa apenas que
+ * nao consta do catalogo. O painel tem de dizer uma coisa e nao a outra.
+ */
+export interface Kev {
+  dateAdded?: string | null;
+  knownRansomwareUse: boolean;
+  vulnerabilityName?: string | null;
+  requiredAction?: string | null;
+}
+
+/**
+ * Uma falha conhecida do servico de uma porta. Ver `CveDto`.
+ *
+ * O `vector` vem por traduzir do backend (`AV:N/AC:L/PR:N/...`): a traducao para
+ * linguagem corrente e apresentacao, e faz-se em `knowledge/cvss.ts` -- que tem de
+ * funcionar tambem no modo demo, onde nao ha backend nenhum.
+ *
+ * `severity` pode vir a null mesmo com `cvssScore` preenchido: ha CVEs no NVD sem
+ * `baseSeverity` publicado. Nao inventar uma a partir do score no sitio errado -- usar
+ * `severityOf()` deste ficheiro, para a regra ficar num sitio so.
+ */
+export interface Cve {
+  id: string;
+  cvssScore?: number | null;
+  severity?: string | null;
+  vector?: string | null;
+  published?: string | null;
+  description?: string | null;
+  url?: string | null;
+  kev?: Kev | null;
+}
+
 /** Uma porta aberta. Ver `PortDto`. */
 export interface Port {
   number: number;
@@ -33,13 +68,50 @@ export interface Port {
   product?: string | null;
   version?: string | null;
   cpes?: string[] | null;
+  /** Truncada em `portscape.nvd.max-cves-per-port`, do pior CVSS para o menos grave. */
+  cves?: Cve[] | null;
+  /**
+   * Quantos existiam antes de truncar. Quando e maior que `cves.length`, o painel tem
+   * de o dizer -- mostrar 5 sem dizer que eram 22 seria mentir por omissao.
+   */
+  cveTotal?: number;
 }
+
+/**
+ * Codigos de razao de risco que o backend emite. Ver `risk/rules/*.java`.
+ *
+ * E uma uniao de literais e nao `string` de proposito: as fixtures da demo chegaram a
+ * usar cinco codigos (`COMMON_PORT`, `HIGH_RISK_PORT`, `UNWEIGHTED_PORTS`,
+ * `NOT_IN_BASELINE`, `VULNERABLE_SERVICE`) que o backend nunca emitiu, e o `tsc` nao deu
+ * por nada porque o campo era `string`. Agora da.
+ */
+export const RISK_CODES = ['OPEN_PORT', 'NEW_PORT', 'UNKNOWN_HOST', 'KNOWN_CVE'] as const;
+export type RiskCode = typeof RISK_CODES[number];
 
 /** Uma parcela do score, com a explicacao que enche o painel. Ver `RiskReasonDto`. */
 export interface RiskReason {
-  code: string;
+  code: RiskCode;
   description: string;
   points: number;
+}
+
+/**
+ * A faixa que da a cor a um CVE, derivada do CVSS quando o NVD nao publica severidade.
+ *
+ * Os cortes sao os do proprio CVSS v3.1 (9.0 critico, 7.0 alto, 4.0 medio) e nao os do
+ * `portscape.risk`: aqui esta a qualificar-se a falha, nao o host.
+ */
+export function severityOf(cve: Cve): RiskBand {
+  const named = cve.severity?.toUpperCase();
+  if (named === 'CRITICAL' || named === 'HIGH' || named === 'MEDIUM' || named === 'LOW') {
+    return named;
+  }
+  const score = cve.cvssScore;
+  if (score == null) return 'UNKNOWN';
+  if (score >= 9) return 'CRITICAL';
+  if (score >= 7) return 'HIGH';
+  if (score >= 4) return 'MEDIUM';
+  return 'LOW';
 }
 
 /** Coordenada no plano da cidade. O y e sempre 0 -- a altura vem do `portCount`. */

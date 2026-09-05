@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Host, Port, RiskReason } from '../api/types';
 import { bandColor } from '../scene/Building';
+import { PortCard } from './PortCard';
 
 /**
  * O que se pode focar com o Tab, por ordem, dentro de um contentor.
@@ -15,7 +16,17 @@ function focusablesIn(container: HTMLElement): HTMLElement[] {
     'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'));
 }
 
-export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, onClose: () => void, onTeleport?: () => void }) {
+export function HostDetailsModal({ host, onClose, onTeleport, cveLookupDegraded }: {
+  host: Host,
+  onClose: () => void,
+  onTeleport?: () => void,
+  /**
+   * A consulta ao NVD ficou incompleta neste scan. O aviso global do App esconde-se
+   * quando um painel abre -- ou seja, desaparece exactamente quando o utilizador vem
+   * ler os CVEs. Por isso repete-se aqui.
+   */
+  cveLookupDegraded?: boolean,
+}) {
   const dialog = useRef<HTMLDivElement>(null);
 
   /**
@@ -215,21 +226,31 @@ export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, on
             {/* Ports List */}
             <div className="bg-black/40 border border-white/5 rounded-lg p-5">
               <h3 className="text-xs font-bold text-gray-500 tracking-[0.2em] uppercase mb-4">Open Ports ({ports.length})</h3>
+
+              {cveLookupDegraded && (
+                <div className="flex items-start gap-2 mb-3 border border-[#ff8a00]/40 bg-[#ff8a00]/5 rounded px-3 py-2">
+                  <span className="text-[#ff8a00] text-xs">⚠</span>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-[#ff8a00] leading-relaxed">
+                    CVE lookup degraded — this list may be incomplete
+                  </div>
+                </div>
+              )}
+
               {ports.length === 0 ? (
                 <div className="text-sm text-gray-500 italic">No open ports detected.</div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {ports.map((p: Port, i: number) => (
-                    <div key={i} className="flex items-center gap-3 bg-black/60 border border-white/10 p-2 rounded">
-                      <div className="w-12 text-right font-mono text-[#00f0ff] font-bold text-sm">
-                        {p.number}
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-xs text-white uppercase tracking-wider">{p.service || 'UNKNOWN'}</div>
-                        <div className="text-[10px] font-mono text-gray-500">{p.state} • {p.protocol}</div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex flex-col gap-2">
+                  {ports.map((p: Port) => <PortCard key={`${p.number}/${p.protocol}`} port={p} />)}
+                </div>
+              )}
+
+              {/* Sem esta nota, ver o mesmo CVE em tres portas e o score a conta-lo uma
+                  vez le-se como um erro. Sao perguntas diferentes: a porta diz o que
+                  se sabe estar mal, o score diz quanto e que isso custou. */}
+              {ports.some((p: Port) => (p.cves || []).length > 0) && (
+                <div className="text-[10px] text-gray-600 leading-relaxed border-t border-white/5 mt-3 pt-3">
+                  A flaw in something shared — the OS kernel, say — is listed under every
+                  port that runs it, but the risk score only charges for it once.
                 </div>
               )}
             </div>
