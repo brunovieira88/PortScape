@@ -19,6 +19,8 @@
  * Texto em inglês, como o resto da UI.
  */
 
+import type { MitreTacticId } from './mitre';
+
 export interface PortDossier {
   /** O nome do protocolo, não do serviço que o nmap reportou. */
   name: string;
@@ -35,6 +37,13 @@ export interface PortDossier {
   hardening: string[];
   /** O que usar em vez disto, quando existe substituto directo. */
   safeAlternative?: string;
+  /**
+   * As tácticas do ATT&CK que esta exposição serve, para a narrativa citar.
+   *
+   * Ausente nas portas que não são um problema por si — e essa ausência é o que impede
+   * a narrativa de inventar um caminho de ataque a partir de um HTTPS bem configurado.
+   */
+  attackTactics?: MitreTacticId[];
 }
 
 const DOSSIERS: Record<number, PortDossier> = {
@@ -56,6 +65,7 @@ const DOSSIERS: Record<number, PortDossier> = {
       'Disable the anonymous account, and check what it could already read.',
     ],
     safeAlternative: 'SFTP over SSH (22)',
+    attackTactics: ['TA0006', 'TA0010'],
   },
 
   23: {
@@ -76,6 +86,7 @@ const DOSSIERS: Record<number, PortDossier> = {
       'Rotate every credential that has crossed this port — treat them as compromised.',
     ],
     safeAlternative: 'SSH (22)',
+    attackTactics: ['TA0006', 'TA0001'],
   },
 
   445: {
@@ -96,6 +107,7 @@ const DOSSIERS: Record<number, PortDossier> = {
       'Disable SMBv1 entirely; it has no safe configuration.',
       'Require SMB signing so sessions cannot be relayed to another host.',
     ],
+    attackTactics: ['TA0001', 'TA0008'],
   },
 
   512: {
@@ -111,6 +123,7 @@ const DOSSIERS: Record<number, PortDossier> = {
       + 'of Telnet and remote shell at once.',
     hardening: ['Disable it. There is no configuration that makes it safe.'],
     safeAlternative: 'SSH (22)',
+    attackTactics: ['TA0001', 'TA0002'],
   },
 
   513: {
@@ -127,6 +140,7 @@ const DOSSIERS: Record<number, PortDossier> = {
       + 'can convincingly claim to be it.',
     hardening: ['Disable it, and remove any `.rhosts` or `hosts.equiv` files it relied on.'],
     safeAlternative: 'SSH (22)',
+    attackTactics: ['TA0001', 'TA0002'],
   },
 
   514: {
@@ -140,6 +154,7 @@ const DOSSIERS: Record<number, PortDossier> = {
       + 'shell does is readable in transit.',
     hardening: ['Disable it and move any scripts that use it to SSH keys.'],
     safeAlternative: 'SSH (22)',
+    attackTactics: ['TA0001', 'TA0002'],
   },
 
   3389: {
@@ -157,6 +172,7 @@ const DOSSIERS: Record<number, PortDossier> = {
       'Require network-level authentication, so unauthenticated sessions never reach the desktop.',
       'Enable account lockout: this port is scanned continuously.',
     ],
+    attackTactics: ['TA0001', 'TA0008'],
   },
 
   5900: {
@@ -176,6 +192,7 @@ const DOSSIERS: Record<number, PortDossier> = {
       'Bind it to localhost so only the SSH tunnel can reach it.',
     ],
     safeAlternative: 'VNC over an SSH tunnel',
+    attackTactics: ['TA0001'],
   },
 
   6379: {
@@ -195,6 +212,7 @@ const DOSSIERS: Record<number, PortDossier> = {
       'Set `requirepass`, and turn on protected mode.',
       'Rename or disable the administrative commands the application does not need.',
     ],
+    attackTactics: ['TA0006', 'TA0010'],
   },
 
   // As três seguintes existem para a ferramenta poder dizer "isto está bem". Sem elas
