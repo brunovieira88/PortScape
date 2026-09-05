@@ -42,7 +42,8 @@ class NvdClientTest {
     /** Sem espera entre pedidos: o rate limit e testado a parte, nao aqui. */
     private NvdClient clientWith(String apiKey) {
         NvdProperties properties = new NvdProperties(
-                true, BASE_URL, apiKey, Duration.ofSeconds(1), Duration.ZERO, Duration.ofDays(7), Duration.ofDays(1));
+                true, BASE_URL, apiKey, Duration.ofSeconds(1), Duration.ZERO, Duration.ofDays(7),
+                Duration.ofDays(1), null);
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
         return new NvdClient(builder, properties, new NvdRateLimiter(properties));
@@ -80,7 +81,7 @@ class NvdClientTest {
 
         List<Cve> cves = client.findCves(DROPBEAR);
 
-        assertThat(cves).hasSize(2);
+        assertThat(cves).hasSize(3);
         assertThat(cves.get(0).id()).isEqualTo("CVE-2024-6387");
         assertThat(cves.get(0).cvssScore()).isEqualTo(8.1);
         assertThat(cves.get(0).severity()).isEqualTo("HIGH");
@@ -132,6 +133,26 @@ class NvdClientTest {
         client.findCves("cpe:/a:igor_sysoev:nginx:1.27.5");
 
         server.verify();
+    }
+
+    @Test
+    @DisplayName("no CVSS v2 a severidade vem fora do cvssData, e nao se pode perder por isso")
+    void readsTheSeverityOfLegacyCvssV2Entries() {
+        NvdClient client = clientWith(null);
+        expectDictionary("dropbear 2017.75", "nvd-cpes-dropbear.json");
+        expectCveQuery("cpe:2.3:a:dropbear_ssh_project:dropbear_ssh:2017.75:*:*:*:*:*:*:*",
+                "nvd-openssh.json");
+
+        Cve legacy = client.findCves(DROPBEAR).get(2);
+
+        // No v3.x/v4.0 o baseSeverity vem dentro do cvssData; no v2 vem ao lado. Olhar
+        // so para dentro custava a severidade dos CVEs antigos -- que sao justamente os
+        // que aparecem em servicos desactualizados.
+        assertThat(legacy.id()).isEqualTo("CVE-2008-3844");
+        assertThat(legacy.cvssScore()).isEqualTo(9.3);
+        assertThat(legacy.severity()).isEqualTo("HIGH");
+        // O vector v2 nao tem prefixo "CVSS:", ao contrario do v3.1/v4.0.
+        assertThat(legacy.vector()).isEqualTo("AV:N/AC:M/Au:N/C:C/I:C/A:C");
     }
 
     @Test

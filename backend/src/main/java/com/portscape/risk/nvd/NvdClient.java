@@ -163,11 +163,12 @@ public class NvdClient {
             if (id == null) {
                 continue;
             }
-            JsonNode cvss = bestCvssData(cve.path("metrics"));
+            JsonNode metric = bestMetric(cve.path("metrics"));
+            JsonNode cvss = metric.path("cvssData");
             cves.add(new Cve(
                     id,
                     cvss.hasNonNull("baseScore") ? cvss.get("baseScore").asDouble() : null,
-                    cvss.path("baseSeverity").asText(null),
+                    severityOf(metric, cvss),
                     cvss.path("vectorString").asText(null),
                     publishedAt(cve.path("published")),
                     englishDescription(cve.path("descriptions"))));
@@ -176,14 +177,27 @@ public class NvdClient {
     }
 
     /** O NVD publica varias versoes do CVSS por CVE; fica a mais recente disponivel. */
-    private static JsonNode bestCvssData(JsonNode metrics) {
+    private static JsonNode bestMetric(JsonNode metrics) {
         for (String key : METRIC_KEYS) {
             JsonNode list = metrics.path(key);
             if (list.isArray() && !list.isEmpty()) {
-                return list.get(0).path("cvssData");
+                return list.get(0);
             }
         }
         return MissingNode.getInstance();
+    }
+
+    /**
+     * A severidade muda de sitio entre versoes do CVSS.
+     *
+     * <p>No v3.x e no v4.0 o {@code baseSeverity} vem dentro do {@code cvssData}; no
+     * <b>v2</b> vem ao lado dele, como irmao. Olhar so para dentro custava a
+     * severidade de todos os CVEs antigos -- que sao exatamente os que aparecem em
+     * servicos desactualizados, ou seja, os que mais importam nesta ferramenta.
+     */
+    private static String severityOf(JsonNode metric, JsonNode cvssData) {
+        String inside = cvssData.path("baseSeverity").asText(null);
+        return inside != null ? inside : metric.path("baseSeverity").asText(null);
     }
 
     /**

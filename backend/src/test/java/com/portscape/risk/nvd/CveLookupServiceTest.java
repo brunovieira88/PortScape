@@ -44,7 +44,7 @@ class CveLookupServiceTest {
 
     private CveLookupService serviceWith(boolean enabled) {
         return new CveLookupService(client, cache, new NvdProperties(
-                enabled, null, null, null, Duration.ZERO, Duration.ofDays(7), Duration.ofDays(1)));
+                enabled, null, null, null, Duration.ZERO, Duration.ofDays(7), Duration.ofDays(1), null));
     }
 
     private static Host hostWith(String ip, String... cpes) {

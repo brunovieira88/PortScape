@@ -38,8 +38,10 @@ import com.portscape.domain.ScanStatus;
 import org.springframework.web.client.RestClient;
 
 import com.portscape.config.KevProperties;
+import com.portscape.config.NvdProperties;
 import com.portscape.risk.RiskScorer;
 import com.portscape.risk.kev.KevCatalog;
+import com.portscape.risk.nvd.PortCveEnricher;
 import com.portscape.risk.nvd.CveLookupResult;
 import com.portscape.risk.nvd.CveLookupService;
 import com.portscape.scan.exception.InvalidTargetException;
@@ -90,6 +92,12 @@ class ScanServiceTest {
                 new KevProperties(false, null, null, null), Clock.systemUTC());
     }
 
+    /** O enricher com os defaults da configuracao -- o tecto de CVEs e testado a parte. */
+    private static PortCveEnricher defaultEnricher() {
+        return new PortCveEnricher(
+                new NvdProperties(true, null, null, null, null, null, null, null));
+    }
+
     /** O mesmo servico, com outro pool -- serve para testar a fila cheia. */
     private ScanService serviceUsing(AsyncTaskExecutor scanExecutor) {
         NmapProperties properties = new NmapProperties(
@@ -104,6 +112,7 @@ class ScanServiceTest {
                 localNetworkDetector,
                 cveLookupService,
                 disabledKev(),
+                defaultEnricher(),
                 new RiskScorer(List.of()),
                 baselineResolver,
                 scanExecutor,

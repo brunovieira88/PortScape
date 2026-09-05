@@ -31,6 +31,7 @@ import com.portscape.risk.RiskScorer;
 import com.portscape.risk.nvd.CveLookupResult;
 import com.portscape.risk.kev.KevCatalog;
 import com.portscape.risk.nvd.CveLookupService;
+import com.portscape.risk.nvd.PortCveEnricher;
 import com.portscape.scan.exception.ScanException;
 import com.portscape.scan.exception.ScanNotCancellableException;
 import com.portscape.scan.exception.ScanQueueFullException;
@@ -72,6 +73,7 @@ public class ScanService {
     private final LocalNetworkDetector localNetworkDetector;
     private final CveLookupService cveLookupService;
     private final KevCatalog kevCatalog;
+    private final PortCveEnricher portCveEnricher;
     private final RiskScorer riskScorer;
     private final BaselineResolver baselineResolver;
     private final AsyncTaskExecutor scanExecutor;
@@ -105,6 +107,7 @@ public class ScanService {
                        LocalNetworkDetector localNetworkDetector,
                        CveLookupService cveLookupService,
                        KevCatalog kevCatalog,
+                       PortCveEnricher portCveEnricher,
                        RiskScorer riskScorer,
                        BaselineResolver baselineResolver,
                        @Qualifier(AsyncConfig.SCAN_EXECUTOR) AsyncTaskExecutor scanExecutor,
@@ -118,6 +121,7 @@ public class ScanService {
         this.localNetworkDetector = localNetworkDetector;
         this.cveLookupService = cveLookupService;
         this.kevCatalog = kevCatalog;
+        this.portCveEnricher = portCveEnricher;
         this.riskScorer = riskScorer;
         this.baselineResolver = baselineResolver;
         this.scanExecutor = scanExecutor;
@@ -328,7 +332,9 @@ public class ScanService {
                 .orElse(null);
 
         Map<String, RiskScore> scores = riskScorer.score(hosts, cves, baseline);
-        return new ScoredHosts(hosts.stream()
+        // O score sai dos CVEs; as portas ficam com eles anexados para o painel os
+        // poder mostrar. Sao usos diferentes da mesma consulta, nao duas consultas.
+        return new ScoredHosts(portCveEnricher.attach(hosts, cves).stream()
                 .map(host -> host.withRisk(scores.getOrDefault(host.ip(), RiskScore.none())))
                 .toList(), cves.degraded());
     }

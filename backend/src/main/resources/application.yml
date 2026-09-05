@@ -66,6 +66,11 @@ portscape:
     # "Sem CVEs" tanto sai de um produto sem vulnerabilidades como de um nome que o
     # NVD nao reconheceu -- por isso expira mais cedo que um resultado com conteudo.
     empty-cache-ttl: 1d
+    # Tecto de CVEs guardados e mostrados por porta. Nao e cosmetico: o cliente nao
+    # pagina e o NVD devolve ate 2000 CVEs por pagina, portanto um CPE de kernel
+    # (cpe:/o:linux:linux_kernel:5.15) arrastaria milhares para dentro do JSON de cada
+    # scan. Passam os de CVSS mais alto; o total real vai a parte, em port.cve_total.
+    max-cves-per-port: 25
 
   kev:
     # Catalogo de vulnerabilidades exploradas no mundo real (CISA). O CVSS diz quao

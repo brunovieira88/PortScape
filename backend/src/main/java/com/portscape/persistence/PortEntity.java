@@ -15,6 +15,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 
 @Entity
@@ -54,6 +55,25 @@ public class PortEntity {
     @BatchSize(size = 128)
     private List<String> cpes = new ArrayList<>();
 
+    /**
+     * As falhas conhecidas do servico desta porta, truncadas em
+     * {@code portscape.nvd.max-cves-per-port}.
+     *
+     * <p>{@code @OrderColumn} e nao {@code @OrderBy}: a ordem foi escolhida pelo
+     * {@link com.portscape.risk.nvd.PortCveEnricher} (pior CVSS primeiro, sem score no
+     * fim) e ordenar por {@code cvss_score} na leitura nao a reproduz -- os CVEs sem
+     * score nao tem por onde desempatar, e a lista voltava da BD noutra ordem.
+     */
+    @ElementCollection
+    @CollectionTable(name = "port_cve", joinColumns = @JoinColumn(name = "port_id"))
+    @OrderColumn(name = "position")
+    @BatchSize(size = 128)
+    private List<CveEmbeddable> cves = new ArrayList<>();
+
+    /** Quantos existiam antes de truncar. Ver o javadoc de {@code Port#cveTotal}. */
+    @Column(name = "cve_total", nullable = false)
+    private int cveTotal;
+
     protected PortEntity() {
         // exigido pelo JPA
     }
@@ -67,6 +87,20 @@ public class PortEntity {
         this.product = product;
         this.version = version;
         this.cpes = new ArrayList<>(cpes);
+    }
+
+    /** Anexa as falhas conhecidas, ja ordenadas e truncadas pelo enricher. */
+    public void setCves(List<CveEmbeddable> cves, int total) {
+        this.cves = new ArrayList<>(cves);
+        this.cveTotal = total;
+    }
+
+    public List<CveEmbeddable> getCves() {
+        return cves;
+    }
+
+    public int getCveTotal() {
+        return cveTotal;
     }
 
     public Long getId() {
