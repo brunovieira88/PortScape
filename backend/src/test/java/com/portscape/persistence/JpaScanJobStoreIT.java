@@ -16,6 +16,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import com.portscape.domain.Host;
 import com.portscape.domain.Port;
 import com.portscape.domain.ScanStatus;
+import com.portscape.risk.Remediation;
+import com.portscape.risk.RiskReason;
+import com.portscape.risk.RiskScore;
 import com.portscape.risk.kev.KevListing;
 import com.portscape.risk.nvd.Cve;
 import com.portscape.scan.ScanJob;
@@ -90,6 +93,35 @@ class JpaScanJobStoreIT extends PostgresTestBase {
         assertThat(reloaded.cveTotal()).isEqualTo(431);
         // Um CVE que nao consta do catalogo nao pode voltar da BD a dizer que consta.
         assertThat(reloaded.cves().get(1).kev()).isNull();
+    }
+
+    @Test
+    @DisplayName("o plano de remediacao sobrevive com a ordem e com os dois numeros")
+    void roundTripsTheRemediationPlan() {
+        // Um host saturado: as razoes somam 145, o score mostra 100. E o caso em que os
+        // dois numeros discordam, e o unico em que se percebe se algum deles se perdeu.
+        List<RiskReason> reasons = List.of(
+                new RiskReason("OPEN_PORT", "Porta 23/tcp aberta", 35),
+                new RiskReason("OPEN_PORT", "Porta 445/tcp aberta", 30),
+                new RiskReason("KNOWN_CVE", "CVE-2017-7494 (CVSS 9.8) na porta 445", 39),
+                new RiskReason("UNKNOWN_HOST", "Fora do baseline", 41));
+        List<Remediation> plan = List.of(
+                new Remediation("CLOSE_PORT", "Fechar a porta 445/tcp (microsoft-ds)", 69, 100),
+                new Remediation("CLOSE_PORT", "Fechar a porta 23/tcp (telnet)", 35, 100));
+
+        Host host = new Host("192.168.1.1", "nas.lan", "Linux 3.2 - 4.9", 92,
+                List.of(new Port(23, "tcp", "open", "telnet", null, null)),
+                new RiskScore(100, reasons, plan));
+        ScanJob job = pending("192.168.1.0/24", NOW).running(NOW).done(List.of(host), NOW);
+
+        store.save(job);
+        RiskScore reloaded = store.find(job.id()).orElseThrow().hosts().get(0).risk();
+
+        // A ordem e a que o planner escolheu; ordenar por points_removed na leitura nao
+        // a reproduz quando ha empates. E o que o @OrderColumn existe para garantir.
+        assertThat(reloaded.remediation()).containsExactlyElementsOf(plan);
+        assertThat(reloaded.remediation().get(0).pointsRemoved()).isEqualTo(69);
+        assertThat(reloaded.remediation().get(0).scoreAfter()).isEqualTo(100);
     }
 
     @Test

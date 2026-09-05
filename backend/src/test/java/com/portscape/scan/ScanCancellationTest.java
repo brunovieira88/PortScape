@@ -26,6 +26,7 @@ import org.springframework.web.client.RestClient;
 
 import com.portscape.config.KevProperties;
 import com.portscape.config.NvdProperties;
+import com.portscape.risk.RemediationPlanner;
 import com.portscape.risk.RiskScorer;
 import com.portscape.risk.kev.KevCatalog;
 import com.portscape.risk.nvd.PortCveEnricher;
@@ -135,6 +136,7 @@ class ScanCancellationTest {
                 disabledKev(),
                 defaultEnricher(),
                 new RiskScorer(List.of()),
+                new RemediationPlanner(new RiskScorer(List.of())),
                 baselineResolver,
                 pool,
                 Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC));

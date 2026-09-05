@@ -64,7 +64,8 @@
       "position": {
         "x": 96,
         "z": 0
-      }
+      },
+      "remediation": []
     },
     {
       "ip": "192.168.1.124",
@@ -118,7 +119,21 @@
       "position": {
         "x": 56,
         "z": 4
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 443/tcp (https)",
+          "pointsRemoved": 41,
+          "scoreAfter": 0
+        },
+        {
+          "code": "UPDATE_SERVICE",
+          "action": "Actualizar lighttpd 1.4.53 na porta 443/tcp",
+          "pointsRemoved": 39,
+          "scoreAfter": 2
+        }
+      ]
     },
     {
       "ip": "192.168.1.67",
@@ -204,7 +219,33 @@
       "position": {
         "x": 36,
         "z": 0
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 6379/tcp (redis)",
+          "pointsRemoved": 25,
+          "scoreAfter": 45
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 3306/tcp (mysql)",
+          "pointsRemoved": 20,
+          "scoreAfter": 50
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 5432/tcp (postgresql)",
+          "pointsRemoved": 20,
+          "scoreAfter": 50
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 22/tcp (ssh)",
+          "pointsRemoved": 5,
+          "scoreAfter": 65
+        }
+      ]
     },
     {
       "ip": "192.168.1.171",
@@ -242,7 +283,15 @@
       "position": {
         "x": 100,
         "z": 8
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 139/tcp (netbios-ssn)",
+          "pointsRemoved": 20,
+          "scoreAfter": 0
+        }
+      ]
     },
     {
       "ip": "192.168.1.81",
@@ -280,7 +329,15 @@
       "position": {
         "x": 88,
         "z": 4
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 135/tcp (msrpc)",
+          "pointsRemoved": 20,
+          "scoreAfter": 0
+        }
+      ]
     },
     {
       "ip": "192.168.1.153",
@@ -318,7 +375,15 @@
       "position": {
         "x": 64,
         "z": 4
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 3389/tcp (ms-wbt-server)",
+          "pointsRemoved": 30,
+          "scoreAfter": 0
+        }
+      ]
     },
     {
       "ip": "192.168.1.245",
@@ -356,7 +421,15 @@
       "position": {
         "x": 88,
         "z": 16
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 22/tcp (ssh)",
+          "pointsRemoved": 5,
+          "scoreAfter": 0
+        }
+      ]
     },
     {
       "ip": "192.168.1.79",
@@ -394,7 +467,15 @@
       "position": {
         "x": 104,
         "z": 0
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 5,
+          "scoreAfter": 0
+        }
+      ]
     },
     {
       "ip": "192.168.1.180",
@@ -464,7 +545,27 @@
       "position": {
         "x": 4,
         "z": 4
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 3389/tcp (ms-wbt-server)",
+          "pointsRemoved": 30,
+          "scoreAfter": 50
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "pointsRemoved": 30,
+          "scoreAfter": 50
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 135/tcp (msrpc)",
+          "pointsRemoved": 20,
+          "scoreAfter": 60
+        }
+      ]
     },
     {
       "ip": "192.168.1.29",
@@ -539,7 +640,21 @@
       "position": {
         "x": 32,
         "z": 0
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 23/tcp (telnet)",
+          "pointsRemoved": 35,
+          "scoreAfter": 38
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 5,
+          "scoreAfter": 68
+        }
+      ]
     },
     {
       "ip": "192.168.1.102",
@@ -577,7 +692,15 @@
       "position": {
         "x": 92,
         "z": 4
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 5,
+          "scoreAfter": 0
+        }
+      ]
     },
     {
       "ip": "192.168.1.23",
@@ -631,7 +754,21 @@
       "position": {
         "x": 28,
         "z": 0
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "pointsRemoved": 30,
+          "scoreAfter": 20
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 135/tcp (msrpc)",
+          "pointsRemoved": 20,
+          "scoreAfter": 30
+        }
+      ]
     },
     {
       "ip": "192.168.1.248",
@@ -717,7 +854,33 @@
       "position": {
         "x": 0,
         "z": 8
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 3389/tcp (ms-wbt-server)",
+          "pointsRemoved": 30,
+          "scoreAfter": 70
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "pointsRemoved": 30,
+          "scoreAfter": 70
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 135/tcp (msrpc)",
+          "pointsRemoved": 20,
+          "scoreAfter": 80
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 139/tcp (netbios-ssn)",
+          "pointsRemoved": 20,
+          "scoreAfter": 80
+        }
+      ]
     },
     {
       "ip": "192.168.1.149",
@@ -776,7 +939,21 @@
       "position": {
         "x": 36,
         "z": 4
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 3389/tcp (ms-wbt-server)",
+          "pointsRemoved": 69,
+          "scoreAfter": 0
+        },
+        {
+          "code": "UPDATE_SERVICE",
+          "action": "Actualizar Microsoft Terminal Services na porta 3389/tcp",
+          "pointsRemoved": 39,
+          "scoreAfter": 30
+        }
+      ]
     },
     {
       "ip": "192.168.1.22",
@@ -814,7 +991,15 @@
       "position": {
         "x": 88,
         "z": 0
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 5,
+          "scoreAfter": 0
+        }
+      ]
     },
     {
       "ip": "192.168.1.38",
@@ -834,7 +1019,8 @@
       "position": {
         "x": 92,
         "z": 0
-      }
+      },
+      "remediation": []
     },
     {
       "ip": "192.168.1.133",
@@ -872,7 +1058,15 @@
       "position": {
         "x": 96,
         "z": 4
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 5,
+          "scoreAfter": 0
+        }
+      ]
     },
     {
       "ip": "192.168.1.144",
@@ -898,7 +1092,8 @@
       "position": {
         "x": 60,
         "z": 4
-      }
+      },
+      "remediation": []
     },
     {
       "ip": "192.168.1.108",
@@ -984,7 +1179,33 @@
       "position": {
         "x": 0,
         "z": 4
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 3389/tcp (ms-wbt-server)",
+          "pointsRemoved": 30,
+          "scoreAfter": 70
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "pointsRemoved": 30,
+          "scoreAfter": 70
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 135/tcp (msrpc)",
+          "pointsRemoved": 20,
+          "scoreAfter": 80
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 139/tcp (netbios-ssn)",
+          "pointsRemoved": 20,
+          "scoreAfter": 80
+        }
+      ]
     },
     {
       "ip": "192.168.1.142",
@@ -1022,7 +1243,8 @@
       "position": {
         "x": 100,
         "z": 4
-      }
+      },
+      "remediation": []
     },
     {
       "ip": "192.168.1.55",
@@ -1065,7 +1287,8 @@
       "position": {
         "x": 68,
         "z": 0
-      }
+      },
+      "remediation": []
     },
     {
       "ip": "192.168.1.178",
@@ -1103,7 +1326,15 @@
       "position": {
         "x": 104,
         "z": 8
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 5,
+          "scoreAfter": 0
+        }
+      ]
     },
     {
       "ip": "192.168.1.199",
@@ -1123,7 +1354,8 @@
       "position": {
         "x": 96,
         "z": 12
-      }
+      },
+      "remediation": []
     },
     {
       "ip": "192.168.1.231",
@@ -1209,7 +1441,33 @@
       "position": {
         "x": 8,
         "z": 4
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 23/tcp (telnet)",
+          "pointsRemoved": 35,
+          "scoreAfter": 60
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "pointsRemoved": 30,
+          "scoreAfter": 65
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 21/tcp (ftp)",
+          "pointsRemoved": 25,
+          "scoreAfter": 70
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 22/tcp (ssh)",
+          "pointsRemoved": 5,
+          "scoreAfter": 90
+        }
+      ]
     },
     {
       "ip": "192.168.1.85",
@@ -1300,7 +1558,33 @@
       "position": {
         "x": 4,
         "z": 0
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 3389/tcp (ms-wbt-server)",
+          "pointsRemoved": 30,
+          "scoreAfter": 95
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "pointsRemoved": 30,
+          "scoreAfter": 95
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 135/tcp (msrpc)",
+          "pointsRemoved": 20,
+          "scoreAfter": 100
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 139/tcp (netbios-ssn)",
+          "pointsRemoved": 20,
+          "scoreAfter": 100
+        }
+      ]
     },
     {
       "ip": "192.168.1.2",
@@ -1338,7 +1622,15 @@
       "position": {
         "x": 56,
         "z": 0
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "pointsRemoved": 30,
+          "scoreAfter": 0
+        }
+      ]
     },
     {
       "ip": "192.168.1.84",
@@ -1408,7 +1700,27 @@
       "position": {
         "x": 28,
         "z": 4
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "pointsRemoved": 30,
+          "scoreAfter": 30
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 21/tcp (ftp)",
+          "pointsRemoved": 25,
+          "scoreAfter": 35
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 22/tcp (ssh)",
+          "pointsRemoved": 5,
+          "scoreAfter": 55
+        }
+      ]
     },
     {
       "ip": "192.168.1.119",
@@ -1494,7 +1806,27 @@
       "position": {
         "x": 32,
         "z": 4
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 23/tcp (telnet)",
+          "pointsRemoved": 35,
+          "scoreAfter": 18
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 10,
+          "scoreAfter": 43
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 8080/tcp (http-proxy)",
+          "pointsRemoved": 5,
+          "scoreAfter": 48
+        }
+      ]
     },
     {
       "ip": "192.168.1.158",
@@ -1514,7 +1846,8 @@
       "position": {
         "x": 92,
         "z": 8
-      }
+      },
+      "remediation": []
     },
     {
       "ip": "192.168.1.187",
@@ -1534,7 +1867,8 @@
       "position": {
         "x": 88,
         "z": 12
-      }
+      },
+      "remediation": []
     },
     {
       "ip": "192.168.1.94",
@@ -1636,7 +1970,39 @@
       "position": {
         "x": 8,
         "z": 0
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 23/tcp (telnet)",
+          "pointsRemoved": 35,
+          "scoreAfter": 95
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "pointsRemoved": 30,
+          "scoreAfter": 100
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 21/tcp (ftp)",
+          "pointsRemoved": 25,
+          "scoreAfter": 100
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 135/tcp (msrpc)",
+          "pointsRemoved": 20,
+          "scoreAfter": 100
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 139/tcp (netbios-ssn)",
+          "pointsRemoved": 20,
+          "scoreAfter": 100
+        }
+      ]
     },
     {
       "ip": "192.168.1.150",
@@ -1685,7 +2051,8 @@
       "position": {
         "x": 88,
         "z": 8
-      }
+      },
+      "remediation": []
     },
     {
       "ip": "192.168.1.222",
@@ -1739,7 +2106,21 @@
       "position": {
         "x": 56,
         "z": 8
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 44,
+          "scoreAfter": 0
+        },
+        {
+          "code": "UPDATE_SERVICE",
+          "action": "Actualizar lwIP httpd 2.1.2 na porta 80/tcp",
+          "pointsRemoved": 39,
+          "scoreAfter": 5
+        }
+      ]
     },
     {
       "ip": "192.168.1.249",
@@ -1782,7 +2163,15 @@
       "position": {
         "x": 60,
         "z": 8
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 5,
+          "scoreAfter": 25
+        }
+      ]
     },
     {
       "ip": "192.168.1.165",
@@ -1841,7 +2230,21 @@
       "position": {
         "x": 68,
         "z": 4
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 44,
+          "scoreAfter": 0
+        },
+        {
+          "code": "UPDATE_SERVICE",
+          "action": "Actualizar GoAhead WebServer 3.6.5 na porta 80/tcp",
+          "pointsRemoved": 39,
+          "scoreAfter": 5
+        }
+      ]
     },
     {
       "ip": "192.168.1.223",
@@ -1916,7 +2319,27 @@
       "position": {
         "x": 32,
         "z": 8
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 8080/tcp (http-proxy)",
+          "pointsRemoved": 44,
+          "scoreAfter": 35
+        },
+        {
+          "code": "UPDATE_SERVICE",
+          "action": "Actualizar Hikvision IP Camera na porta 8080/tcp",
+          "pointsRemoved": 39,
+          "scoreAfter": 40
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 23/tcp (telnet)",
+          "pointsRemoved": 35,
+          "scoreAfter": 44
+        }
+      ]
     },
     {
       "ip": "192.168.1.200",
@@ -1954,7 +2377,15 @@
       "position": {
         "x": 100,
         "z": 12
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 5,
+          "scoreAfter": 0
+        }
+      ]
     },
     {
       "ip": "192.168.1.211",
@@ -2040,7 +2471,27 @@
       "position": {
         "x": 28,
         "z": 8
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 23/tcp (telnet)",
+          "pointsRemoved": 35,
+          "scoreAfter": 18
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 10,
+          "scoreAfter": 43
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 8080/tcp (http-proxy)",
+          "pointsRemoved": 5,
+          "scoreAfter": 48
+        }
+      ]
     },
     {
       "ip": "192.168.1.12",
@@ -2066,7 +2517,8 @@
       "position": {
         "x": 60,
         "z": 0
-      }
+      },
+      "remediation": []
     },
     {
       "ip": "192.168.1.74",
@@ -2120,7 +2572,15 @@
       "position": {
         "x": 100,
         "z": 0
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 5,
+          "scoreAfter": 8
+        }
+      ]
     },
     {
       "ip": "192.168.1.148",
@@ -2185,7 +2645,15 @@
       "position": {
         "x": 104,
         "z": 4
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 5,
+          "scoreAfter": 16
+        }
+      ]
     },
     {
       "ip": "192.168.1.241",
@@ -2239,7 +2707,21 @@
       "position": {
         "x": 36,
         "z": 8
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "pointsRemoved": 30,
+          "scoreAfter": 20
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 135/tcp (msrpc)",
+          "pointsRemoved": 20,
+          "scoreAfter": 30
+        }
+      ]
     },
     {
       "ip": "192.168.1.60",
@@ -2405,7 +2887,39 @@
       "position": {
         "x": 0,
         "z": 0
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "pointsRemoved": 69,
+          "scoreAfter": 73
+        },
+        {
+          "code": "UPDATE_SERVICE",
+          "action": "Actualizar Samba smbd 4.6.2 na porta 445/tcp",
+          "pointsRemoved": 39,
+          "scoreAfter": 100
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 23/tcp (telnet)",
+          "pointsRemoved": 35,
+          "scoreAfter": 100
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 21/tcp (ftp)",
+          "pointsRemoved": 25,
+          "scoreAfter": 100
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 22/tcp (ssh)",
+          "pointsRemoved": 5,
+          "scoreAfter": 100
+        }
+      ]
     },
     {
       "ip": "192.168.1.15",
@@ -2448,7 +2962,15 @@
       "position": {
         "x": 64,
         "z": 0
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 135/tcp (msrpc)",
+          "pointsRemoved": 20,
+          "scoreAfter": 25
+        }
+      ]
     },
     {
       "ip": "192.168.1.166",
@@ -2486,7 +3008,15 @@
       "position": {
         "x": 96,
         "z": 8
-      }
+      },
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 135/tcp (msrpc)",
+          "pointsRemoved": 20,
+          "scoreAfter": 0
+        }
+      ]
     }
   ],
   "ruins": [
@@ -2506,7 +3036,8 @@
       "position": {
         "x": 92,
         "z": 12
-      }
+      },
+      "remediation": []
     },
     {
       "ip": "192.168.1.209",
@@ -2524,7 +3055,8 @@
       "position": {
         "x": 104,
         "z": 12
-      }
+      },
+      "remediation": []
     }
   ]
 }

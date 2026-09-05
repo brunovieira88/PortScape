@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -27,6 +28,8 @@ import com.portscape.domain.Host;
 import com.portscape.domain.Port;
 import com.portscape.domain.ScanStatus;
 import com.portscape.risk.RiskScore;
+import com.portscape.risk.RemediationPlanner;
+import com.portscape.risk.RiskInput;
 import com.portscape.risk.RiskScorer;
 import com.portscape.risk.nvd.CveLookupResult;
 import com.portscape.risk.kev.KevCatalog;
@@ -75,6 +78,7 @@ public class ScanService {
     private final KevCatalog kevCatalog;
     private final PortCveEnricher portCveEnricher;
     private final RiskScorer riskScorer;
+    private final RemediationPlanner remediationPlanner;
     private final BaselineResolver baselineResolver;
     private final AsyncTaskExecutor scanExecutor;
     private final Clock clock;
@@ -109,6 +113,7 @@ public class ScanService {
                        KevCatalog kevCatalog,
                        PortCveEnricher portCveEnricher,
                        RiskScorer riskScorer,
+                       RemediationPlanner remediationPlanner,
                        BaselineResolver baselineResolver,
                        @Qualifier(AsyncConfig.SCAN_EXECUTOR) AsyncTaskExecutor scanExecutor,
                        Clock clock) {
@@ -123,6 +128,7 @@ public class ScanService {
         this.kevCatalog = kevCatalog;
         this.portCveEnricher = portCveEnricher;
         this.riskScorer = riskScorer;
+        this.remediationPlanner = remediationPlanner;
         this.baselineResolver = baselineResolver;
         this.scanExecutor = scanExecutor;
         this.clock = clock;
@@ -332,10 +338,20 @@ public class ScanService {
                 .orElse(null);
 
         Map<String, RiskScore> scores = riskScorer.score(hosts, cves, baseline);
+        Map<String, Host> baselineByIp = baseline == null ? Map.of()
+                : baseline.stream().collect(Collectors.toMap(Host::ip, h -> h, (a, b) -> a));
+
         // O score sai dos CVEs; as portas ficam com eles anexados para o painel os
         // poder mostrar. Sao usos diferentes da mesma consulta, nao duas consultas.
         return new ScoredHosts(portCveEnricher.attach(hosts, cves).stream()
-                .map(host -> host.withRisk(scores.getOrDefault(host.ip(), RiskScore.none())))
+                .map(host -> {
+                    RiskScore score = scores.getOrDefault(host.ip(), RiskScore.none());
+                    // O plano precisa do mesmo RiskInput que produziu o score, porque
+                    // simular e voltar a pontuar -- ver RemediationPlanner.
+                    RiskInput input = new RiskInput(host, cves,
+                            baselineByIp.get(host.ip()), baseline != null);
+                    return host.withRisk(score.withRemediation(remediationPlanner.planFor(input)));
+                })
                 .toList(), cves.degraded());
     }
 

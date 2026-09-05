@@ -6,7 +6,9 @@ import java.util.List;
 import org.hibernate.annotations.BatchSize;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -16,6 +18,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 
 @Entity
@@ -62,6 +65,19 @@ public class HostEntity {
     @BatchSize(size = 64)
     @OrderBy("id ASC")
     private List<RiskReasonEntity> riskReasons = new ArrayList<>();
+
+    /**
+     * O plano de remediacao, da accao mais eficaz para a menos.
+     *
+     * <p>{@code @OrderColumn} e nao {@code @OrderBy}, como no {@code port_cve}: a ordem
+     * e a que o {@link com.portscape.risk.RemediationPlanner} escolheu, e ordenar por
+     * {@code points_removed} na leitura nao a reproduz quando ha empates.
+     */
+    @ElementCollection
+    @CollectionTable(name = "remediation", joinColumns = @JoinColumn(name = "host_id"))
+    @OrderColumn(name = "position")
+    @BatchSize(size = 64)
+    private List<RemediationEmbeddable> remediation = new ArrayList<>();
 
     protected HostEntity() {
         // exigido pelo JPA
@@ -141,5 +157,13 @@ public class HostEntity {
     public void addRiskReason(RiskReasonEntity reason) {
         reason.setHost(this);
         riskReasons.add(reason);
+    }
+
+    public List<RemediationEmbeddable> getRemediation() {
+        return remediation;
+    }
+
+    public void setRemediation(List<RemediationEmbeddable> remediation) {
+        this.remediation = new ArrayList<>(remediation);
     }
 }

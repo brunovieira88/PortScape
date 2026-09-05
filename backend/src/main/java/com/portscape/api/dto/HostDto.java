@@ -15,7 +15,8 @@ import com.portscape.risk.RiskBand;
  *
  * <p>{@code portCount} vai explicito no JSON: e dele que sai a altura do edificio na
  * cena 3D (fase 4) e evita que o frontend tenha de contar. O {@code riskScore} da a
- * cor, e as {@code riskReasons} enchem o painel de detalhes.
+ * cor, as {@code riskReasons} explicam de onde ele vem, e a {@code remediation} diz o
+ * que fazer para o baixar -- por onde comecar e quanto e que cada accao vale.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record HostDto(
@@ -30,6 +31,7 @@ public record HostDto(
         RiskBand riskBand,
         PositionDto position,
         List<RiskReasonDto> riskReasons,
+        List<RemediationDto> remediation,
         HostChange change,
         boolean isNew,
         boolean isChanged,
@@ -62,6 +64,8 @@ public record HostDto(
                 position,
                 host.risk() == null ? List.of()
                         : host.risk().reasons().stream().map(RiskReasonDto::from).toList(),
+                host.risk() == null ? List.of()
+                        : host.risk().remediation().stream().map(RemediationDto::from).toList(),
                 change,
                 change == HostChange.NEW,
                 change == HostChange.CHANGED,

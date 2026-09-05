@@ -66,6 +66,8 @@ public final class ScanEntityMapper {
                 entity.addRiskReason(new RiskReasonEntity(
                         reason.code(), reason.description(), reason.points()));
             }
+            entity.setRemediation(host.risk().remediation().stream()
+                    .map(RemediationEmbeddable::from).toList());
         }
         return entity;
     }
@@ -82,7 +84,9 @@ public final class ScanEntityMapper {
                 entity.getRiskReasons().stream()
                         .map(reason -> new RiskReason(
                                 reason.getCode(), reason.getDescription(), reason.getPoints()))
-                        .toList());
+                        .toList(),
+                entity.getRemediation().stream()
+                        .map(RemediationEmbeddable::toDomain).toList());
         return new Host(entity.getIp(), entity.getMac(), entity.getVendor(),
                 entity.getHostname(), entity.getOsGuess(), entity.getOsAccuracy(), ports, risk);
     }

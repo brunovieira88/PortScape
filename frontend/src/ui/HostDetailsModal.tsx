@@ -1,7 +1,17 @@
 import { useEffect, useRef } from 'react';
-import type { Host, Port, RiskReason } from '../api/types';
+import type { Host, Port, Remediation, RiskReason } from '../api/types';
 import { bandColor } from '../scene/Building';
 import { PortCard } from './PortCard';
+
+/**
+ * Quantas accoes o painel mostra.
+ *
+ * O backend devolve todas as que valem alguma coisa, incluindo as que valem 2 ou 5
+ * pontos. Ao lado de uma que vale 35, essas sao ruido que empurra para baixo o que
+ * interessa -- e a lista existe para dizer por onde COMECAR. O dado completo continua
+ * na API; e a apresentacao que escolhe.
+ */
+const MAX_ACTIONS_SHOWN = 4;
 
 /**
  * O que se pode focar com o Tab, por ordem, dentro de um contentor.
@@ -89,6 +99,7 @@ export function HostDetailsModal({ host, onClose, onTeleport, cveLookupDegraded 
 
   const ports = host.ports || [];
   const riskReasons = host.riskReasons || [];
+  const remediation = host.remediation || [];
 
   return (
     <div className="absolute inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-8">
@@ -169,6 +180,46 @@ export function HostDetailsModal({ host, onClose, onTeleport, cveLookupDegraded 
                 BAND: {host.riskBand || 'UNKNOWN'}
               </div>
             </div>
+
+            {/* O que fazer, por ordem do que cada accao vale mesmo. Fica colado ao
+                score porque e o numero que estas accoes mudam. */}
+            {remediation.length > 0 && (
+              <div className="bg-black/40 border border-white/5 rounded-lg p-5">
+                <h3 className="text-xs font-bold text-gray-500 tracking-[0.2em] uppercase mb-4">
+                  What to fix first
+                </h3>
+                <ol className="space-y-3">
+                  {remediation.slice(0, MAX_ACTIONS_SHOWN).map((action: Remediation, i: number) => (
+                    <li key={i}>
+                      <div className="text-xs text-gray-200 leading-snug">{action.action}</div>
+                      <div className="flex items-baseline gap-2 mt-1">
+                        <span className="text-sm font-mono font-bold text-[#00f0ff]">
+                          &minus;{action.pointsRemoved}
+                        </span>
+                        {/* Quando o score nao se mexe, e essa a mensagem verdadeira:
+                            este host nao se arranja com uma accao so. */}
+                        {action.scoreAfter === host.riskScore ? (
+                          <span className="text-[11px] font-mono text-gray-400">
+                            still <span style={{ color: bandColor(host.riskBand) }}>
+                              {host.riskBand}
+                            </span> ({action.scoreAfter})
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-mono text-gray-400">
+                            score &rarr; {action.scoreAfter}
+                          </span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+                {remediation.length > MAX_ACTIONS_SHOWN && (
+                  <div className="text-[10px] text-gray-600 mt-3">
+                    {remediation.length - MAX_ACTIONS_SHOWN} smaller action(s) not shown.
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="bg-black/40 border border-white/5 rounded-lg p-5">
               <h3 className="text-xs font-bold text-gray-500 tracking-[0.2em] uppercase mb-4">System Identity</h3>

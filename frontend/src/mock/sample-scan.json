@@ -84,7 +84,15 @@
       },
       "portCount": 1,
       "isNew": false,
-      "isChanged": false
+      "isChanged": false,
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 80/tcp (http)",
+          "pointsRemoved": 12,
+          "scoreAfter": 0
+        }
+      ]
     },
     {
       "ip": "192.168.1.10",
@@ -156,7 +164,21 @@
       },
       "portCount": 3,
       "isNew": false,
-      "isChanged": true
+      "isChanged": true,
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 23/tcp (telnet)",
+          "pointsRemoved": 40,
+          "scoreAfter": 55
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "pointsRemoved": 25,
+          "scoreAfter": 70
+        }
+      ]
     },
     {
       "ip": "192.168.1.42",
@@ -209,7 +231,15 @@
       },
       "portCount": 2,
       "isNew": true,
-      "isChanged": false
+      "isChanged": false,
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Fechar a porta 3389/tcp (ms-wbt-server)",
+          "pointsRemoved": 35,
+          "scoreAfter": 25
+        }
+      ]
     },
     {
       "ip": "192.168.1.100",
@@ -256,7 +286,8 @@
       },
       "portCount": 2,
       "isNew": false,
-      "isChanged": false
+      "isChanged": false,
+      "remediation": []
     }
   ],
   "ruins": [
@@ -276,7 +307,8 @@
       },
       "portCount": 0,
       "isNew": false,
-      "isChanged": false
+      "isChanged": false,
+      "remediation": []
     }
   ]
 }

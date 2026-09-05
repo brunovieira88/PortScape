@@ -96,6 +96,22 @@ export interface RiskReason {
 }
 
 /**
+ * Uma accao concreta e o que ela vale. Ver `RemediationDto`.
+ *
+ * Sao dois numeros de proposito. O `pointsRemoved` sai da soma NAO saturada das razoes
+ * e e o que mede o efeito real; o `scoreAfter` e o score saturado, o mesmo que a cidade
+ * usa. Num host cujas razoes somem mais de 100 eles discordam, e o painel tem de o
+ * dizer -- "-39 pontos, e continua CRITICAL" e a mensagem verdadeira: este host nao se
+ * arranja com uma accao.
+ */
+export interface Remediation {
+  code: string;
+  action: string;
+  pointsRemoved: number;
+  scoreAfter: number;
+}
+
+/**
  * A faixa que da a cor a um CVE, derivada do CVSS quando o NVD nao publica severidade.
  *
  * Os cortes sao os do proprio CVSS v3.1 (9.0 critico, 7.0 alto, 4.0 medio) e nao os do
@@ -162,6 +178,8 @@ export interface Host {
   riskBand?: RiskBand | null;
   position?: Position | null;
   riskReasons?: RiskReason[];
+  /** Da accao mais eficaz para a menos. Ver `RemediationPlanner`. */
+  remediation?: Remediation[];
   change?: HostChange;
   isNew?: boolean;
   isChanged?: boolean;
