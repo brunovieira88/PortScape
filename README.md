@@ -88,7 +88,7 @@ running nmap, it's the two layers on top:
 | **Deterministic architecture** | A building's shape is derived from its IP and its MAC vendor, so the same device looks the same in every scan. A gateway is always a spire. |
 | **Stoppable scans** | A `/24` with version detection takes minutes. Cancelling kills the nmap process itself, not just the job row — a cancel that leaves a scanner running is worse than no button at all, so there's a test that proves the process dies. |
 | **Usable without a mouse** | Every device and scan card is a real button, the details modal is a proper dialog that traps and restores focus, and progress is announced rather than only drawn. Verified in a browser, not just in jsdom. |
-| **396 tests** | 247 unit + 38 integration on the backend (Testcontainers, real PostgreSQL), 111 on the frontend. Every scoring rule, parser and layout calculation is covered. |
+| **404 tests** | 247 unit + 38 integration on the backend (Testcontainers, real PostgreSQL), 119 on the frontend. Every scoring rule, parser and layout calculation is covered. |
 
 ## Prerequisites
 
@@ -330,6 +330,63 @@ all three at once: v2 has no prefix and calls authentication `Au`, v3.x puts imp
 **The KEV badge.** Everything above it is a description of what could happen. That badge
 says it is happening.
 
+### The port that has no CVEs
+
+All of the above needs a version to hang off. Telnet has none of it — and Telnet is the
+worst thing on most networks it appears on:
+
+```
+23   TELNET                                                          INFO  ⌄
+
+     Telnet
+     Remote terminal sessions with no encryption at all. Everything — the
+     username, the password, every command typed — travels in plain text.
+
+     WHY IT'S HERE — Predates SSH by about fifteen years. Survives in switches,
+     printers, IPMI boards and industrial gear that was never updated.
+
+     WHAT AN ATTACKER GAINS — Anyone able to observe the traffic reads the
+     administrator credentials without an exploit and without breaking
+     anything. There is nothing to crack — the protocol hands them over.
+
+     HOW TO FIX
+       · Turn it off and use SSH instead.
+       · If the device cannot do SSH, restrict it to a management VLAN.
+       · Rotate every credential that has crossed this port.
+
+     SAFE ALTERNATIVE — SSH (22)
+```
+
+No API answers this. The NVD has no entry explaining what Telnet *is*, because that is
+knowledge, not data. So it is written by hand, in `frontend/src/knowledge/ports.ts`, for
+every port the risk model penalises — and the panel opens for a port whose only problem
+is what it fundamentally is.
+
+**It is also written for ports that are fine.** SSH, HTTP and HTTPS have entries that say
+so. Without them the tool is an alarm that goes off every time, and an alarm that goes off
+every time stops being heard.
+
+**The dossier scores nothing.** It lives in the frontend, next to the CVSS translation,
+for two reasons: the static demo has no backend, and this is presentation — the
+`RiskScorer` does not read it and should not. What keeps the two halves honest is a test
+that reads `port-weights` straight out of the backend's `application.yml` and fails,
+naming them, if a port worth 25 points or more has nothing to say for itself.
+
+### Where the line is
+
+Portscape describes **the mechanism and the consequence**, never the procedure. *"Anyone
+who can observe the traffic reads the administrator credentials"* is what the exposure
+means. How to position yourself to observe that traffic is not here, and will not be.
+
+Concretely: no payloads, no exploit commands, no credential testing. The scan identifies
+service versions and looks them up; it never tries anything against them.
+
+Version detection is fixed in code — `NmapCommandBuilder.buildVersionDetection` hardcodes
+`-sT -sV` and takes no arguments from configuration, so nothing from nmap's `vuln` or
+`brute` categories can reach it. The discovery pass is different: its flags come from
+`portscape.nmap.arguments`, so that half is a deliberate default (`-sS -O --open -T4`),
+not a guarantee the code enforces. Anyone editing that list owns what they put in it.
+
 ## Baseline and change detection
 
 Each scan is compared against a reference, resolved in this order:
@@ -491,7 +548,7 @@ mvn test        # 247 unit tests, seconds, no Docker needed
 mvn verify      # + 38 integration tests (Testcontainers, needs Docker)
 
 cd frontend
-npm test        # 111 tests
+npm test        # 119 tests
 npx tsc -b      # type check
 ```
 
@@ -523,7 +580,7 @@ portscape/
 │   │   ├── buildings/  per-archetype geometry — house, tower, windows
 │   │   └── highlights/ new/changed host markers
 │   ├── ui/             side panels, modals, scan history
-│   ├── knowledge/      CVSS vectors translated into plain language
+│   ├── knowledge/      port dossiers and CVSS vectors in plain language
 │   ├── api/            REST client, shared API types, the scan-polling hook
 │   └── mock/           offline demo data (no backend needed)
 ├── package.json        root `npm run dev` — orchestration only, no app code
