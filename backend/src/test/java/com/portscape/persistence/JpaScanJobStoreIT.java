@@ -3,6 +3,7 @@ package com.portscape.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,6 +16,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import com.portscape.domain.Host;
 import com.portscape.domain.Port;
 import com.portscape.domain.ScanStatus;
+import com.portscape.risk.kev.KevListing;
+import com.portscape.risk.nvd.Cve;
 import com.portscape.scan.ScanJob;
 import com.portscape.scan.ScanJobStore;
 
@@ -53,6 +56,40 @@ class JpaScanJobStoreIT extends PostgresTestBase {
         assertThat(reloaded.startedAt()).isEqualTo(NOW);
         assertThat(reloaded.finishedAt()).isEqualTo(NOW);
         assertThat(reloaded.hosts()).containsExactly(host);
+    }
+
+    @Test
+    @DisplayName("os CVEs de uma porta sobrevivem com a ordem, o total e a listagem KEV")
+    void roundTripsThePortCves() {
+        // A ordem e escolhida pelo enricher (pior CVSS primeiro) e nao e reproduzivel
+        // ordenando na leitura -- o CVE sem score nao tem por onde desempatar. E o que
+        // o @OrderColumn existe para garantir.
+        // Vector CVSS v4.0 tal como o NVD o emite -- 174 caracteres, porque a API
+        // escreve todas as metricas opcionais como ":X". A coluna comecou por ser
+        // VARCHAR(128) e um scan real a um produto com metricas v4.0 rebentava com
+        // "value too long"; e este valor que impede a regressao.
+        Cve worst = new Cve("CVE-2024-6387", 8.1, "HIGH",
+                "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:N/SC:N/SI:L/SA:N/E:X/CR:X/IR:X"
+                        + "/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X"
+                        + "/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
+                Instant.parse("2024-07-01T13:15:00Z"), "race condition no sshd",
+                new KevListing(LocalDate.of(2024, 7, 8), true,
+                        "OpenSSH Signal Handler Race Condition", "Apply updates."));
+        Cve unscored = new Cve("CVE-2023-51385", null, null, null, null, "sem metricas");
+
+        // 2 guardados de 431 encontrados: e o caso do tecto, e o total tem de o dizer.
+        Port ssh = new Port(22, "tcp", "open", "ssh", "OpenSSH", "9.6",
+                List.of("cpe:/a:openbsd:openssh:9.6"), List.of(worst, unscored), 431);
+        Host host = new Host("192.168.1.1", "router.lan", "Linux 5.4 - 5.15", 94, List.of(ssh));
+        ScanJob job = pending("192.168.1.0/24", NOW).running(NOW).done(List.of(host), NOW);
+
+        store.save(job);
+        Port reloaded = store.find(job.id()).orElseThrow().hosts().get(0).ports().get(0);
+
+        assertThat(reloaded.cves()).containsExactly(worst, unscored);
+        assertThat(reloaded.cveTotal()).isEqualTo(431);
+        // Um CVE que nao consta do catalogo nao pode voltar da BD a dizer que consta.
+        assertThat(reloaded.cves().get(1).kev()).isNull();
     }
 
     @Test

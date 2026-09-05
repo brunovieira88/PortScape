@@ -73,7 +73,7 @@
       "hostname": "router.lan",
       "osGuess": "Linux 5.4 - 5.15",
       "osAccuracy": 94,
-      "riskScore": 34,
+      "riskScore": 41,
       "riskBand": "MEDIUM",
       "change": "UNCHANGED",
       "ports": [
@@ -84,19 +84,32 @@
           "service": "https",
           "product": "lighttpd",
           "version": "1.4.53",
-          "cpes": []
+          "cpes": [],
+          "cves": [
+            {
+              "id": "CVE-2019-11072",
+              "cvssScore": 9.8,
+              "severity": "CRITICAL",
+              "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+              "published": "2019-04-10T14:29:00Z",
+              "description": "lighttpd before 1.4.54 has a heap-based buffer overflow in burl_normalize_2F_to_slash_fix.",
+              "url": "https://nvd.nist.gov/vuln/detail/CVE-2019-11072",
+              "kev": null
+            }
+          ],
+          "cveTotal": 1
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 443/tcp (https) exposta",
           "points": 2
         },
         {
           "code": "KNOWN_CVE",
-          "description": "CVE-2020-36254 (CVSS 8.1) em Dropbear sshd 2017.75 no porto 22",
-          "points": 32
+          "description": "CVE-2019-11072 (CVSS 9.8) em lighttpd 1.4.53 na porta 443",
+          "points": 39
         }
       ],
       "portCount": 1,
@@ -125,7 +138,9 @@
           "service": "mysql",
           "product": "MySQL",
           "version": "5.5.5",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 22,
@@ -134,7 +149,9 @@
           "service": "ssh",
           "product": "OpenSSH",
           "version": "9.6",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 6379,
@@ -143,7 +160,9 @@
           "service": "redis",
           "product": "Redis",
           "version": "5.0.3",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 5432,
@@ -152,27 +171,29 @@
           "service": "postgresql",
           "product": "PostgreSQL DB",
           "version": "16.2",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MYSQL (3306/tcp) exposto na rede",
           "points": 20
         },
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 22/tcp (ssh) exposta",
           "points": 5
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "REDIS (6379/tcp) exposto na rede",
           "points": 25
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "POSTGRESQL (5432/tcp) exposto na rede",
           "points": 20
         }
@@ -203,12 +224,14 @@
           "service": "netbios-ssn",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "NETBIOS-SSN (139/tcp) exposto na rede",
           "points": 20
         }
@@ -239,12 +262,14 @@
           "service": "msrpc",
           "product": "Microsoft Windows RPC",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MSRPC (135/tcp) exposto na rede",
           "points": 20
         }
@@ -275,12 +300,14 @@
           "service": "ms-wbt-server",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
           "points": 30
         }
@@ -311,12 +338,14 @@
           "service": "ssh",
           "product": "OpenSSH",
           "version": "8.4p1",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 22/tcp (ssh) exposta",
           "points": 5
         }
@@ -347,12 +376,14 @@
           "service": "http",
           "product": "lwIP httpd",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 5
         }
@@ -383,7 +414,9 @@
           "service": "ms-wbt-server",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 135,
@@ -392,7 +425,9 @@
           "service": "msrpc",
           "product": "Microsoft Windows RPC",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 445,
@@ -401,22 +436,24 @@
           "service": "microsoft-ds",
           "product": "Windows SMB",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
           "points": 30
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MSRPC (135/tcp) exposto na rede",
           "points": 20
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MICROSOFT-DS (445/tcp) exposto na rede",
           "points": 30
         }
@@ -447,7 +484,9 @@
           "service": "rtsp",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 80,
@@ -456,7 +495,9 @@
           "service": "http",
           "product": "GoAhead-Webs",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 23,
@@ -465,27 +506,29 @@
           "service": "telnet",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 5
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "TELNET (23/tcp) exposto na rede",
           "points": 35
         },
         {
-          "code": "UNWEIGHTED_PORTS",
+          "code": "OPEN_PORT",
           "description": "3 porta(s) comuns expostas",
           "points": 8
         },
         {
-          "code": "NOT_IN_BASELINE",
+          "code": "UNKNOWN_HOST",
           "description": "Host novo, nao visto em scans anteriores",
           "points": 25
         }
@@ -516,12 +559,14 @@
           "service": "http",
           "product": "lwIP httpd",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 5
         }
@@ -552,7 +597,9 @@
           "service": "msrpc",
           "product": "Microsoft Windows RPC",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 445,
@@ -561,17 +608,19 @@
           "service": "microsoft-ds",
           "product": "Windows SMB",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MSRPC (135/tcp) exposto na rede",
           "points": 20
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MICROSOFT-DS (445/tcp) exposto na rede",
           "points": 30
         }
@@ -602,7 +651,9 @@
           "service": "netbios-ssn",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 445,
@@ -611,7 +662,9 @@
           "service": "microsoft-ds",
           "product": "Windows SMB",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 3389,
@@ -620,7 +673,9 @@
           "service": "ms-wbt-server",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 135,
@@ -629,27 +684,29 @@
           "service": "msrpc",
           "product": "Microsoft Windows RPC",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "NETBIOS-SSN (139/tcp) exposto na rede",
           "points": 20
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MICROSOFT-DS (445/tcp) exposto na rede",
           "points": 30
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
           "points": 30
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MSRPC (135/tcp) exposto na rede",
           "points": 20
         }
@@ -669,7 +726,7 @@
       "hostname": "laptop2.lan",
       "osGuess": "Windows 10/11",
       "osAccuracy": 90,
-      "riskScore": 56,
+      "riskScore": 69,
       "riskBand": "HIGH",
       "change": "UNCHANGED",
       "ports": [
@@ -678,21 +735,39 @@
           "protocol": "tcp",
           "state": "open",
           "service": "ms-wbt-server",
-          "product": null,
+          "product": "Microsoft Terminal Services",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [
+            {
+              "id": "CVE-2019-0708",
+              "cvssScore": 9.8,
+              "severity": "CRITICAL",
+              "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+              "published": "2019-05-16T19:29:00Z",
+              "description": "A remote code execution vulnerability exists in Remote Desktop Services when an unauthenticated attacker connects using RDP and sends specially crafted requests, aka BlueKeep.",
+              "url": "https://nvd.nist.gov/vuln/detail/CVE-2019-0708",
+              "kev": {
+                "dateAdded": "2021-11-03",
+                "knownRansomwareUse": true,
+                "vulnerabilityName": "Microsoft Remote Desktop Services Remote Code Execution Vulnerability",
+                "requiredAction": "Apply updates per vendor instructions."
+              }
+            }
+          ],
+          "cveTotal": 1
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
           "points": 30
         },
         {
           "code": "KNOWN_CVE",
-          "description": "CVE-2019-11500 (CVSS 6.5) em Dnsmasq buffer overflow, porto 53",
-          "points": 26
+          "description": "CVE-2019-0708 (CVSS 9.8) em Remote Desktop Services na porta 3389",
+          "points": 39
         }
       ],
       "portCount": 1,
@@ -721,12 +796,14 @@
           "service": "http",
           "product": "lwIP httpd",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 5
         }
@@ -777,12 +854,14 @@
           "service": "http",
           "product": "lwIP httpd",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 5
         }
@@ -808,7 +887,7 @@
       "ports": [],
       "riskReasons": [
         {
-          "code": "NOT_IN_BASELINE",
+          "code": "UNKNOWN_HOST",
           "description": "Host novo, nao visto em scans anteriores",
           "points": 25
         }
@@ -839,7 +918,9 @@
           "service": "microsoft-ds",
           "product": "Windows SMB",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 3389,
@@ -848,7 +929,9 @@
           "service": "ms-wbt-server",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 135,
@@ -857,7 +940,9 @@
           "service": "msrpc",
           "product": "Microsoft Windows RPC",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 139,
@@ -866,27 +951,29 @@
           "service": "netbios-ssn",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MICROSOFT-DS (445/tcp) exposto na rede",
           "points": 30
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
           "points": 30
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MSRPC (135/tcp) exposto na rede",
           "points": 20
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "NETBIOS-SSN (139/tcp) exposto na rede",
           "points": 20
         }
@@ -917,12 +1004,14 @@
           "service": "ipp",
           "product": "CUPS",
           "version": "2.3",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "UNWEIGHTED_PORTS",
+          "code": "OPEN_PORT",
           "description": "1 porta(s) comuns expostas",
           "points": 8
         }
@@ -953,17 +1042,19 @@
           "service": "http",
           "product": "Chromecast",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "UNWEIGHTED_PORTS",
+          "code": "OPEN_PORT",
           "description": "1 porta(s) comuns expostas",
           "points": 8
         },
         {
-          "code": "NOT_IN_BASELINE",
+          "code": "UNKNOWN_HOST",
           "description": "Host novo, nao visto em scans anteriores",
           "points": 25
         }
@@ -994,12 +1085,14 @@
           "service": "http",
           "product": "lwIP httpd",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 5
         }
@@ -1050,7 +1143,9 @@
           "service": "ssh",
           "product": "OpenSSH",
           "version": "9.3",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 21,
@@ -1059,7 +1154,9 @@
           "service": "ftp",
           "product": "vsftpd",
           "version": "2.3.4",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 23,
@@ -1068,7 +1165,9 @@
           "service": "telnet",
           "product": "Dropbear sshd",
           "version": "2017.75",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 445,
@@ -1077,27 +1176,29 @@
           "service": "microsoft-ds",
           "product": "Samba smbd",
           "version": "4.6.2",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 22/tcp (ssh) exposta",
           "points": 5
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "FTP (21/tcp) exposto na rede",
           "points": 25
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "TELNET (23/tcp) exposto na rede",
           "points": 35
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MICROSOFT-DS (445/tcp) exposto na rede",
           "points": 30
         }
@@ -1128,7 +1229,9 @@
           "service": "msrpc",
           "product": "Microsoft Windows RPC",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 3389,
@@ -1137,7 +1240,9 @@
           "service": "ms-wbt-server",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 445,
@@ -1146,7 +1251,9 @@
           "service": "microsoft-ds",
           "product": "Windows SMB",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 139,
@@ -1155,32 +1262,34 @@
           "service": "netbios-ssn",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MSRPC (135/tcp) exposto na rede",
           "points": 20
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
           "points": 30
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MICROSOFT-DS (445/tcp) exposto na rede",
           "points": 30
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "NETBIOS-SSN (139/tcp) exposto na rede",
           "points": 20
         },
         {
-          "code": "NOT_IN_BASELINE",
+          "code": "UNKNOWN_HOST",
           "description": "Host novo, nao visto em scans anteriores",
           "points": 25
         }
@@ -1211,12 +1320,14 @@
           "service": "microsoft-ds",
           "product": "Windows SMB",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MICROSOFT-DS (445/tcp) exposto na rede",
           "points": 30
         }
@@ -1247,7 +1358,9 @@
           "service": "ftp",
           "product": "vsftpd",
           "version": "2.3.4",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 445,
@@ -1256,7 +1369,9 @@
           "service": "microsoft-ds",
           "product": "Samba smbd",
           "version": "4.6.2",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 22,
@@ -1265,22 +1380,24 @@
           "service": "ssh",
           "product": "OpenSSH",
           "version": "9.3",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "FTP (21/tcp) exposto na rede",
           "points": 25
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MICROSOFT-DS (445/tcp) exposto na rede",
           "points": 30
         },
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 22/tcp (ssh) exposta",
           "points": 5
         }
@@ -1311,7 +1428,9 @@
           "service": "http-proxy",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 23,
@@ -1320,7 +1439,9 @@
           "service": "telnet",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 80,
@@ -1329,7 +1450,9 @@
           "service": "http",
           "product": "GoAhead-Webs",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 554,
@@ -1338,27 +1461,29 @@
           "service": "rtsp",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 8080/tcp (http-proxy) exposta",
           "points": 5
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "TELNET (23/tcp) exposto na rede",
           "points": 35
         },
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 5
         },
         {
-          "code": "UNWEIGHTED_PORTS",
+          "code": "OPEN_PORT",
           "description": "4 porta(s) comuns expostas",
           "points": 8
         }
@@ -1429,7 +1554,9 @@
           "service": "netbios-ssn",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 23,
@@ -1438,7 +1565,9 @@
           "service": "telnet",
           "product": "Microsoft telnetd",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 21,
@@ -1447,7 +1576,9 @@
           "service": "ftp",
           "product": "Microsoft ftpd",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 135,
@@ -1456,7 +1587,9 @@
           "service": "msrpc",
           "product": "Microsoft Windows RPC",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 445,
@@ -1465,32 +1598,34 @@
           "service": "microsoft-ds",
           "product": "Windows SMB",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "NETBIOS-SSN (139/tcp) exposto na rede",
           "points": 20
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "TELNET (23/tcp) exposto na rede",
           "points": 35
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "FTP (21/tcp) exposto na rede",
           "points": 25
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MSRPC (135/tcp) exposto na rede",
           "points": 20
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MICROSOFT-DS (445/tcp) exposto na rede",
           "points": 30
         }
@@ -1521,7 +1656,9 @@
           "service": "ipp",
           "product": "CUPS",
           "version": "2.3",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 9100,
@@ -1530,12 +1667,14 @@
           "service": "jetdirect",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "UNWEIGHTED_PORTS",
+          "code": "OPEN_PORT",
           "description": "2 porta(s) comuns expostas",
           "points": 16
         }
@@ -1565,19 +1704,32 @@
           "state": "open",
           "service": "http",
           "product": "lwIP httpd",
-          "version": null,
-          "cpes": []
+          "version": "2.1.2",
+          "cpes": [],
+          "cves": [
+            {
+              "id": "CVE-2020-22283",
+              "cvssScore": 9.8,
+              "severity": "CRITICAL",
+              "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+              "published": "2021-05-25T19:15:00Z",
+              "description": "Buffer overflow in the tcp_listen_with_backlog_and_err function of lwIP.",
+              "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-22283",
+              "kev": null
+            }
+          ],
+          "cveTotal": 1
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 5
         },
         {
           "code": "KNOWN_CVE",
-          "description": "CVE-2017-0144 (CVSS 9.8) em EternalBlue no SMBv1, porto 445",
+          "description": "CVE-2020-22283 (CVSS 9.8) em lwIP httpd 2.1.2 na porta 80",
           "points": 39
         }
       ],
@@ -1607,17 +1759,19 @@
           "service": "http",
           "product": "lwIP httpd",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 5
         },
         {
-          "code": "NOT_IN_BASELINE",
+          "code": "UNKNOWN_HOST",
           "description": "Host novo, nao visto em scans anteriores",
           "points": 25
         }
@@ -1637,7 +1791,7 @@
       "hostname": "printer2.lan",
       "osGuess": null,
       "osAccuracy": null,
-      "riskScore": 37,
+      "riskScore": 44,
       "riskBand": "MEDIUM",
       "change": "UNCHANGED",
       "ports": [
@@ -1646,21 +1800,39 @@
           "protocol": "tcp",
           "state": "open",
           "service": "http",
-          "product": "embedded httpd",
-          "version": null,
-          "cpes": []
+          "product": "GoAhead WebServer",
+          "version": "3.6.5",
+          "cpes": [],
+          "cves": [
+            {
+              "id": "CVE-2017-17562",
+              "cvssScore": 9.8,
+              "severity": "CRITICAL",
+              "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+              "published": "2017-12-13T02:29:00Z",
+              "description": "Embedthis GoAhead allows remote code execution when CGI is enabled and a CGI program is dynamically linked, via an untrusted environment variable.",
+              "url": "https://nvd.nist.gov/vuln/detail/CVE-2017-17562",
+              "kev": {
+                "dateAdded": "2021-12-10",
+                "knownRansomwareUse": false,
+                "vulnerabilityName": "Embedthis GoAhead Remote Code Execution Vulnerability",
+                "requiredAction": "Apply updates per vendor instructions."
+              }
+            }
+          ],
+          "cveTotal": 1
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 5
         },
         {
           "code": "KNOWN_CVE",
-          "description": "CVE-2020-36254 (CVSS 8.1) em Dropbear sshd 2017.75 no porto 22",
-          "points": 32
+          "description": "CVE-2017-17562 (CVSS 9.8) em GoAhead WebServer 3.6.5 na porta 80",
+          "points": 39
         }
       ],
       "portCount": 1,
@@ -1678,8 +1850,8 @@
       "hostname": "cam2.lan",
       "osGuess": "Linux 2.6",
       "osAccuracy": 65,
-      "riskScore": 72,
-      "riskBand": "HIGH",
+      "riskScore": 79,
+      "riskBand": "CRITICAL",
       "change": "UNCHANGED",
       "ports": [
         {
@@ -1687,9 +1859,27 @@
           "protocol": "tcp",
           "state": "open",
           "service": "http-proxy",
-          "product": null,
+          "product": "Hikvision IP Camera",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [
+            {
+              "id": "CVE-2021-36260",
+              "cvssScore": 9.8,
+              "severity": "CRITICAL",
+              "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+              "published": "2021-09-15T14:15:00Z",
+              "description": "A command injection vulnerability in the web server of some Hikvision products allows an attacker to take full control of the device with an unauthenticated crafted request.",
+              "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-36260",
+              "kev": {
+                "dateAdded": "2022-01-10",
+                "knownRansomwareUse": false,
+                "vulnerabilityName": "Hikvision Improper Input Validation",
+                "requiredAction": "Apply updates per vendor instructions."
+              }
+            }
+          ],
+          "cveTotal": 1
         },
         {
           "number": 23,
@@ -1698,24 +1888,26 @@
           "service": "telnet",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 8080/tcp (http-proxy) exposta",
           "points": 5
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "TELNET (23/tcp) exposto na rede",
           "points": 35
         },
         {
           "code": "KNOWN_CVE",
-          "description": "CVE-2020-36254 (CVSS 8.1) em Dropbear sshd 2017.75 no porto 22",
-          "points": 32
+          "description": "CVE-2021-36260 (CVSS 9.8) em Hikvision IP Camera na porta 8080",
+          "points": 39
         }
       ],
       "portCount": 2,
@@ -1744,12 +1936,14 @@
           "service": "http",
           "product": "lwIP httpd",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 5
         }
@@ -1780,7 +1974,9 @@
           "service": "http",
           "product": "GoAhead-Webs",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 554,
@@ -1789,7 +1985,9 @@
           "service": "rtsp",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 8080,
@@ -1798,7 +1996,9 @@
           "service": "http-proxy",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 23,
@@ -1807,27 +2007,29 @@
           "service": "telnet",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 5
         },
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 8080/tcp (http-proxy) exposta",
           "points": 5
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "TELNET (23/tcp) exposto na rede",
           "points": 35
         },
         {
-          "code": "UNWEIGHTED_PORTS",
+          "code": "OPEN_PORT",
           "description": "4 porta(s) comuns expostas",
           "points": 8
         }
@@ -1853,7 +2055,7 @@
       "ports": [],
       "riskReasons": [
         {
-          "code": "NOT_IN_BASELINE",
+          "code": "UNKNOWN_HOST",
           "description": "Host novo, nao visto em scans anteriores",
           "points": 25
         }
@@ -1884,7 +2086,9 @@
           "service": "http",
           "product": "embedded httpd",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 9100,
@@ -1893,17 +2097,19 @@
           "service": "jetdirect",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 5
         },
         {
-          "code": "UNWEIGHTED_PORTS",
+          "code": "OPEN_PORT",
           "description": "2 porta(s) comuns expostas",
           "points": 8
         }
@@ -1934,7 +2140,9 @@
           "service": "http",
           "product": "embedded httpd",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 9100,
@@ -1943,7 +2151,9 @@
           "service": "jetdirect",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 631,
@@ -1952,17 +2162,19 @@
           "service": "ipp",
           "product": "CUPS",
           "version": "2.3",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 80/tcp (http) exposta",
           "points": 5
         },
         {
-          "code": "UNWEIGHTED_PORTS",
+          "code": "OPEN_PORT",
           "description": "3 porta(s) comuns expostas",
           "points": 16
         }
@@ -1993,7 +2205,9 @@
           "service": "microsoft-ds",
           "product": "Windows SMB",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 135,
@@ -2002,17 +2216,19 @@
           "service": "msrpc",
           "product": "Microsoft Windows RPC",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MICROSOFT-DS (445/tcp) exposto na rede",
           "points": 30
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MSRPC (135/tcp) exposto na rede",
           "points": 20
         }
@@ -2043,7 +2259,30 @@
           "service": "ssh",
           "product": "OpenSSH",
           "version": "9.3",
-          "cpes": []
+          "cpes": [],
+          "cves": [
+            {
+              "id": "CVE-2023-38408",
+              "cvssScore": 9.8,
+              "severity": "CRITICAL",
+              "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+              "published": "2023-07-20T03:15:00Z",
+              "description": "The PKCS#11 feature in ssh-agent in OpenSSH has an insufficiently trustworthy search path, leading to remote code execution if an agent is forwarded to an attacker-controlled system.",
+              "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-38408",
+              "kev": null
+            },
+            {
+              "id": "CVE-2023-48795",
+              "cvssScore": 5.9,
+              "severity": "MEDIUM",
+              "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:N",
+              "published": "2023-12-18T19:15:00Z",
+              "description": "The SSH transport protocol with certain OpenSSH extensions allows prefix truncation, aka a Terrapin attack.",
+              "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-48795",
+              "kev": null
+            }
+          ],
+          "cveTotal": 2
         },
         {
           "number": 445,
@@ -2052,7 +2291,25 @@
           "service": "microsoft-ds",
           "product": "Samba smbd",
           "version": "4.6.2",
-          "cpes": []
+          "cpes": [],
+          "cves": [
+            {
+              "id": "CVE-2017-7494",
+              "cvssScore": 9.8,
+              "severity": "CRITICAL",
+              "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+              "published": "2017-05-30T20:29:00Z",
+              "description": "Samba since 3.5.0 allows remote authenticated users to upload a shared library to a writable share and cause the server to load and execute it, aka SambaCry.",
+              "url": "https://nvd.nist.gov/vuln/detail/CVE-2017-7494",
+              "kev": {
+                "dateAdded": "2023-03-30",
+                "knownRansomwareUse": true,
+                "vulnerabilityName": "Samba Remote Code Execution Vulnerability",
+                "requiredAction": "Apply updates per vendor instructions."
+              }
+            }
+          ],
+          "cveTotal": 1
         },
         {
           "number": 5000,
@@ -2061,7 +2318,9 @@
           "service": "http",
           "product": "Synology DSM",
           "version": "7.2",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 21,
@@ -2070,7 +2329,20 @@
           "service": "ftp",
           "product": "vsftpd",
           "version": "2.3.4",
-          "cpes": []
+          "cpes": [],
+          "cves": [
+            {
+              "id": "CVE-2011-2523",
+              "cvssScore": 9.8,
+              "severity": "CRITICAL",
+              "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+              "published": "2019-11-05T22:15:00Z",
+              "description": "vsftpd 2.3.4 downloaded between 20110630 and 20110703 contains a backdoor which opens a shell on port 6200/tcp.",
+              "url": "https://nvd.nist.gov/vuln/detail/CVE-2011-2523",
+              "kev": null
+            }
+          ],
+          "cveTotal": 1
         },
         {
           "number": 23,
@@ -2079,39 +2351,52 @@
           "service": "telnet",
           "product": "Dropbear sshd",
           "version": "2017.75",
-          "cpes": []
+          "cpes": [],
+          "cves": [
+            {
+              "id": "CVE-2020-36254",
+              "cvssScore": 8.1,
+              "severity": "HIGH",
+              "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+              "published": "2021-01-11T05:15:00Z",
+              "description": "Dropbear through 2020.80 has an information leak in the SSH server that allows a remote attacker to distinguish between valid and invalid usernames.",
+              "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-36254",
+              "kev": null
+            }
+          ],
+          "cveTotal": 1
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
+          "code": "OPEN_PORT",
           "description": "Porta 22/tcp (ssh) exposta",
           "points": 5
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MICROSOFT-DS (445/tcp) exposto na rede",
           "points": 30
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "FTP (21/tcp) exposto na rede",
           "points": 25
         },
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "TELNET (23/tcp) exposto na rede",
           "points": 35
         },
         {
-          "code": "UNWEIGHTED_PORTS",
+          "code": "OPEN_PORT",
           "description": "5 porta(s) comuns expostas",
           "points": 8
         },
         {
           "code": "KNOWN_CVE",
-          "description": "CVE-2020-36254 (CVSS 8.1) em Dropbear sshd 2017.75 no porto 22",
-          "points": 32
+          "description": "CVE-2017-7494 (CVSS 9.8) em Samba smbd 4.6.2 na porta 445",
+          "points": 39
         }
       ],
       "portCount": 5,
@@ -2140,17 +2425,19 @@
           "service": "msrpc",
           "product": "Microsoft Windows RPC",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MSRPC (135/tcp) exposto na rede",
           "points": 20
         },
         {
-          "code": "NOT_IN_BASELINE",
+          "code": "UNKNOWN_HOST",
           "description": "Host novo, nao visto em scans anteriores",
           "points": 25
         }
@@ -2181,12 +2468,14 @@
           "service": "msrpc",
           "product": "Microsoft Windows RPC",
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
+          "code": "OPEN_PORT",
           "description": "MSRPC (135/tcp) exposto na rede",
           "points": 20
         }

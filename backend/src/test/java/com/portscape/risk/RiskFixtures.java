@@ -41,7 +41,8 @@ public final class RiskFixtures {
     }
 
     public static Cve cve(String id, double cvss) {
-        return new Cve(id, cvss, cvss >= 9 ? "CRITICAL" : cvss >= 7 ? "HIGH" : "MEDIUM", "descricao");
+        return new Cve(id, cvss, cvss >= 9 ? "CRITICAL" : cvss >= 7 ? "HIGH" : "MEDIUM",
+                "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", null, "descricao");
     }
 
     public static RiskInput input(Host host) {

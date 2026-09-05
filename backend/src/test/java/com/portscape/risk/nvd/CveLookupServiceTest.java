@@ -30,7 +30,7 @@ import com.portscape.domain.Port;
 class CveLookupServiceTest {
 
     private static final String SSH_CPE = "cpe:/a:openbsd:openssh:9.6";
-    private static final Cve CVE = new Cve("CVE-2024-6387", 8.1, "HIGH", "race condition");
+    private static final Cve CVE = new Cve("CVE-2024-6387", 8.1, "HIGH", null, null, "race condition");
 
     @Mock
     private NvdClient client;
@@ -44,7 +44,7 @@ class CveLookupServiceTest {
 
     private CveLookupService serviceWith(boolean enabled) {
         return new CveLookupService(client, cache, new NvdProperties(
-                enabled, null, null, null, Duration.ZERO, Duration.ofDays(7), Duration.ofDays(1)));
+                enabled, null, null, null, Duration.ZERO, Duration.ofDays(7), Duration.ofDays(1), null));
     }
 
     private static Host hostWith(String ip, String... cpes) {

@@ -25,6 +25,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *                            realmente sem vulnerabilidades como de um nome que o NVD
  *                            nao reconheceu -- guardar isso uma semana esconderia o
  *                            segundo caso durante uma semana
+ * @param maxCvesPerPort      quantos CVEs, no maximo, se guardam e mostram por porta.
+ *                            O cliente nao pagina e o NVD devolve ate 2000 CVEs por
+ *                            pagina: um CPE de kernel arrastaria milhares para dentro
+ *                            do JSON de cada scan e da base de dados. Os que passam
+ *                            sao os de CVSS mais alto, e o total real fica guardado a
+ *                            parte para nao se mentir por omissao
  */
 @ConfigurationProperties(prefix = "portscape.nvd")
 public record NvdProperties(
@@ -34,7 +40,8 @@ public record NvdProperties(
         Duration timeout,
         Duration minRequestInterval,
         Duration cacheTtl,
-        Duration emptyCacheTtl
+        Duration emptyCacheTtl,
+        Integer maxCvesPerPort
 ) {
     public NvdProperties {
         baseUrl = baseUrl == null || baseUrl.isBlank()
@@ -44,6 +51,7 @@ public record NvdProperties(
         cacheTtl = cacheTtl == null ? Duration.ofDays(7) : cacheTtl;
         emptyCacheTtl = emptyCacheTtl == null ? Duration.ofDays(1) : emptyCacheTtl;
         apiKey = apiKey == null || apiKey.isBlank() ? null : apiKey;
+        maxCvesPerPort = maxCvesPerPort == null || maxCvesPerPort < 0 ? 25 : maxCvesPerPort;
     }
 
     public boolean hasApiKey() {

@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import org.hamcrest.Matchers;
@@ -41,7 +42,8 @@ class NvdClientTest {
     /** Sem espera entre pedidos: o rate limit e testado a parte, nao aqui. */
     private NvdClient clientWith(String apiKey) {
         NvdProperties properties = new NvdProperties(
-                true, BASE_URL, apiKey, Duration.ofSeconds(1), Duration.ZERO, Duration.ofDays(7), Duration.ofDays(1));
+                true, BASE_URL, apiKey, Duration.ofSeconds(1), Duration.ZERO, Duration.ofDays(7),
+                Duration.ofDays(1), null);
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
         return new NvdClient(builder, properties, new NvdRateLimiter(properties));
@@ -70,7 +72,7 @@ class NvdClientTest {
     }
 
     @Test
-    @DisplayName("le uma resposta real do NVD: id, CVSS, severidade e descricao inglesa")
+    @DisplayName("le uma resposta real do NVD: id, CVSS, vector, data e descricao inglesa")
     void parsesARealNvdResponse() {
         NvdClient client = clientWith(null);
         expectDictionary("dropbear 2017.75", "nvd-cpes-dropbear.json");
@@ -79,11 +81,17 @@ class NvdClientTest {
 
         List<Cve> cves = client.findCves(DROPBEAR);
 
-        assertThat(cves).hasSize(2);
+        assertThat(cves).hasSize(3);
         assertThat(cves.get(0).id()).isEqualTo("CVE-2024-6387");
         assertThat(cves.get(0).cvssScore()).isEqualTo(8.1);
         assertThat(cves.get(0).severity()).isEqualTo("HIGH");
         assertThat(cves.get(0).description()).startsWith("A signal handler race condition");
+        // O vector e a anatomia da falha, e e o frontend que a traduz -- aqui so tem
+        // de chegar inteiro.
+        assertThat(cves.get(0).vector())
+                .isEqualTo("CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H");
+        // O NVD publica a data sem zona; assume-se UTC.
+        assertThat(cves.get(0).published()).isEqualTo(Instant.parse("2024-07-01T13:15:00Z"));
         server.verify();
     }
 
@@ -128,7 +136,27 @@ class NvdClientTest {
     }
 
     @Test
-    @DisplayName("um CVE sem metricas publicadas fica sem score, nao com zero")
+    @DisplayName("no CVSS v2 a severidade vem fora do cvssData, e nao se pode perder por isso")
+    void readsTheSeverityOfLegacyCvssV2Entries() {
+        NvdClient client = clientWith(null);
+        expectDictionary("dropbear 2017.75", "nvd-cpes-dropbear.json");
+        expectCveQuery("cpe:2.3:a:dropbear_ssh_project:dropbear_ssh:2017.75:*:*:*:*:*:*:*",
+                "nvd-openssh.json");
+
+        Cve legacy = client.findCves(DROPBEAR).get(2);
+
+        // No v3.x/v4.0 o baseSeverity vem dentro do cvssData; no v2 vem ao lado. Olhar
+        // so para dentro custava a severidade dos CVEs antigos -- que sao justamente os
+        // que aparecem em servicos desactualizados.
+        assertThat(legacy.id()).isEqualTo("CVE-2008-3844");
+        assertThat(legacy.cvssScore()).isEqualTo(9.3);
+        assertThat(legacy.severity()).isEqualTo("HIGH");
+        // O vector v2 nao tem prefixo "CVSS:", ao contrario do v3.1/v4.0.
+        assertThat(legacy.vector()).isEqualTo("AV:N/AC:M/Au:N/C:C/I:C/A:C");
+    }
+
+    @Test
+    @DisplayName("um CVE sem metricas publicadas fica sem score nem vector, nao com zero")
     void leavesTheScoreNullWhenNvdPublishesNoMetrics() {
         NvdClient client = clientWith(null);
         expectDictionary("dropbear 2017.75", "nvd-cpes-dropbear.json");
@@ -140,6 +168,12 @@ class NvdClientTest {
         assertThat(withoutMetrics.id()).isEqualTo("CVE-2023-51385");
         assertThat(withoutMetrics.cvssScore()).isNull();
         assertThat(withoutMetrics.hasScore()).isFalse();
+        // Score, severidade e vector vem todos do mesmo bloco cvssData: ou vem todos,
+        // ou nao vem nenhum.
+        assertThat(withoutMetrics.severity()).isNull();
+        assertThat(withoutMetrics.vector()).isNull();
+        // Sem "published" na resposta -- e uma data ausente, nao uma data invalida.
+        assertThat(withoutMetrics.published()).isNull();
     }
 
     @Test

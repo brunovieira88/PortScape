@@ -213,6 +213,7 @@ export default function App() {
           host={detailedHost}
           onClose={() => setDetailedHost(null)}
           onTeleport={() => handleTeleport(detailedHost)}
+          cveLookupDegraded={scanData?.cveLookupDegraded}
         />
       )}
 
