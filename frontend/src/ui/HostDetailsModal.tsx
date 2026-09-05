@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Host, Port, Remediation, RiskReason } from '../api/types';
 import { bandColor } from '../scene/Building';
+import { attackPathFor } from '../knowledge/narrative';
 import { PortCard } from './PortCard';
 
 /**
@@ -100,6 +101,7 @@ export function HostDetailsModal({ host, onClose, onTeleport, cveLookupDegraded 
   const ports = host.ports || [];
   const riskReasons = host.riskReasons || [];
   const remediation = host.remediation || [];
+  const attackPath = attackPathFor(host);
 
   return (
     <div className="absolute inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-8">
@@ -253,7 +255,39 @@ export function HostDetailsModal({ host, onClose, onTeleport, cveLookupDegraded 
 
           {/* Right Column (Ports & Vulns) */}
           <div className="w-full md:w-2/3 flex flex-col gap-6">
-            
+
+            {/* A moldura que da sentido ao resto: primeiro o que isto significa, depois
+                de onde vem o numero. Contido de proposito -- e uma explicacao, nao um
+                alarme, e um host tranquilo simplesmente nao a tem. */}
+            {attackPath && (
+              <section aria-labelledby="attack-path-title"
+                       className="bg-black/40 border border-[#ff8a00]/20 rounded-lg p-5">
+                <h3 id="attack-path-title"
+                    className="text-xs font-bold text-[#ff8a00]/80 tracking-[0.2em] uppercase mb-3">
+                  Likely attack path
+                </h3>
+                <p className="text-xs text-gray-300 leading-relaxed">{attackPath.entry}</p>
+                <p className="text-xs text-gray-300 leading-relaxed mt-2">{attackPath.impact}</p>
+                {attackPath.pivot && (
+                  <p className="text-xs text-gray-400 leading-relaxed mt-2">{attackPath.pivot}</p>
+                )}
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {attackPath.tactics.map((tactic) => (
+                    <a
+                      key={tactic.id}
+                      href={tactic.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={`MITRE ATT&CK ${tactic.id}`}
+                      className="text-[11px] px-2 py-0.5 rounded border border-[#ff8a00]/40 text-[#ff8a00] hover:bg-[#ff8a00]/10 transition-colors"
+                    >
+                      {tactic.name}
+                    </a>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Risk Reasons Log */}
             <div className="bg-black/40 border border-white/5 rounded-lg p-5">
               <h3 className="text-xs font-bold text-gray-500 tracking-[0.2em] uppercase mb-4">Security Audit Log ({riskReasons.length})</h3>
@@ -275,8 +309,10 @@ export function HostDetailsModal({ host, onClose, onTeleport, cveLookupDegraded 
             </div>
 
             {/* Ports List */}
-            <div className="bg-black/40 border border-white/5 rounded-lg p-5">
-              <h3 className="text-xs font-bold text-gray-500 tracking-[0.2em] uppercase mb-4">Open Ports ({ports.length})</h3>
+            <section aria-labelledby="open-ports-title"
+                     className="bg-black/40 border border-white/5 rounded-lg p-5">
+              <h3 id="open-ports-title"
+                  className="text-xs font-bold text-gray-500 tracking-[0.2em] uppercase mb-4">Open Ports ({ports.length})</h3>
 
               {cveLookupDegraded && (
                 <div className="flex items-start gap-2 mb-3 border border-[#ff8a00]/40 bg-[#ff8a00]/5 rounded px-3 py-2">
@@ -304,7 +340,7 @@ export function HostDetailsModal({ host, onClose, onTeleport, cveLookupDegraded 
                   port that runs it, but the risk score only charges for it once.
                 </div>
               )}
-            </div>
+            </section>
 
           </div>
 

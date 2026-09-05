@@ -40,6 +40,7 @@ colour is the risk band, and anything that wasn't there last time is marked on t
   - [Live demo — no install](#just-want-to-look-around-no-install)
 - [How it works](#how-it-works)
 - [The risk model](#the-risk-model)
+- [The likely attack path](#the-likely-attack-path)
 - [What to fix first](#what-to-fix-first)
 - [Reading a port](#reading-a-port)
 - [Baseline and change detection](#baseline-and-change-detection)
@@ -89,7 +90,7 @@ running nmap, it's the two layers on top:
 | **Deterministic architecture** | A building's shape is derived from its IP and its MAC vendor, so the same device looks the same in every scan. A gateway is always a spire. |
 | **Stoppable scans** | A `/24` with version detection takes minutes. Cancelling kills the nmap process itself, not just the job row — a cancel that leaves a scanner running is worse than no button at all, so there's a test that proves the process dies. |
 | **Usable without a mouse** | Every device and scan card is a real button, the details modal is a proper dialog that traps and restores focus, and progress is announced rather than only drawn. Verified in a browser, not just in jsdom. |
-| **418 tests** | 256 unit + 39 integration on the backend (Testcontainers, real PostgreSQL), 123 on the frontend. Every scoring rule, parser and layout calculation is covered. |
+| **430 tests** | 256 unit + 39 integration on the backend (Testcontainers, real PostgreSQL), 135 on the frontend. Every scoring rule, parser and layout calculation is covered. |
 
 ## Prerequisites
 
@@ -302,6 +303,32 @@ exploited"*, and stale information beats silence that reads as safety. Turn it o
 `portscape.kev.enabled: false`.
 
 </details>
+
+## The likely attack path
+
+The panel holds every piece — the port, the version, the CVE, the KEV listing, what the
+protocol is — and still asks the reader to assemble them. So it assembles them:
+
+```
+LIKELY ATTACK PATH
+  445/tcp (SMB) running Samba smbd 4.6.2 is exposed, on a host reported
+  as Linux 3.2 - 4.9. CVE-2017-7494 (CVSS 9.8, CRITICAL) affects it, and is
+  reachable from the network, without an account. It is on CISA's list of
+  vulnerabilities confirmed as exploited in the wild, including in ransomware
+  campaigns. From here, 22/tcp (SSH) is what the same network would be
+  reached through next.
+
+  [Initial Access]  [Execution]  [Lateral Movement]
+```
+
+Composed from templates filled with data already in the JSON — nothing generated,
+nothing inferred beyond what the CVSS vector states. Most hosts get no path at all, and
+that is the point: inventing one for a phone with no open ports would cost the
+credibility of the hosts where it matters.
+
+It cites ATT&CK **tactics**, never techniques — naming `T1110.001` would be asserting
+*how* the attack would happen. And it says *"reported as"*, never *"is"*: the OS
+fingerprint is a guess, and the narrative inherits that.
 
 ## What to fix first
 
@@ -589,7 +616,7 @@ mvn test        # 256 unit tests, seconds, no Docker needed
 mvn verify      # + 39 integration tests (Testcontainers, needs Docker)
 
 cd frontend
-npm test        # 123 tests
+npm test        # 135 tests
 npx tsc -b      # type check
 ```
 
@@ -621,7 +648,7 @@ portscape/
 │   │   ├── buildings/  per-archetype geometry — house, tower, windows
 │   │   └── highlights/ new/changed host markers
 │   ├── ui/             side panels, modals, scan history
-│   ├── knowledge/      port dossiers and CVSS vectors in plain language
+│   ├── knowledge/      port dossiers, CVSS vectors and attack paths in plain language
 │   ├── api/            REST client, shared API types, the scan-polling hook
 │   └── mock/           offline demo data (no backend needed)
 ├── package.json        root `npm run dev` — orchestration only, no app code
