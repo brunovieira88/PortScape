@@ -260,6 +260,11 @@ thousands into every scan's JSON and into the database. Truncating without sayin
 much would be lying by omission, so the panel shows *"showing the 25 highest-scoring of
 431 known CVEs"*.
 
+**Three CVSS formats, all of them real.** A service with any history returns all three at
+once, so the translation handles all three: v2 has no prefix and calls authentication
+`Au`, v3.x puts impact in `C`/`I`/`A`, and v4.0 carries thirty-two metrics of which the
+NVD writes twenty-one as `:X` — 174 characters, 63 of them meaning anything.
+
 A flaw in something shared — the OS kernel, typically — is listed under **every** port
 that runs it, while the risk score charges for it **once**. That looks like a bug and
 isn't: the port list answers *what is known to be wrong with what runs here*, the score
@@ -321,16 +326,15 @@ Three things are doing work there.
 matches everything and nothing.
 
 **The vector, translated.** `AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` is the anatomy of the
-flaw, and it is what makes a 9.8 mean something instead of asking you to trust it. The
-translation handles all three CVSS formats, because a service with any history returns
-all three at once: v2 has no prefix and calls authentication `Au`, v3.x puts impact in
-`C`/`I`/`A`, and v4.0 carries thirty-two metrics of which the NVD writes twenty-one as
-`:X` — 174 characters, 63 of them meaning anything.
+flaw, and it is what makes a 9.8 mean something instead of asking you to trust it.
 
 **The KEV badge.** Everything above it is a description of what could happen. That badge
 says it is happening.
 
-### The port that has no CVEs
+<details>
+<summary><b>The port that has no CVEs</b></summary>
+
+<br>
 
 All of the above needs a version to hang off. Telnet has none of it — and Telnet is the
 worst thing on most networks it appears on:
@@ -357,35 +361,36 @@ worst thing on most networks it appears on:
      SAFE ALTERNATIVE — SSH (22)
 ```
 
-No API answers this. The NVD has no entry explaining what Telnet *is*, because that is
-knowledge, not data. So it is written by hand, in `frontend/src/knowledge/ports.ts`, for
-every port the risk model penalises — and the panel opens for a port whose only problem
-is what it fundamentally is.
+No API answers this — the NVD has no entry explaining what Telnet *is*, because that is
+knowledge, not data. So it is written by hand in `frontend/src/knowledge/ports.ts`, for
+every port the risk model penalises. SSH, HTTP and HTTPS get entries too, saying they are
+fine: without those, the tool is an alarm that goes off every time.
 
-**It is also written for ports that are fine.** SSH, HTTP and HTTPS have entries that say
-so. Without them the tool is an alarm that goes off every time, and an alarm that goes off
-every time stops being heard.
+The dossier scores nothing — it lives in the frontend because the static demo has no
+backend, and because this is presentation. What keeps the halves honest is a test that
+reads `port-weights` out of the backend's `application.yml` and fails, naming them, if a
+port worth 25 points or more has nothing to say for itself.
 
-**The dossier scores nothing.** It lives in the frontend, next to the CVSS translation,
-for two reasons: the static demo has no backend, and this is presentation — the
-`RiskScorer` does not read it and should not. What keeps the two halves honest is a test
-that reads `port-weights` straight out of the backend's `application.yml` and fails,
-naming them, if a port worth 25 points or more has nothing to say for itself.
+</details>
 
-### Where the line is
+<details>
+<summary><b>Where the line is drawn</b></summary>
+
+<br>
 
 Portscape describes **the mechanism and the consequence**, never the procedure. *"Anyone
 who can observe the traffic reads the administrator credentials"* is what the exposure
-means. How to position yourself to observe that traffic is not here, and will not be.
+means; how to position yourself to observe that traffic is not here, and will not be. No
+payloads, no exploit commands, no credential testing — the scan identifies service
+versions and looks them up, and never tries anything against them.
 
-Concretely: no payloads, no exploit commands, no credential testing. The scan identifies
-service versions and looks them up; it never tries anything against them.
+Half of that is enforced: `NmapCommandBuilder.buildVersionDetection` hardcodes `-sT -sV`
+and takes no arguments from configuration, so nothing from nmap's `vuln` or `brute`
+categories can reach it. The discovery pass is not — its flags come from
+`portscape.nmap.arguments`, so `-sS -O --open -T4` is a deliberate default rather than a
+guarantee. Anyone editing that list owns what they put in it.
 
-Version detection is fixed in code — `NmapCommandBuilder.buildVersionDetection` hardcodes
-`-sT -sV` and takes no arguments from configuration, so nothing from nmap's `vuln` or
-`brute` categories can reach it. The discovery pass is different: its flags come from
-`portscape.nmap.arguments`, so that half is a deliberate default (`-sS -O --open -T4`),
-not a guarantee the code enforces. Anyone editing that list owns what they put in it.
+</details>
 
 ## Baseline and change detection
 
