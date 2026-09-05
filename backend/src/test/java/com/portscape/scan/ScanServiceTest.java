@@ -35,7 +35,11 @@ import com.portscape.config.NmapProperties;
 import com.portscape.domain.Host;
 import com.portscape.domain.Port;
 import com.portscape.domain.ScanStatus;
+import org.springframework.web.client.RestClient;
+
+import com.portscape.config.KevProperties;
 import com.portscape.risk.RiskScorer;
+import com.portscape.risk.kev.KevCatalog;
 import com.portscape.risk.nvd.CveLookupResult;
 import com.portscape.risk.nvd.CveLookupService;
 import com.portscape.scan.exception.InvalidTargetException;
@@ -77,6 +81,15 @@ class ScanServiceTest {
         service = serviceUsing(directExecutor);
     }
 
+    /**
+     * O catalogo desligado: nao sai para a rede e devolve os CVEs como vieram. O que
+     * o KEV faz e testado no KevCatalogTest -- aqui so nao pode estorvar.
+     */
+    private static KevCatalog disabledKev() {
+        return new KevCatalog(RestClient.create(),
+                new KevProperties(false, null, null, null), Clock.systemUTC());
+    }
+
     /** O mesmo servico, com outro pool -- serve para testar a fila cheia. */
     private ScanService serviceUsing(AsyncTaskExecutor scanExecutor) {
         NmapProperties properties = new NmapProperties(
@@ -90,6 +103,7 @@ class ScanServiceTest {
                 properties,
                 localNetworkDetector,
                 cveLookupService,
+                disabledKev(),
                 new RiskScorer(List.of()),
                 baselineResolver,
                 scanExecutor,

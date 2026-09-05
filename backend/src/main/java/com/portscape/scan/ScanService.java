@@ -29,6 +29,7 @@ import com.portscape.domain.ScanStatus;
 import com.portscape.risk.RiskScore;
 import com.portscape.risk.RiskScorer;
 import com.portscape.risk.nvd.CveLookupResult;
+import com.portscape.risk.kev.KevCatalog;
 import com.portscape.risk.nvd.CveLookupService;
 import com.portscape.scan.exception.ScanException;
 import com.portscape.scan.exception.ScanNotCancellableException;
@@ -70,6 +71,7 @@ public class ScanService {
     private final NmapProperties properties;
     private final LocalNetworkDetector localNetworkDetector;
     private final CveLookupService cveLookupService;
+    private final KevCatalog kevCatalog;
     private final RiskScorer riskScorer;
     private final BaselineResolver baselineResolver;
     private final AsyncTaskExecutor scanExecutor;
@@ -102,6 +104,7 @@ public class ScanService {
                        NmapProperties properties,
                        LocalNetworkDetector localNetworkDetector,
                        CveLookupService cveLookupService,
+                       KevCatalog kevCatalog,
                        RiskScorer riskScorer,
                        BaselineResolver baselineResolver,
                        @Qualifier(AsyncConfig.SCAN_EXECUTOR) AsyncTaskExecutor scanExecutor,
@@ -114,6 +117,7 @@ public class ScanService {
         this.properties = properties;
         this.localNetworkDetector = localNetworkDetector;
         this.cveLookupService = cveLookupService;
+        this.kevCatalog = kevCatalog;
         this.riskScorer = riskScorer;
         this.baselineResolver = baselineResolver;
         this.scanExecutor = scanExecutor;
@@ -315,7 +319,10 @@ public class ScanService {
         if (hosts.isEmpty()) {
             return new ScoredHosts(hosts, false);
         }
-        CveLookupResult cves = cveLookupService.lookup(hosts);
+        // O KEV entra depois da cache do NVD, e nao dentro dela: a cache dura sete
+        // dias e o catalogo da CISA muda todos os dias -- guardar o estado KEV junto
+        // com o CVE fazia um scan de hoje mostrar o que se sabia ha uma semana.
+        CveLookupResult cves = kevCatalog.enrich(cveLookupService.lookup(hosts));
         List<Host> baseline = baselineResolver.resolveFor(target)
                 .map(BaselineSnapshot::hosts)
                 .orElse(null);
