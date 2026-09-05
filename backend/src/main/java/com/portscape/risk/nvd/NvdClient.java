@@ -1,5 +1,9 @@
 package com.portscape.risk.nvd;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -164,6 +168,8 @@ public class NvdClient {
                     id,
                     cvss.hasNonNull("baseScore") ? cvss.get("baseScore").asDouble() : null,
                     cvss.path("baseSeverity").asText(null),
+                    cvss.path("vectorString").asText(null),
+                    publishedAt(cve.path("published")),
                     englishDescription(cve.path("descriptions"))));
         }
         return List.copyOf(cves);
@@ -178,6 +184,23 @@ public class NvdClient {
             }
         }
         return MissingNode.getInstance();
+    }
+
+    /**
+     * O NVD publica a data sem zona ({@code 2024-07-01T13:15:00.000}) e em UTC. Uma
+     * data ilegivel nao vale um CVE perdido: fica a null e o resto do registo passa.
+     */
+    private static Instant publishedAt(JsonNode published) {
+        String text = published.asText(null);
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(text).toInstant(ZoneOffset.UTC);
+        } catch (DateTimeParseException e) {
+            log.debug("Data de publicacao ilegivel, ignorada: {}", text);
+            return null;
+        }
     }
 
     private static String englishDescription(JsonNode descriptions) {

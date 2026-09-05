@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import org.hamcrest.Matchers;
@@ -70,7 +71,7 @@ class NvdClientTest {
     }
 
     @Test
-    @DisplayName("le uma resposta real do NVD: id, CVSS, severidade e descricao inglesa")
+    @DisplayName("le uma resposta real do NVD: id, CVSS, vector, data e descricao inglesa")
     void parsesARealNvdResponse() {
         NvdClient client = clientWith(null);
         expectDictionary("dropbear 2017.75", "nvd-cpes-dropbear.json");
@@ -84,6 +85,12 @@ class NvdClientTest {
         assertThat(cves.get(0).cvssScore()).isEqualTo(8.1);
         assertThat(cves.get(0).severity()).isEqualTo("HIGH");
         assertThat(cves.get(0).description()).startsWith("A signal handler race condition");
+        // O vector e a anatomia da falha, e e o frontend que a traduz -- aqui so tem
+        // de chegar inteiro.
+        assertThat(cves.get(0).vector())
+                .isEqualTo("CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H");
+        // O NVD publica a data sem zona; assume-se UTC.
+        assertThat(cves.get(0).published()).isEqualTo(Instant.parse("2024-07-01T13:15:00Z"));
         server.verify();
     }
 
@@ -128,7 +135,7 @@ class NvdClientTest {
     }
 
     @Test
-    @DisplayName("um CVE sem metricas publicadas fica sem score, nao com zero")
+    @DisplayName("um CVE sem metricas publicadas fica sem score nem vector, nao com zero")
     void leavesTheScoreNullWhenNvdPublishesNoMetrics() {
         NvdClient client = clientWith(null);
         expectDictionary("dropbear 2017.75", "nvd-cpes-dropbear.json");
@@ -140,6 +147,12 @@ class NvdClientTest {
         assertThat(withoutMetrics.id()).isEqualTo("CVE-2023-51385");
         assertThat(withoutMetrics.cvssScore()).isNull();
         assertThat(withoutMetrics.hasScore()).isFalse();
+        // Score, severidade e vector vem todos do mesmo bloco cvssData: ou vem todos,
+        // ou nao vem nenhum.
+        assertThat(withoutMetrics.severity()).isNull();
+        assertThat(withoutMetrics.vector()).isNull();
+        // Sem "published" na resposta -- e uma data ausente, nao uma data invalida.
+        assertThat(withoutMetrics.published()).isNull();
     }
 
     @Test
