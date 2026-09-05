@@ -39,6 +39,7 @@ import org.springframework.web.client.RestClient;
 
 import com.portscape.config.KevProperties;
 import com.portscape.config.NvdProperties;
+import com.portscape.risk.RemediationPlanner;
 import com.portscape.risk.RiskScorer;
 import com.portscape.risk.kev.KevCatalog;
 import com.portscape.risk.nvd.PortCveEnricher;
@@ -114,6 +115,7 @@ class ScanServiceTest {
                 disabledKev(),
                 defaultEnricher(),
                 new RiskScorer(List.of()),
+                new RemediationPlanner(new RiskScorer(List.of())),
                 baselineResolver,
                 scanExecutor,
                 Clock.fixed(NOW, ZoneOffset.UTC));
