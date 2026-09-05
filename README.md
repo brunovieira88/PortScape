@@ -40,6 +40,7 @@ colour is the risk band, and anything that wasn't there last time is marked on t
   - [Live demo — no install](#just-want-to-look-around-no-install)
 - [How it works](#how-it-works)
 - [The risk model](#the-risk-model)
+- [Reading a port](#reading-a-port)
 - [Baseline and change detection](#baseline-and-change-detection)
 - [The inventory panel](#the-inventory-panel)
 - [API](#api) — and the generated [Swagger UI](#api)
@@ -79,13 +80,15 @@ running nmap, it's the two layers on top:
 
 |   | |
 |---|---|
-| **Real CVEs, not guesses** | Cross-references detected service versions against the NVD, resolving the canonical CPE first — because nmap and NIST rarely agree on a product's name. |
+| **Real CVEs, not guesses** | Cross-references detected service versions against the NVD, resolving the canonical CPE first — because nmap and NIST rarely agree on a product's name. Every port carries its own flaws: id, CVSS, severity, description and a link to the NIST record. |
+| **CVSS in plain language** | `AV:N/AC:L/PR:N/UI:N` becomes *reachable from the network · works reliably · no account needed · no user action needed*. The score stops being a number you have to trust. |
+| **Exploited in the wild** | CVEs are checked against the CISA KEV catalog. CVSS says how bad it *would* be; KEV says it *is happening*, and flags the ones used in ransomware campaigns. |
 | **Baseline diffing** | Every scan is compared against a 7-day inventory, or against a snapshot you pin yourself. New and changed devices are marked in the city. |
 | **Honest degradation** | If the NVD is unreachable the scan still completes, flagged `cveLookupDegraded`. "No CVEs found" and "couldn't check" are never shown as the same thing. |
 | **Deterministic architecture** | A building's shape is derived from its IP and its MAC vendor, so the same device looks the same in every scan. A gateway is always a spire. |
 | **Stoppable scans** | A `/24` with version detection takes minutes. Cancelling kills the nmap process itself, not just the job row — a cancel that leaves a scanner running is worse than no button at all, so there's a test that proves the process dies. |
 | **Usable without a mouse** | Every device and scan card is a real button, the details modal is a proper dialog that traps and restores focus, and progress is announced rather than only drawn. Verified in a browser, not just in jsdom. |
-| **360 tests** | 230 unit + 37 integration on the backend (Testcontainers, real PostgreSQL), 93 on the frontend. Every scoring rule, parser and layout calculation is covered. |
+| **396 tests** | 247 unit + 38 integration on the backend (Testcontainers, real PostgreSQL), 111 on the frontend. Every scoring rule, parser and layout calculation is covered. |
 
 ## Prerequisites
 
@@ -173,9 +176,10 @@ flowchart LR
     B --> C[Phase 1: discovery<br/>privileged, -sS -O]
     C --> D[Phase 2: versions<br/>unprivileged, -sT -sV]
     D --> E[ScanResultMerger]
-    E --> F[RiskScorer<br/>+ NVD CVE lookup]
-    F --> G[BaselineResolver<br/>7-day inventory]
-    G --> H[CityLayoutCalculator<br/>districts by risk band]
+    E --> F[NVD CVE lookup<br/>+ CISA KEV catalog]
+    F --> G[RiskScorer<br/>+ per-port CVE attachment]
+    G --> G2[BaselineResolver<br/>7-day inventory]
+    G2 --> H[CityLayoutCalculator<br/>districts by risk band]
     H --> I[(PostgreSQL)]
     I --> J[React Three Fiber<br/>the city]
 ```
@@ -222,6 +226,11 @@ Scores run 0–100 and saturate at the top. Every point has a reason attached.
 All weights live in `application.yml` under `portscape.risk`. They are an editorial
 judgement, not a constant of the universe — and they're meant to be argued with.
 
+**The KEV catalog deliberately scores nothing.** Knowing a flaw is being exploited right
+now belongs on the screen, not in the arithmetic: pulling an external feed into the score
+would make the same scan produce different numbers depending on whether CISA happened to
+be up. It is shown, loudly, and left out of the sum.
+
 <details>
 <summary><b>How CVE lookup actually works</b></summary>
 
@@ -244,11 +253,82 @@ The `empty-cache-ttl` is deliberately shorter than `cache-ttl`: "no CVEs" comes 
 from a genuinely clean product and from a name the NVD didn't recognise, and caching
 the second case for a week would hide the problem for a week.
 
+**At most 25 CVEs are kept per port**, highest CVSS first, and the real total is stored
+alongside them. This is not tidiness — the client doesn't paginate and the NVD returns up
+to 2000 CVEs per page, so a kernel CPE (`cpe:/o:linux:linux_kernel:5.15`) would drag
+thousands into every scan's JSON and into the database. Truncating without saying by how
+much would be lying by omission, so the panel shows *"showing the 25 highest-scoring of
+431 known CVEs"*.
+
+A flaw in something shared — the OS kernel, typically — is listed under **every** port
+that runs it, while the risk score charges for it **once**. That looks like a bug and
+isn't: the port list answers *what is known to be wrong with what runs here*, the score
+answers *what did this cost you*. Different questions, different answers.
+
 **Privacy:** only software CPE identifiers are sent to the NVD (e.g.
 `cpe:2.3:a:openbsd:openssh:9.6`) — never IP addresses, hostnames or scan results. Turn
 it off entirely with `portscape.nvd.enabled: false`.
 
 </details>
+
+<details>
+<summary><b>The second source: what is actually being exploited</b></summary>
+
+<br>
+
+CVSS measures how bad a flaw *would* be for whoever exploits it. It says nothing about
+whether anyone is. A 7.5 used in ransomware campaigns this week is more urgent than a 9.8
+from 2015 that never had a public exploit, and without a second source the two are
+indistinguishable.
+
+So every CVE is checked against the [CISA Known Exploited Vulnerabilities
+catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) — a single public
+JSON file, no key, no rate limit. A match brings the date CISA added it, the remediation
+they require, and whether it has been seen in ransomware.
+
+The catalog is fetched once a day, not per scan, and enrichment happens **after** the NVD
+cache: that cache lasts seven days and the catalog changes daily, so storing the KEV state
+next to the cached CVE would make today's scan show what was true last week.
+
+When the fetch fails, the previous catalog is kept rather than emptied. The asymmetry is
+the point — an unreachable catalog means *"I couldn't check"*, never *"it isn't being
+exploited"*, and stale information beats silence that reads as safety. Turn it off with
+`portscape.kev.enabled: false`.
+
+</details>
+
+## Reading a port
+
+nmap tells you `445/tcp open microsoft-ds`. That is a fact with no consequence attached.
+Click the port and it opens:
+
+```
+445  MICROSOFT-DS · Samba smbd 4.6.2          EXPLOITED   31 CVES  ⌄
+
+     CVE-2017-7494   9.8 CRITICAL   ACTIVELY EXPLOITED · RANSOMWARE
+     [reachable from the network] [works reliably] [no account needed]
+     [no user action needed] [reads everything] [alters everything] [can take it down]
+     Samba since 3.5.0 allows remote authenticated users to upload a shared library
+     to a writable share and cause the server to load and execute it.
+     CISA: Apply updates per vendor instructions.
+
+     Showing the 25 highest-scoring of 31 known CVEs.
+```
+
+Three things are doing work there.
+
+**The version.** Without `4.6.2` there is no CVE to look up — a service name alone
+matches everything and nothing.
+
+**The vector, translated.** `AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` is the anatomy of the
+flaw, and it is what makes a 9.8 mean something instead of asking you to trust it. The
+translation handles all three CVSS formats, because a service with any history returns
+all three at once: v2 has no prefix and calls authentication `Au`, v3.x puts impact in
+`C`/`I`/`A`, and v4.0 carries thirty-two metrics of which the NVD writes twenty-one as
+`:X` — 174 characters, 63 of them meaning anything.
+
+**The KEV badge.** Everything above it is a description of what could happen. That badge
+says it is happening.
 
 ## Baseline and change detection
 
@@ -342,11 +422,23 @@ curl localhost:8080/api/scans/<id> | jq
       ],
       "change": "UNCHANGED", "isNew": false, "isChanged": false,
       "ports": [
-        {"number": 22, "protocol": "tcp", "state": "open",
-         "service": "ssh", "product": "Dropbear sshd", "version": "2017.75",
-         "cpes": ["cpe:/a:matt_johnston:dropbear_ssh_server:2017.75"]},
+        {"number": 445, "protocol": "tcp", "state": "open",
+         "service": "microsoft-ds", "product": "Samba smbd", "version": "4.6.2",
+         "cpes": ["cpe:/a:samba:samba:4.6.2"],
+         "cveTotal": 31,
+         "cves": [
+           {"id": "CVE-2017-7494", "cvssScore": 9.8, "severity": "CRITICAL",
+            "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            "published": "2017-05-30T20:29:00Z",
+            "description": "Samba since 3.5.0 allows remote authenticated users to upload a shared library...",
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2017-7494",
+            "kev": {"dateAdded": "2023-03-30", "knownRansomwareUse": true,
+                    "vulnerabilityName": "Samba Remote Code Execution Vulnerability",
+                    "requiredAction": "Apply updates per vendor instructions."}}
+         ]},
         {"number": 23, "protocol": "tcp", "state": "open",
-         "service": "telnet", "product": "BusyBox telnetd", "version": null, "cpes": []}
+         "service": "telnet", "product": "BusyBox telnetd", "version": null,
+         "cpes": [], "cves": [], "cveTotal": 0}
       ] }
   ]
 }
@@ -377,7 +469,8 @@ Everything lives in `backend/src/main/resources/application.yml`:
 | Prefix | Controls |
 |---|---|
 | `portscape.nmap` | `command`, `default-target`, `arguments`, `timeout`, `host-timeout` |
-| `portscape.nvd` | `enabled`, `base-url`, `api-key`, `timeout`, `min-request-interval`, `cache-ttl`, `empty-cache-ttl` |
+| `portscape.nvd` | `enabled`, `base-url`, `api-key`, `timeout`, `min-request-interval`, `cache-ttl`, `empty-cache-ttl`, `max-cves-per-port` |
+| `portscape.kev` | `enabled`, `feed-url`, `timeout`, `refresh-interval` — the CISA exploited-in-the-wild catalog |
 | `portscape.risk` | `port-weights` and the weight of every scoring rule |
 | `portscape.baseline` | `window` — how far back the inventory reaches (default 7 days) |
 | `portscape.layout` | `spacing`, `grid-width`, `district-gap` for the 3D layout |
@@ -394,11 +487,11 @@ VPN), and keeps the target correct when you move between networks.
 
 ```bash
 cd backend
-mvn test        # 230 unit tests, seconds, no Docker needed
-mvn verify      # + 37 integration tests (Testcontainers, needs Docker)
+mvn test        # 247 unit tests, seconds, no Docker needed
+mvn verify      # + 38 integration tests (Testcontainers, needs Docker)
 
 cd frontend
-npm test        # 93 tests
+npm test        # 111 tests
 npx tsc -b      # type check
 ```
 
@@ -418,6 +511,8 @@ portscape/
 │   ├── api/            REST controllers — thin, logic lives below
 │   ├── scan/           nmap execution and XML parsing
 │   ├── risk/           risk scoring
+│   │   ├── nvd/        NVD lookup, caching, per-port CVE attachment
+│   │   └── kev/        CISA exploited-in-the-wild catalog
 │   ├── baseline/       baseline resolution and diffing
 │   ├── layout/         3D city layout calculation
 │   ├── domain/         JPA entities (Host, Port, Scan, Baseline)
@@ -428,6 +523,7 @@ portscape/
 │   │   ├── buildings/  per-archetype geometry — house, tower, windows
 │   │   └── highlights/ new/changed host markers
 │   ├── ui/             side panels, modals, scan history
+│   ├── knowledge/      CVSS vectors translated into plain language
 │   ├── api/            REST client, shared API types, the scan-polling hook
 │   └── mock/           offline demo data (no backend needed)
 ├── package.json        root `npm run dev` — orchestration only, no app code
