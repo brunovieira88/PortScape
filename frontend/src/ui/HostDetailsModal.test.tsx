@@ -41,6 +41,61 @@ describe('HostDetailsModal', () => {
   });
 
 
+  it('diz por onde comecar, e quanto e que cada accao vale', () => {
+    render(<HostDetailsModal host={hostOf({
+      riskScore: 73, riskBand: 'HIGH',
+      remediation: [
+        { code: 'CLOSE_PORT', action: 'Fechar a porta 445/tcp (microsoft-ds)',
+          pointsRemoved: 69, scoreAfter: 4 },
+        { code: 'UPDATE_SERVICE', action: 'Actualizar Samba smbd 4.6.2 na porta 445/tcp',
+          pointsRemoved: 39, scoreAfter: 34 },
+      ],
+    })} onClose={vi.fn()} />);
+
+    expect(screen.getByText('What to fix first')).toBeDefined();
+    expect(screen.getByText('Fechar a porta 445/tcp (microsoft-ds)')).toBeDefined();
+    expect(screen.getByText('−69')).toBeDefined();
+    // Exacto, e nao um regex: 'score -> 4' e 'score -> 34' estao os dois no ecra.
+    expect(screen.getByText('score → 4')).toBeDefined();
+    expect(screen.getByText('score → 34')).toBeDefined();
+  });
+
+  it('num host saturado diz que o score nao se mexe -- e essa a mensagem verdadeira', () => {
+    // Razoes a somar 142, score 100. Tirar 39 leva a 103, que continua a mostrar 100.
+    // Sem isto o painel dizia "-39, score -> 100" e parecia que a accao nao valia nada.
+    render(<HostDetailsModal host={hostOf({
+      riskScore: 100, riskBand: 'CRITICAL',
+      remediation: [
+        { code: 'UPDATE_SERVICE', action: 'Actualizar Samba smbd 4.6.2 na porta 445/tcp',
+          pointsRemoved: 39, scoreAfter: 100 },
+      ],
+    })} onClose={vi.fn()} />);
+
+    expect(screen.getByText('−39')).toBeDefined();
+    expect(screen.getByText(/still/)).toBeDefined();
+    expect(screen.getByText('CRITICAL')).toBeDefined();
+  });
+
+  it('mostra so as accoes que interessam, e diz quantas ficaram de fora', () => {
+    const many = [80, 39, 25, 12, 5, 2].map((points, i) => ({
+      code: 'CLOSE_PORT', action: `Accao ${i}`, pointsRemoved: points, scoreAfter: 100 - points,
+    }));
+    render(<HostDetailsModal host={hostOf({ riskScore: 100, riskBand: 'CRITICAL', remediation: many })}
+                             onClose={vi.fn()} />);
+
+    // Uma accao de 2 pontos ao lado de uma de 80 e ruido; a lista existe para dizer
+    // por onde COMECAR. Mas o que fica de fora tem de ser dito.
+    expect(screen.getByText('Accao 3')).toBeDefined();
+    expect(screen.queryByText('Accao 4')).toBeNull();
+    expect(screen.getByText(/2 smaller action\(s\) not shown/)).toBeDefined();
+  });
+
+  it('um host sem nada a corrigir nao mostra a seccao vazia', () => {
+    render(<HostDetailsModal host={hostOf({ riskScore: 0, riskBand: 'LOW' })} onClose={vi.fn()} />);
+
+    expect(screen.queryByText('What to fix first')).toBeNull();
+  });
+
   it('cada porta diz o que la corre -- sem versao nao ha CVE que se interprete', () => {
     render(<HostDetailsModal host={hostOf({
       portCount: 1,
