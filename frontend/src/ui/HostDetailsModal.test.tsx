@@ -112,13 +112,55 @@ describe('HostDetailsModal', () => {
     expect(screen.getByText(/Apply updates per vendor instructions/)).toBeDefined();
   });
 
-  it('uma porta sem CVEs nao vira botao -- nao ha nada para abrir', () => {
+  it('uma porta sem CVEs abre na mesma quando ha dossie -- o Telnet nao tem falha, e a falha', async () => {
+    const user = userEvent.setup();
     render(<HostDetailsModal host={hostOf({
       portCount: 1,
-      ports: [{ number: 80, protocol: 'tcp', state: 'open', service: 'http' }],
+      ports: [{ number: 23, protocol: 'tcp', state: 'open', service: 'telnet' }],
     })} onClose={vi.fn()} />);
 
-    expect(screen.queryByRole('button', { name: /http/i })).toBeNull();
+    // Sem CVEs o rotulo e neutro: nem tudo o que se explica e um problema.
+    expect(screen.getByText('Info')).toBeDefined();
+
+    await user.click(screen.getByRole('button', { name: /telnet/i }));
+
+    expect(screen.getByText('Telnet')).toBeDefined();
+    expect(screen.getByText(/travels the network in plain text/)).toBeDefined();
+    expect(screen.getByText(/reads the administrator credentials/)).toBeDefined();
+    expect(screen.getByText(/Turn it off and use SSH instead/)).toBeDefined();
+    expect(screen.getByText('SSH (22)')).toBeDefined();
+  });
+
+  it('o dossie vem antes dos CVEs -- primeiro o que isto e, depois o que esta mal', async () => {
+    const user = userEvent.setup();
+    render(<HostDetailsModal host={hostOf({
+      portCount: 1,
+      ports: [{
+        number: 445, protocol: 'tcp', state: 'open', service: 'microsoft-ds',
+        product: 'Samba smbd', version: '4.6.2', cveTotal: 1,
+        cves: [{ id: 'CVE-2017-7494', cvssScore: 9.8, severity: 'CRITICAL' }],
+      }],
+    })} onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: /microsoft-ds/i }));
+
+    const dossier = screen.getByText('SMB');
+    const cve = screen.getByText('CVE-2017-7494');
+    // compareDocumentPosition: 4 = o segundo no vem DEPOIS do primeiro no documento.
+    expect(dossier.compareDocumentPosition(cve) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Com as duas coisas no mesmo painel, os CVEs precisam de um cabecalho proprio.
+    expect(screen.getByText(/Known flaws in this version/i)).toBeDefined();
+  });
+
+  it('uma porta sem CVEs e sem dossie continua a nao ser botao', () => {
+    // O 8443 nao tem peso proprio no application.yml, logo nao tem dossie: nao ha
+    // gaveta nenhuma para abrir, e um botao que abre o vazio e pior do que nada.
+    render(<HostDetailsModal host={hostOf({
+      portCount: 1,
+      ports: [{ number: 8443, protocol: 'tcp', state: 'open', service: 'https-alt' }],
+    })} onClose={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: /https-alt/i })).toBeNull();
   });
 
   it('avisa dentro do dialogo quando a consulta de CVEs ficou incompleta', () => {

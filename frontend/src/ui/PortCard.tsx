@@ -2,13 +2,18 @@ import { useState } from 'react';
 import type { Cve, Port } from '../api/types';
 import { severityOf } from '../api/types';
 import { explainVector } from '../knowledge/cvss';
+import { dossierFor, type PortDossier } from '../knowledge/ports';
 import { bandColor } from '../scene/Building';
 
 /**
- * Uma porta aberta e o que se sabe estar mal no que corre nela.
+ * Uma porta aberta: o que ela é, e o que se sabe estar mal no que corre nela.
  *
  * Vive à parte do HostDetailsModal porque é a parte que cresce: o modal trata do
  * diálogo (foco, teclado, layout) e isto trata do conteúdo de uma porta.
+ *
+ * A ordem do painel é a ordem em que se lê: primeiro o protocolo, depois as falhas
+ * daquela versão. Uma porta pode ter dossiê e nenhum CVE — o Telnet não tem falha, o
+ * Telnet é a falha — e é por isso que a porta abre mesmo sem CVEs.
  *
  * A lista de CVEs vem do backend truncada em `portscape.nvd.max-cves-per-port` e já
  * ordenada do pior CVSS para o menos grave — não se reordena aqui. Um CPE de kernel
@@ -22,6 +27,11 @@ export function PortCard({ port }: { port: Port }) {
   const total = port.cveTotal ?? cves.length;
   const worst = cves.length > 0 ? severityOf(cves[0]) : null;
   const exploited = cves.filter((cve) => cve.kev);
+  const dossier = dossierFor(port.number);
+
+  // Sem falhas conhecidas e sem dossiê não há nada para abrir, e um botão que abre uma
+  // gaveta vazia é pior do que não haver botão.
+  const expandable = cves.length > 0 || dossier !== undefined;
 
   // O que o nmap identificou a correr aqui. Sem versão não há CVE possível, por isso
   // vale a pena mostrá-la mesmo quando não há falhas conhecidas.
@@ -39,7 +49,7 @@ export function PortCard({ port }: { port: Port }) {
         </div>
         <div className="text-[11px] font-mono text-gray-400">{port.state} • {port.protocol}</div>
       </div>
-      {cves.length > 0 && (
+      {expandable && (
         <div className="flex items-center gap-2 shrink-0">
           {exploited.length > 0 && (
             <span
@@ -49,12 +59,20 @@ export function PortCard({ port }: { port: Port }) {
               Exploited
             </span>
           )}
-          <span
-            className="text-[11px] font-mono font-bold px-2 py-0.5 rounded"
-            style={{ color: bandColor(worst), backgroundColor: `${bandColor(worst)}26` }}
-          >
-            {total} CVE{total === 1 ? '' : 'S'}
-          </span>
+          {cves.length > 0 ? (
+            <span
+              className="text-[11px] font-mono font-bold px-2 py-0.5 rounded"
+              style={{ color: bandColor(worst), backgroundColor: `${bandColor(worst)}26` }}
+            >
+              {total} CVE{total === 1 ? '' : 'S'}
+            </span>
+          ) : (
+            // Sem falhas conhecidas, mas há o que dizer sobre o protocolo. Neutro de
+            // propósito: nem tudo o que se explica é um problema.
+            <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded text-[#00f0ff] bg-[#00f0ff]/15">
+              Info
+            </span>
+          )}
           <svg
             className={`w-3 h-3 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}
             fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"
@@ -66,13 +84,11 @@ export function PortCard({ port }: { port: Port }) {
     </>
   );
 
-  const panelId = `port-${port.number}-${port.protocol}-cves`;
+  const panelId = `port-${port.number}-${port.protocol}-detail`;
 
   return (
     <div className="bg-black/60 border border-white/10 rounded overflow-hidden">
-      {cves.length === 0 ? (
-        <div className="flex items-center gap-3 p-2">{header}</div>
-      ) : (
+      {expandable ? (
         <button
           type="button"
           onClick={() => setOpen(!open)}
@@ -82,17 +98,79 @@ export function PortCard({ port }: { port: Port }) {
         >
           {header}
         </button>
+      ) : (
+        <div className="flex items-center gap-3 p-2">{header}</div>
       )}
 
-      {open && cves.length > 0 && (
+      {open && expandable && (
         <div id={panelId} className="border-t border-white/10 p-4 space-y-4">
-          {cves.map((cve) => <CveRow key={cve.id} cve={cve} />)}
-          {total > cves.length && (
-            <div className="text-[11px] font-mono text-gray-400 pt-1">
-              Showing the {cves.length} highest-scoring of {total} known CVEs.
+          {dossier && <DossierSection dossier={dossier} />}
+
+          {cves.length > 0 && (
+            <div className="space-y-4">
+              {dossier && (
+                <h4 className="text-[10px] font-bold text-gray-500 tracking-[0.2em] uppercase">
+                  Known flaws in this version
+                </h4>
+              )}
+              {cves.map((cve) => <CveRow key={cve.id} cve={cve} />)}
+              {total > cves.length && (
+                <div className="text-[11px] font-mono text-gray-400 pt-1">
+                  Showing the {cves.length} highest-scoring of {total} known CVEs.
+                </div>
+              )}
             </div>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * O que o protocolo é, porque está aqui, o que o adversário ganha e como se fecha.
+ *
+ * Mecanismo e consequência, nunca procedimento — o conteúdo vem de `knowledge/ports.ts`
+ * e essa é a regra editorial que o alimenta.
+ */
+function DossierSection({ dossier }: { dossier: PortDossier }) {
+  return (
+    <div className="border-l-2 border-[#00f0ff]/40 pl-3">
+      <h4 className="text-xs font-bold text-[#00f0ff] tracking-wider mb-1.5">{dossier.name}</h4>
+      <p className="text-xs text-gray-300 leading-relaxed">{dossier.summary}</p>
+
+      <p className="text-xs text-gray-400 leading-relaxed mt-2">
+        <span className="text-gray-500 uppercase text-[10px] tracking-widest">Why it's here — </span>
+        {dossier.whyItExists}
+      </p>
+
+      {/* A parte que justifica o peso da porta no score. */}
+      <p className="text-xs text-[#ff8a00]/90 leading-relaxed mt-2">
+        <span className="text-[#ff8a00] uppercase text-[10px] tracking-widest font-bold">
+          What an attacker gains —{' '}
+        </span>
+        {dossier.attackerValue}
+      </p>
+
+      <div className="mt-2">
+        <div className="text-gray-500 uppercase text-[10px] tracking-widest mb-1">How to fix</div>
+        <ul className="space-y-0.5">
+          {dossier.hardening.map((step) => (
+            <li key={step} className="text-xs text-gray-300 leading-relaxed flex gap-2">
+              <span className="text-[#00f0ff]/60 shrink-0">·</span>
+              <span>{step}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {dossier.safeAlternative && (
+        <p className="text-xs text-gray-300 mt-2">
+          <span className="text-gray-500 uppercase text-[10px] tracking-widest">
+            Safe alternative —{' '}
+          </span>
+          <span className="text-[#00f0ff]">{dossier.safeAlternative}</span>
+        </p>
       )}
     </div>
   );
