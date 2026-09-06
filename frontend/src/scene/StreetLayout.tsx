@@ -12,7 +12,7 @@ type Transform = { pos: [number, number, number], rot?: [number, number, number]
 /**
  * Desenha a mesma geometria em muitos sitios com uma so chamada de desenho.
  *
- * <p>A rua era o objecto mais pesado da aplicacao inteira, e por larga margem: 17
+ * A rua era o objecto mais pesado da aplicacao inteira, e por larga margem: 17
  * meshes por quarteirao -- passeio, dez tracos de estrada e adereços de esquina --
  * davam 4352 objectos num chao de 16x16, contra umas dezenas para os edificios todos.
  * Como as geometrias sao identicas e so mudam de sitio, instancia-las reduz isso a uma

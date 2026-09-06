@@ -395,6 +395,10 @@ flaw, and it is what makes a 9.8 mean something instead of asking you to trust i
 **The KEV badge.** Everything above it is a description of what could happen. That badge
 says it is happening.
 
+<p align="center">
+  <img src="docs/screenshot-port-detail.png" alt="An open port expanded: the SMB dossier, what an attacker gains, and how to fix it" width="80%">
+</p>
+
 <details>
 <summary><b>The port that has no CVEs</b></summary>
 
@@ -550,7 +554,7 @@ curl localhost:8080/api/scans/<id> | jq
 ```
 
 <p align="center">
-  <img src="docs/screenshot-panel.png" alt="The full host detail modal: risk profile, system identity, security audit log and open ports" width="85%">
+  <img src="docs/screenshot-panel.png" alt="The host detail modal: risk score, the ordered fix list, and the likely attack path with its ATT&amp;CK tactics" width="85%">
   <br>
   <sub>The same data the JSON below carries, laid out for a person instead of a parser.</sub>
 </p>

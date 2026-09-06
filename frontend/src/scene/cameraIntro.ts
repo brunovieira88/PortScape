@@ -1,11 +1,11 @@
 /**
  * O voo de chegada a cidade.
  *
- * <p>A camara nasce no ar, olha para baixo, e desce ate a altura dos olhos enquanto
+ * A camara nasce no ar, olha para baixo, e desce ate a altura dos olhos enquanto
  * endireita o olhar. E a primeira coisa que se ve de um scan, e serve para mostrar a
  * planta toda antes de deixar o utilizador ao nivel da rua, onde ja so ve a sua rua.
  *
- * <p>Logica pura de propositio: as coordenadas por onde o voo passa -- e sobretudo onde
+ * Logica pura de propositio: as coordenadas por onde o voo passa -- e sobretudo onde
  * ele <i>acaba</i> -- sao a parte que interessa fixar em teste. Ver o spawnPointFor no
  * cityGrid, que e quem escolhe o sitio.
  */
@@ -30,9 +30,9 @@ export interface IntroFrame {
 }
 
 /**
- * O estado do voo a {@code elapsed} segundos do inicio.
+ * O estado do voo a `elapsed` segundos do inicio.
  *
- * <p>O amortecimento e um {@code ease-out} cubico: comeca depressa e chega devagar, que
+ * O amortecimento e um `ease-out` cubico: comeca depressa e chega devagar, que
  * e o que faz a descida parecer uma aterragem e nao uma queda. Passado o tempo todo os
  * valores ficam exatamente nos de chegada -- nao "quase la" -- para a camara nao ficar
  * a pairar meio metro acima do chao com uma inclinacao residual.

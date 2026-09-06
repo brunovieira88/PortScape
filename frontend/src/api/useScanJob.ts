@@ -41,14 +41,14 @@ export interface ScanJobCallbacks {
 /**
  * Toda a conversa com o backend sobre scans: arranque, sondagem, progresso e erros.
  *
- * <p>Vive fora do componente pelo mesmo motivo que o {@link buildCityGrid}: e aqui que
+ * Vive fora do componente pelo mesmo motivo que o `buildCityGrid`: e aqui que
  * estao as unicas decisoes do frontend que ja produziram bugs -- a barra de progresso
  * inventada que ignorava o campo real do backend, a sondagem que continuava para
  * sempre depois de um scan ser apagado, e a resposta atrasada que pintava por cima do
  * scan que o utilizador tinha aberto entretanto. Dentro do App, so se testava montando
  * a cena 3D inteira; aqui testa-se com temporizadores falsos e um cliente mockado.
  *
- * <p>O que e interface -- que paineis estao abertos, que host esta seleccionado -- fica
+ * O que e interface -- que paineis estao abertos, que host esta seleccionado -- fica
  * de fora de proposito, e chega ca por callbacks. O hook decide *quando* a cidade muda;
  * quem manda no ecra e o componente.
  */

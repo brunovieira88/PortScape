@@ -1,14 +1,14 @@
 /**
  * A forma do JSON que o backend serve, escrita uma vez.
  *
- * <p>E um espelho manual dos records em `backend/src/main/java/com/portscape/api/dto/`
+ * E um espelho manual dos records em `backend/src/main/java/com/portscape/api/dto/`
  * -- nao ha geracao de codigo, e de proposito: um ficheiro que se le de uma vez custa
  * menos do que uma toolchain que so serve para isto. Em troca, quem mexer num DTO tem
  * de vir aqui. O `mock/demoScan.ts` existe para isso nao passar despercebido: a
  * fixture da demo e verificada contra estes tipos pelo `tsc`, portanto um campo que
  * mude de nome no backend rebenta o build assim que a fixture for actualizada.
  *
- * <p><b>Nulos.</b> O `ScanResponse` e o `HostDto` levam `@JsonInclude(NON_NULL)`, logo
+ * Nulos. O `ScanResponse` e o `HostDto` levam `@JsonInclude(NON_NULL)`, logo
  * os campos nulos nem chegam a aparecer no JSON; o `PortDto` nao leva, e os dele
  * chegam como `null` explicito. Os tipos aqui aceitam as duas formas (`?: T | null`)
  * porque as duas acontecem de facto -- e porque a fixture da demo, escrita a mao,
@@ -154,7 +154,7 @@ export interface District {
 /**
  * A cidade calculada pelo backend (`layout/CityLayout.java`).
  *
- * <p>Nao vem na listagem de scans -- ver `ScanResponse.withoutHosts()` -- por isso e
+ * Nao vem na listagem de scans -- ver `ScanResponse.withoutHosts()` -- por isso e
  * opcional aqui, e o `buildCityGrid` tem de continuar a aguentar a sua ausencia.
  */
 export interface CityLayout {
@@ -195,7 +195,7 @@ export interface ScanError {
 /**
  * O envelope canonico de um scan (`ScanResponse`).
  *
- * <p>A listagem devolve isto sem `layout` e com `hosts`/`ruins` vazios: um historico
+ * A listagem devolve isto sem `layout` e com `hosts`/`ruins` vazios: um historico
  * nao precisa da cidade toda. E a mesma forma, com menos preenchido.
  */
 export interface Scan {

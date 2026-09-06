@@ -12,7 +12,7 @@ Guia de contexto para o Claude Code trabalhar neste projeto. Lê isto antes de q
 ## Stack
 
 - **Backend:** Java 21 + Spring Boot 3 (REST API, execução assíncrona do scan)
-- **Scanning:** nmap via `ProcessBuilder`, output em XML (`-oX -`), parse com JAXB ou uma lib tipo Nmap4j
+- **Scanning:** nmap via `ProcessBuilder`, output em XML (`-oX -`), parse com Jackson XML (`jackson-dataformat-xml`) — ver `scan/xml/`
 - **Persistência:** PostgreSQL — guarda histórico de scans para permitir comparação/baseline entre snapshots
 - **Frontend:** React + TypeScript + React Three Fiber (Three.js) para a cena 3D
 - **Comunicação:** REST simples (polling do estado do job) — não usar WebSocket a não ser que sirva um propósito claro (ex: progresso do scan em tempo real)
