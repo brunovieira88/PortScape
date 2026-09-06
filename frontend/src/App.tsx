@@ -9,6 +9,7 @@ import type { Host } from './api/types';
 import { DeviceListPanel } from './ui/DeviceListPanel';
 import { HostDetailsModal } from './ui/HostDetailsModal';
 import { HistoryPanel } from './ui/HistoryPanel';
+import { ReportDocument } from './report/ReportDocument';
 
 export default function App() {
   const [selectedHost, setSelectedHost] = useState<Host | null>(null);
@@ -44,7 +45,11 @@ export default function App() {
   const anyPanelOpen = isHistoryOpen || isInventoryOpen;
 
   return (
-    <div className="w-screen h-screen bg-black overflow-hidden relative font-sans text-white select-none">
+    <>
+    {/* `app-shell` e `report-document` sao irmaos e nao pai/filho de proposito: na
+        impressao um esconde-se e o outro aparece, e um relatorio dentro do ecra
+        desaparecia com ele. Ver report/print.css. */}
+    <div className="app-shell w-screen h-screen bg-black overflow-hidden relative font-sans text-white select-none">
       
       {/* AVISO DE MOCK DATA GLOBAL */}
       {scanData.id === demoScan.id && (
@@ -245,5 +250,8 @@ export default function App() {
         }
       `}</style>
     </div>
+
+    <ReportDocument scan={scanData} />
+    </>
   );
 }

@@ -34,7 +34,7 @@ public class UnknownHostRule implements RiskRule {
             return List.of();
         }
         return List.of(new RiskReason(CODE,
-                "Dispositivo novo: nao existia no scan de referencia",
+                "New device: it was not in the reference scan",
                 properties.unknownHostPoints()));
     }
 }

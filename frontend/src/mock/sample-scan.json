@@ -74,7 +74,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 12
         }
       ],
@@ -88,7 +88,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 12,
           "scoreAfter": 0
         }
@@ -144,12 +144,12 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Telnet (23/tcp) expoe credenciais em texto limpo",
+          "description": "Telnet (23/tcp) expoe credenciais in texto limpo",
           "points": 40
         },
         {
           "code": "OPEN_PORT",
-          "description": "SMB (445/tcp) exposto na rede",
+          "description": "Port 445/tcp (SMB) open",
           "points": 25
         },
         {
@@ -168,13 +168,13 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 23/tcp (telnet)",
+          "action": "Close port 23/tcp (telnet)",
           "pointsRemoved": 40,
           "scoreAfter": 55
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "action": "Close port 445/tcp (microsoft-ds)",
           "pointsRemoved": 25,
           "scoreAfter": 70
         }
@@ -216,12 +216,12 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "RDP (3389/tcp) exposto na rede",
+          "description": "Port 3389/tcp (RDP) open",
           "points": 35
         },
         {
           "code": "UNKNOWN_HOST",
-          "description": "Host novo, nao visto em scans anteriores",
+          "description": "New device: it was not in the reference scan",
           "points": 25
         }
       ],
@@ -235,7 +235,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 3389/tcp (ms-wbt-server)",
+          "action": "Close port 3389/tcp (ms-wbt-server)",
           "pointsRemoved": 35,
           "scoreAfter": 25
         }
@@ -276,7 +276,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "2 portas comuns expostas (631, 9100)",
+          "description": "2 ports open with no weight of their own: 631/tcp (ipp: CUPS 2.3), 9100/tcp (jetdirect)",
           "points": 35
         }
       ],

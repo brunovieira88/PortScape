@@ -132,11 +132,11 @@ public class RemediationPlanner {
         String where = port.number() + "/" + (port.protocol() == null ? "tcp" : port.protocol());
         if (CLOSE_PORT.equals(code)) {
             return port.service() == null
-                    ? "Fechar a porta " + where
-                    : "Fechar a porta " + where + " (" + port.service() + ")";
+                    ? "Close port " + where
+                    : "Close port " + where + " (" + port.service() + ")";
         }
-        return "Actualizar " + port.product()
+        return "Update " + port.product()
                 + (port.version() == null ? "" : " " + port.version())
-                + " na porta " + where;
+                + " on port " + where;
     }
 }

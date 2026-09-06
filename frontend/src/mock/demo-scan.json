@@ -104,12 +104,12 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 443/tcp (https) exposta",
+          "description": "Port 443/tcp (https) open",
           "points": 2
         },
         {
           "code": "KNOWN_CVE",
-          "description": "CVE-2019-11072 (CVSS 9.8) em lighttpd 1.4.53 na porta 443",
+          "description": "CVE-2019-11072 (CVSS 9.8) in lighttpd 1.4.53 on port 443",
           "points": 39
         }
       ],
@@ -123,13 +123,13 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 443/tcp (https)",
+          "action": "Close port 443/tcp (https)",
           "pointsRemoved": 41,
           "scoreAfter": 0
         },
         {
           "code": "UPDATE_SERVICE",
-          "action": "Actualizar lighttpd 1.4.53 na porta 443/tcp",
+          "action": "Update lighttpd 1.4.53 on port 443/tcp",
           "pointsRemoved": 39,
           "scoreAfter": 2
         }
@@ -194,22 +194,22 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "MYSQL (3306/tcp) exposto na rede",
+          "description": "Port 3306/tcp (MYSQL) open",
           "points": 20
         },
         {
           "code": "OPEN_PORT",
-          "description": "Porta 22/tcp (ssh) exposta",
+          "description": "Port 22/tcp (ssh) open",
           "points": 5
         },
         {
           "code": "OPEN_PORT",
-          "description": "REDIS (6379/tcp) exposto na rede",
+          "description": "Port 6379/tcp (REDIS) open",
           "points": 25
         },
         {
           "code": "OPEN_PORT",
-          "description": "POSTGRESQL (5432/tcp) exposto na rede",
+          "description": "Port 5432/tcp (POSTGRESQL) open",
           "points": 20
         }
       ],
@@ -223,25 +223,25 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 6379/tcp (redis)",
+          "action": "Close port 6379/tcp (redis)",
           "pointsRemoved": 25,
           "scoreAfter": 45
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 3306/tcp (mysql)",
+          "action": "Close port 3306/tcp (mysql)",
           "pointsRemoved": 20,
           "scoreAfter": 50
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 5432/tcp (postgresql)",
+          "action": "Close port 5432/tcp (postgresql)",
           "pointsRemoved": 20,
           "scoreAfter": 50
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 22/tcp (ssh)",
+          "action": "Close port 22/tcp (ssh)",
           "pointsRemoved": 5,
           "scoreAfter": 65
         }
@@ -273,7 +273,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "NETBIOS-SSN (139/tcp) exposto na rede",
+          "description": "Port 139/tcp (NETBIOS-SSN) open",
           "points": 20
         }
       ],
@@ -287,7 +287,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 139/tcp (netbios-ssn)",
+          "action": "Close port 139/tcp (netbios-ssn)",
           "pointsRemoved": 20,
           "scoreAfter": 0
         }
@@ -319,7 +319,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "MSRPC (135/tcp) exposto na rede",
+          "description": "Port 135/tcp (MSRPC) open",
           "points": 20
         }
       ],
@@ -333,7 +333,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 135/tcp (msrpc)",
+          "action": "Close port 135/tcp (msrpc)",
           "pointsRemoved": 20,
           "scoreAfter": 0
         }
@@ -365,7 +365,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
+          "description": "Port 3389/tcp (MS-WBT-SERVER) open",
           "points": 30
         }
       ],
@@ -379,7 +379,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 3389/tcp (ms-wbt-server)",
+          "action": "Close port 3389/tcp (ms-wbt-server)",
           "pointsRemoved": 30,
           "scoreAfter": 0
         }
@@ -411,7 +411,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 22/tcp (ssh) exposta",
+          "description": "Port 22/tcp (ssh) open",
           "points": 5
         }
       ],
@@ -425,7 +425,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 22/tcp (ssh)",
+          "action": "Close port 22/tcp (ssh)",
           "pointsRemoved": 5,
           "scoreAfter": 0
         }
@@ -457,7 +457,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 5
         }
       ],
@@ -471,7 +471,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 5,
           "scoreAfter": 0
         }
@@ -525,17 +525,17 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
+          "description": "Port 3389/tcp (MS-WBT-SERVER) open",
           "points": 30
         },
         {
           "code": "OPEN_PORT",
-          "description": "MSRPC (135/tcp) exposto na rede",
+          "description": "Port 135/tcp (MSRPC) open",
           "points": 20
         },
         {
           "code": "OPEN_PORT",
-          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "description": "Port 445/tcp (MICROSOFT-DS) open",
           "points": 30
         }
       ],
@@ -549,19 +549,19 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 3389/tcp (ms-wbt-server)",
+          "action": "Close port 3389/tcp (ms-wbt-server)",
           "pointsRemoved": 30,
           "scoreAfter": 50
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "action": "Close port 445/tcp (microsoft-ds)",
           "pointsRemoved": 30,
           "scoreAfter": 50
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 135/tcp (msrpc)",
+          "action": "Close port 135/tcp (msrpc)",
           "pointsRemoved": 20,
           "scoreAfter": 60
         }
@@ -615,22 +615,22 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 5
         },
         {
           "code": "OPEN_PORT",
-          "description": "TELNET (23/tcp) exposto na rede",
+          "description": "Port 23/tcp (TELNET) open",
           "points": 35
         },
         {
           "code": "OPEN_PORT",
-          "description": "3 porta(s) comuns expostas",
+          "description": "Port 554/tcp (rtsp) open",
           "points": 8
         },
         {
           "code": "UNKNOWN_HOST",
-          "description": "Host novo, nao visto em scans anteriores",
+          "description": "New device: it was not in the reference scan",
           "points": 25
         }
       ],
@@ -644,13 +644,13 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 23/tcp (telnet)",
+          "action": "Close port 23/tcp (telnet)",
           "pointsRemoved": 35,
           "scoreAfter": 38
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 5,
           "scoreAfter": 68
         }
@@ -682,7 +682,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 5
         }
       ],
@@ -696,7 +696,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 5,
           "scoreAfter": 0
         }
@@ -739,12 +739,12 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "MSRPC (135/tcp) exposto na rede",
+          "description": "Port 135/tcp (MSRPC) open",
           "points": 20
         },
         {
           "code": "OPEN_PORT",
-          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "description": "Port 445/tcp (MICROSOFT-DS) open",
           "points": 30
         }
       ],
@@ -758,13 +758,13 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "action": "Close port 445/tcp (microsoft-ds)",
           "pointsRemoved": 30,
           "scoreAfter": 20
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 135/tcp (msrpc)",
+          "action": "Close port 135/tcp (msrpc)",
           "pointsRemoved": 20,
           "scoreAfter": 30
         }
@@ -829,22 +829,22 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "NETBIOS-SSN (139/tcp) exposto na rede",
+          "description": "Port 139/tcp (NETBIOS-SSN) open",
           "points": 20
         },
         {
           "code": "OPEN_PORT",
-          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "description": "Port 445/tcp (MICROSOFT-DS) open",
           "points": 30
         },
         {
           "code": "OPEN_PORT",
-          "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
+          "description": "Port 3389/tcp (MS-WBT-SERVER) open",
           "points": 30
         },
         {
           "code": "OPEN_PORT",
-          "description": "MSRPC (135/tcp) exposto na rede",
+          "description": "Port 135/tcp (MSRPC) open",
           "points": 20
         }
       ],
@@ -858,25 +858,25 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 3389/tcp (ms-wbt-server)",
+          "action": "Close port 3389/tcp (ms-wbt-server)",
           "pointsRemoved": 30,
           "scoreAfter": 70
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "action": "Close port 445/tcp (microsoft-ds)",
           "pointsRemoved": 30,
           "scoreAfter": 70
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 135/tcp (msrpc)",
+          "action": "Close port 135/tcp (msrpc)",
           "pointsRemoved": 20,
           "scoreAfter": 80
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 139/tcp (netbios-ssn)",
+          "action": "Close port 139/tcp (netbios-ssn)",
           "pointsRemoved": 20,
           "scoreAfter": 80
         }
@@ -924,12 +924,12 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
+          "description": "Port 3389/tcp (MS-WBT-SERVER) open",
           "points": 30
         },
         {
           "code": "KNOWN_CVE",
-          "description": "CVE-2019-0708 (CVSS 9.8) em Remote Desktop Services na porta 3389",
+          "description": "CVE-2019-0708 (CVSS 9.8) in Remote Desktop Services on port 3389",
           "points": 39
         }
       ],
@@ -943,13 +943,13 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 3389/tcp (ms-wbt-server)",
+          "action": "Close port 3389/tcp (ms-wbt-server)",
           "pointsRemoved": 69,
           "scoreAfter": 0
         },
         {
           "code": "UPDATE_SERVICE",
-          "action": "Actualizar Microsoft Terminal Services na porta 3389/tcp",
+          "action": "Update Microsoft Terminal Services on port 3389/tcp",
           "pointsRemoved": 39,
           "scoreAfter": 30
         }
@@ -981,7 +981,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 5
         }
       ],
@@ -995,7 +995,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 5,
           "scoreAfter": 0
         }
@@ -1048,7 +1048,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 5
         }
       ],
@@ -1062,7 +1062,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 5,
           "scoreAfter": 0
         }
@@ -1082,7 +1082,7 @@
       "riskReasons": [
         {
           "code": "UNKNOWN_HOST",
-          "description": "Host novo, nao visto em scans anteriores",
+          "description": "New device: it was not in the reference scan",
           "points": 25
         }
       ],
@@ -1154,22 +1154,22 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "description": "Port 445/tcp (MICROSOFT-DS) open",
           "points": 30
         },
         {
           "code": "OPEN_PORT",
-          "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
+          "description": "Port 3389/tcp (MS-WBT-SERVER) open",
           "points": 30
         },
         {
           "code": "OPEN_PORT",
-          "description": "MSRPC (135/tcp) exposto na rede",
+          "description": "Port 135/tcp (MSRPC) open",
           "points": 20
         },
         {
           "code": "OPEN_PORT",
-          "description": "NETBIOS-SSN (139/tcp) exposto na rede",
+          "description": "Port 139/tcp (NETBIOS-SSN) open",
           "points": 20
         }
       ],
@@ -1183,25 +1183,25 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 3389/tcp (ms-wbt-server)",
+          "action": "Close port 3389/tcp (ms-wbt-server)",
           "pointsRemoved": 30,
           "scoreAfter": 70
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "action": "Close port 445/tcp (microsoft-ds)",
           "pointsRemoved": 30,
           "scoreAfter": 70
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 135/tcp (msrpc)",
+          "action": "Close port 135/tcp (msrpc)",
           "pointsRemoved": 20,
           "scoreAfter": 80
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 139/tcp (netbios-ssn)",
+          "action": "Close port 139/tcp (netbios-ssn)",
           "pointsRemoved": 20,
           "scoreAfter": 80
         }
@@ -1233,7 +1233,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "1 porta(s) comuns expostas",
+          "description": "Port 631/tcp (ipp: CUPS 2.3) open",
           "points": 8
         }
       ],
@@ -1272,12 +1272,12 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "1 porta(s) comuns expostas",
+          "description": "Port 8008/tcp (http: Chromecast) open",
           "points": 8
         },
         {
           "code": "UNKNOWN_HOST",
-          "description": "Host novo, nao visto em scans anteriores",
+          "description": "New device: it was not in the reference scan",
           "points": 25
         }
       ],
@@ -1316,7 +1316,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 5
         }
       ],
@@ -1330,7 +1330,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 5,
           "scoreAfter": 0
         }
@@ -1416,22 +1416,22 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 22/tcp (ssh) exposta",
+          "description": "Port 22/tcp (ssh) open",
           "points": 5
         },
         {
           "code": "OPEN_PORT",
-          "description": "FTP (21/tcp) exposto na rede",
+          "description": "Port 21/tcp (FTP) open",
           "points": 25
         },
         {
           "code": "OPEN_PORT",
-          "description": "TELNET (23/tcp) exposto na rede",
+          "description": "Port 23/tcp (TELNET) open",
           "points": 35
         },
         {
           "code": "OPEN_PORT",
-          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "description": "Port 445/tcp (MICROSOFT-DS) open",
           "points": 30
         }
       ],
@@ -1445,25 +1445,25 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 23/tcp (telnet)",
+          "action": "Close port 23/tcp (telnet)",
           "pointsRemoved": 35,
           "scoreAfter": 60
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "action": "Close port 445/tcp (microsoft-ds)",
           "pointsRemoved": 30,
           "scoreAfter": 65
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 21/tcp (ftp)",
+          "action": "Close port 21/tcp (ftp)",
           "pointsRemoved": 25,
           "scoreAfter": 70
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 22/tcp (ssh)",
+          "action": "Close port 22/tcp (ssh)",
           "pointsRemoved": 5,
           "scoreAfter": 90
         }
@@ -1528,27 +1528,27 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "MSRPC (135/tcp) exposto na rede",
+          "description": "Port 135/tcp (MSRPC) open",
           "points": 20
         },
         {
           "code": "OPEN_PORT",
-          "description": "MS-WBT-SERVER (3389/tcp) exposto na rede",
+          "description": "Port 3389/tcp (MS-WBT-SERVER) open",
           "points": 30
         },
         {
           "code": "OPEN_PORT",
-          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "description": "Port 445/tcp (MICROSOFT-DS) open",
           "points": 30
         },
         {
           "code": "OPEN_PORT",
-          "description": "NETBIOS-SSN (139/tcp) exposto na rede",
+          "description": "Port 139/tcp (NETBIOS-SSN) open",
           "points": 20
         },
         {
           "code": "UNKNOWN_HOST",
-          "description": "Host novo, nao visto em scans anteriores",
+          "description": "New device: it was not in the reference scan",
           "points": 25
         }
       ],
@@ -1562,25 +1562,25 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 3389/tcp (ms-wbt-server)",
+          "action": "Close port 3389/tcp (ms-wbt-server)",
           "pointsRemoved": 30,
           "scoreAfter": 95
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "action": "Close port 445/tcp (microsoft-ds)",
           "pointsRemoved": 30,
           "scoreAfter": 95
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 135/tcp (msrpc)",
+          "action": "Close port 135/tcp (msrpc)",
           "pointsRemoved": 20,
           "scoreAfter": 100
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 139/tcp (netbios-ssn)",
+          "action": "Close port 139/tcp (netbios-ssn)",
           "pointsRemoved": 20,
           "scoreAfter": 100
         }
@@ -1612,7 +1612,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "description": "Port 445/tcp (MICROSOFT-DS) open",
           "points": 30
         }
       ],
@@ -1626,7 +1626,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "action": "Close port 445/tcp (microsoft-ds)",
           "pointsRemoved": 30,
           "scoreAfter": 0
         }
@@ -1680,17 +1680,17 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "FTP (21/tcp) exposto na rede",
+          "description": "Port 21/tcp (FTP) open",
           "points": 25
         },
         {
           "code": "OPEN_PORT",
-          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "description": "Port 445/tcp (MICROSOFT-DS) open",
           "points": 30
         },
         {
           "code": "OPEN_PORT",
-          "description": "Porta 22/tcp (ssh) exposta",
+          "description": "Port 22/tcp (ssh) open",
           "points": 5
         }
       ],
@@ -1704,19 +1704,19 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "action": "Close port 445/tcp (microsoft-ds)",
           "pointsRemoved": 30,
           "scoreAfter": 30
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 21/tcp (ftp)",
+          "action": "Close port 21/tcp (ftp)",
           "pointsRemoved": 25,
           "scoreAfter": 35
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 22/tcp (ssh)",
+          "action": "Close port 22/tcp (ssh)",
           "pointsRemoved": 5,
           "scoreAfter": 55
         }
@@ -1781,22 +1781,22 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 8080/tcp (http-proxy) exposta",
+          "description": "Port 8080/tcp (http-proxy) open",
           "points": 5
         },
         {
           "code": "OPEN_PORT",
-          "description": "TELNET (23/tcp) exposto na rede",
+          "description": "Port 23/tcp (TELNET) open",
           "points": 35
         },
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 5
         },
         {
           "code": "OPEN_PORT",
-          "description": "4 porta(s) comuns expostas",
+          "description": "Port 554/tcp (rtsp) open",
           "points": 8
         }
       ],
@@ -1810,19 +1810,19 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 23/tcp (telnet)",
+          "action": "Close port 23/tcp (telnet)",
           "pointsRemoved": 35,
           "scoreAfter": 18
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 10,
           "scoreAfter": 43
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 8080/tcp (http-proxy)",
+          "action": "Close port 8080/tcp (http-proxy)",
           "pointsRemoved": 5,
           "scoreAfter": 48
         }
@@ -1940,27 +1940,27 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "NETBIOS-SSN (139/tcp) exposto na rede",
+          "description": "Port 139/tcp (NETBIOS-SSN) open",
           "points": 20
         },
         {
           "code": "OPEN_PORT",
-          "description": "TELNET (23/tcp) exposto na rede",
+          "description": "Port 23/tcp (TELNET) open",
           "points": 35
         },
         {
           "code": "OPEN_PORT",
-          "description": "FTP (21/tcp) exposto na rede",
+          "description": "Port 21/tcp (FTP) open",
           "points": 25
         },
         {
           "code": "OPEN_PORT",
-          "description": "MSRPC (135/tcp) exposto na rede",
+          "description": "Port 135/tcp (MSRPC) open",
           "points": 20
         },
         {
           "code": "OPEN_PORT",
-          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "description": "Port 445/tcp (MICROSOFT-DS) open",
           "points": 30
         }
       ],
@@ -1974,31 +1974,31 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 23/tcp (telnet)",
+          "action": "Close port 23/tcp (telnet)",
           "pointsRemoved": 35,
           "scoreAfter": 95
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "action": "Close port 445/tcp (microsoft-ds)",
           "pointsRemoved": 30,
           "scoreAfter": 100
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 21/tcp (ftp)",
+          "action": "Close port 21/tcp (ftp)",
           "pointsRemoved": 25,
           "scoreAfter": 100
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 135/tcp (msrpc)",
+          "action": "Close port 135/tcp (msrpc)",
           "pointsRemoved": 20,
           "scoreAfter": 100
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 139/tcp (netbios-ssn)",
+          "action": "Close port 139/tcp (netbios-ssn)",
           "pointsRemoved": 20,
           "scoreAfter": 100
         }
@@ -2041,7 +2041,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "2 porta(s) comuns expostas",
+          "description": "2 ports open with no weight of their own: 631/tcp (ipp: CUPS 2.3), 9100/tcp (jetdirect)",
           "points": 16
         }
       ],
@@ -2091,12 +2091,12 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 5
         },
         {
           "code": "KNOWN_CVE",
-          "description": "CVE-2020-22283 (CVSS 9.8) em lwIP httpd 2.1.2 na porta 80",
+          "description": "CVE-2020-22283 (CVSS 9.8) in lwIP httpd 2.1.2 on port 80",
           "points": 39
         }
       ],
@@ -2110,13 +2110,13 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 44,
           "scoreAfter": 0
         },
         {
           "code": "UPDATE_SERVICE",
-          "action": "Actualizar lwIP httpd 2.1.2 na porta 80/tcp",
+          "action": "Update lwIP httpd 2.1.2 on port 80/tcp",
           "pointsRemoved": 39,
           "scoreAfter": 5
         }
@@ -2148,12 +2148,12 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 5
         },
         {
           "code": "UNKNOWN_HOST",
-          "description": "Host novo, nao visto em scans anteriores",
+          "description": "New device: it was not in the reference scan",
           "points": 25
         }
       ],
@@ -2167,7 +2167,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 5,
           "scoreAfter": 25
         }
@@ -2215,12 +2215,12 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 5
         },
         {
           "code": "KNOWN_CVE",
-          "description": "CVE-2017-17562 (CVSS 9.8) em GoAhead WebServer 3.6.5 na porta 80",
+          "description": "CVE-2017-17562 (CVSS 9.8) in GoAhead WebServer 3.6.5 on port 80",
           "points": 39
         }
       ],
@@ -2234,13 +2234,13 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 44,
           "scoreAfter": 0
         },
         {
           "code": "UPDATE_SERVICE",
-          "action": "Actualizar GoAhead WebServer 3.6.5 na porta 80/tcp",
+          "action": "Update GoAhead WebServer 3.6.5 on port 80/tcp",
           "pointsRemoved": 39,
           "scoreAfter": 5
         }
@@ -2299,17 +2299,17 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 8080/tcp (http-proxy) exposta",
+          "description": "Port 8080/tcp (http-proxy) open",
           "points": 5
         },
         {
           "code": "OPEN_PORT",
-          "description": "TELNET (23/tcp) exposto na rede",
+          "description": "Port 23/tcp (TELNET) open",
           "points": 35
         },
         {
           "code": "KNOWN_CVE",
-          "description": "CVE-2021-36260 (CVSS 9.8) em Hikvision IP Camera na porta 8080",
+          "description": "CVE-2021-36260 (CVSS 9.8) in Hikvision IP Camera on port 8080",
           "points": 39
         }
       ],
@@ -2323,19 +2323,19 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 8080/tcp (http-proxy)",
+          "action": "Close port 8080/tcp (http-proxy)",
           "pointsRemoved": 44,
           "scoreAfter": 35
         },
         {
           "code": "UPDATE_SERVICE",
-          "action": "Actualizar Hikvision IP Camera na porta 8080/tcp",
+          "action": "Update Hikvision IP Camera on port 8080/tcp",
           "pointsRemoved": 39,
           "scoreAfter": 40
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 23/tcp (telnet)",
+          "action": "Close port 23/tcp (telnet)",
           "pointsRemoved": 35,
           "scoreAfter": 44
         }
@@ -2367,7 +2367,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 5
         }
       ],
@@ -2381,7 +2381,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 5,
           "scoreAfter": 0
         }
@@ -2446,22 +2446,22 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 5
         },
         {
           "code": "OPEN_PORT",
-          "description": "Porta 8080/tcp (http-proxy) exposta",
+          "description": "Port 8080/tcp (http-proxy) open",
           "points": 5
         },
         {
           "code": "OPEN_PORT",
-          "description": "TELNET (23/tcp) exposto na rede",
+          "description": "Port 23/tcp (TELNET) open",
           "points": 35
         },
         {
           "code": "OPEN_PORT",
-          "description": "4 porta(s) comuns expostas",
+          "description": "Port 554/tcp (rtsp) open",
           "points": 8
         }
       ],
@@ -2475,19 +2475,19 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 23/tcp (telnet)",
+          "action": "Close port 23/tcp (telnet)",
           "pointsRemoved": 35,
           "scoreAfter": 18
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 10,
           "scoreAfter": 43
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 8080/tcp (http-proxy)",
+          "action": "Close port 8080/tcp (http-proxy)",
           "pointsRemoved": 5,
           "scoreAfter": 48
         }
@@ -2507,7 +2507,7 @@
       "riskReasons": [
         {
           "code": "UNKNOWN_HOST",
-          "description": "Host novo, nao visto em scans anteriores",
+          "description": "New device: it was not in the reference scan",
           "points": 25
         }
       ],
@@ -2557,12 +2557,12 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 5
         },
         {
           "code": "OPEN_PORT",
-          "description": "2 porta(s) comuns expostas",
+          "description": "Port 9100/tcp (jetdirect) open",
           "points": 8
         }
       ],
@@ -2576,7 +2576,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 5,
           "scoreAfter": 8
         }
@@ -2630,12 +2630,12 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "description": "Port 80/tcp (http) open",
           "points": 5
         },
         {
           "code": "OPEN_PORT",
-          "description": "3 porta(s) comuns expostas",
+          "description": "2 ports open with no weight of their own: 9100/tcp (jetdirect), 631/tcp (ipp: CUPS 2.3)",
           "points": 16
         }
       ],
@@ -2649,7 +2649,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 80/tcp (http)",
+          "action": "Close port 80/tcp (http)",
           "pointsRemoved": 5,
           "scoreAfter": 16
         }
@@ -2692,12 +2692,12 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "description": "Port 445/tcp (MICROSOFT-DS) open",
           "points": 30
         },
         {
           "code": "OPEN_PORT",
-          "description": "MSRPC (135/tcp) exposto na rede",
+          "description": "Port 135/tcp (MSRPC) open",
           "points": 20
         }
       ],
@@ -2711,13 +2711,13 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "action": "Close port 445/tcp (microsoft-ds)",
           "pointsRemoved": 30,
           "scoreAfter": 20
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 135/tcp (msrpc)",
+          "action": "Close port 135/tcp (msrpc)",
           "pointsRemoved": 20,
           "scoreAfter": 30
         }
@@ -2852,32 +2852,32 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "Porta 22/tcp (ssh) exposta",
+          "description": "Port 22/tcp (ssh) open",
           "points": 5
         },
         {
           "code": "OPEN_PORT",
-          "description": "MICROSOFT-DS (445/tcp) exposto na rede",
+          "description": "Port 445/tcp (MICROSOFT-DS) open",
           "points": 30
         },
         {
           "code": "OPEN_PORT",
-          "description": "FTP (21/tcp) exposto na rede",
+          "description": "Port 21/tcp (FTP) open",
           "points": 25
         },
         {
           "code": "OPEN_PORT",
-          "description": "TELNET (23/tcp) exposto na rede",
+          "description": "Port 23/tcp (TELNET) open",
           "points": 35
         },
         {
           "code": "OPEN_PORT",
-          "description": "5 porta(s) comuns expostas",
+          "description": "Port 5000/tcp (http: Synology DSM 7.2) open",
           "points": 8
         },
         {
           "code": "KNOWN_CVE",
-          "description": "CVE-2017-7494 (CVSS 9.8) em Samba smbd 4.6.2 na porta 445",
+          "description": "CVE-2017-7494 (CVSS 9.8) in Samba smbd 4.6.2 on port 445",
           "points": 39
         }
       ],
@@ -2891,31 +2891,31 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 445/tcp (microsoft-ds)",
+          "action": "Close port 445/tcp (microsoft-ds)",
           "pointsRemoved": 69,
           "scoreAfter": 73
         },
         {
           "code": "UPDATE_SERVICE",
-          "action": "Actualizar Samba smbd 4.6.2 na porta 445/tcp",
+          "action": "Update Samba smbd 4.6.2 on port 445/tcp",
           "pointsRemoved": 39,
           "scoreAfter": 100
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 23/tcp (telnet)",
+          "action": "Close port 23/tcp (telnet)",
           "pointsRemoved": 35,
           "scoreAfter": 100
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 21/tcp (ftp)",
+          "action": "Close port 21/tcp (ftp)",
           "pointsRemoved": 25,
           "scoreAfter": 100
         },
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 22/tcp (ssh)",
+          "action": "Close port 22/tcp (ssh)",
           "pointsRemoved": 5,
           "scoreAfter": 100
         }
@@ -2947,12 +2947,12 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "MSRPC (135/tcp) exposto na rede",
+          "description": "Port 135/tcp (MSRPC) open",
           "points": 20
         },
         {
           "code": "UNKNOWN_HOST",
-          "description": "Host novo, nao visto em scans anteriores",
+          "description": "New device: it was not in the reference scan",
           "points": 25
         }
       ],
@@ -2966,7 +2966,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 135/tcp (msrpc)",
+          "action": "Close port 135/tcp (msrpc)",
           "pointsRemoved": 20,
           "scoreAfter": 25
         }
@@ -2998,7 +2998,7 @@
       "riskReasons": [
         {
           "code": "OPEN_PORT",
-          "description": "MSRPC (135/tcp) exposto na rede",
+          "description": "Port 135/tcp (MSRPC) open",
           "points": 20
         }
       ],
@@ -3012,7 +3012,7 @@
       "remediation": [
         {
           "code": "CLOSE_PORT",
-          "action": "Fechar a porta 135/tcp (msrpc)",
+          "action": "Close port 135/tcp (msrpc)",
           "pointsRemoved": 20,
           "scoreAfter": 0
         }

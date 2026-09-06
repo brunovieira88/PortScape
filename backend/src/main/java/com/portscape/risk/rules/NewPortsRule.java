@@ -53,6 +53,6 @@ public class NewPortsRule implements RiskRule {
                 added.size() * properties.newPortPoints());
         String list = added.stream().map(String::valueOf).collect(Collectors.joining(", "));
         return List.of(new RiskReason(CODE,
-                "Porta(s) abertas desde o scan de referencia: " + list, points));
+                "Port(s) opened since the reference scan: " + list, points));
     }
 }
