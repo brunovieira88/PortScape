@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { Host, RiskBand, Scan } from '../api/types';
+import { reportFilename, reportFor } from '../report/markdown';
 import { bandColor } from '../scene/Building';
 
 /** Todas as faixas, na mesma ordem de gravidade usada na cidade. */
@@ -30,6 +31,24 @@ interface DeviceListPanelProps {
   isOpen: boolean;
   onToggle: () => void;
   isHidden?: boolean;
+}
+
+
+/**
+ * Descarrega o relatorio como ficheiro.
+ *
+ * O PDF nao passa por aqui: e o `window.print()` que o produz, atraves do proprio
+ * browser. Uma biblioteca de PDF custava mais de 1 MB no bundle e dava um documento
+ * rasterizado, com o texto nao pesquisavel -- pior em tudo menos no numero de cliques.
+ */
+function downloadMarkdown(scan: Scan): void {
+  const blob = new Blob([reportFor(scan)], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = reportFilename(scan);
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isHidden }: DeviceListPanelProps) {
@@ -107,6 +126,26 @@ export function DeviceListPanel({ scanData, onOpenDetails, isOpen, onToggle, isH
           <p className="text-[#00f0ff]/50 text-[10px] font-mono mt-1 uppercase tracking-widest relative z-10">
             SCAN: {scanData.target || 'AUTO-DETECTED'}
           </p>
+
+          {/* O relatorio so faz sentido quando ha alguma coisa para relatar. */}
+          {(scanData.hosts || []).length > 0 && (
+            <div className="flex gap-2 mt-4 relative z-10">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#00f0ff] border border-[#00f0ff]/40 px-3 py-1.5 rounded hover:bg-[#00f0ff]/10 hover:border-[#00f0ff] transition-colors"
+              >
+                Export PDF
+              </button>
+              <button
+                type="button"
+                onClick={() => downloadMarkdown(scanData)}
+                className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#00f0ff]/70 border border-[#00f0ff]/25 px-3 py-1.5 rounded hover:bg-[#00f0ff]/10 hover:text-[#00f0ff] transition-colors"
+              >
+                Markdown
+              </button>
+            </div>
+          )}
         </div>
 
         <div id="device-list-content" inert={!isOpen}

@@ -43,7 +43,7 @@ class UnknownHostRuleTest {
                 .singleElement()
                 .satisfies(reason -> {
                     assertThat(reason.code()).isEqualTo(UnknownHostRule.CODE);
-                    assertThat(reason.description()).contains("novo");
+                    assertThat(reason.description()).contains("New device");
                 });
     }
 }

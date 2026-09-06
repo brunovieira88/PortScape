@@ -86,14 +86,14 @@ public class VulnerableServiceRule implements RiskRule {
         StringBuilder text = new StringBuilder(worst.id())
                 .append(" (CVSS ").append(worst.cvssScore()).append(')');
         if (port.product() != null) {
-            text.append(" em ").append(port.product());
+            text.append(" in ").append(port.product());
             if (port.version() != null) {
                 text.append(' ').append(port.version());
             }
         }
-        text.append(" na porta ").append(port.number());
+        text.append(" on port ").append(port.number());
         if (scored.size() > 1) {
-            text.append(" -- e mais ").append(scored.size() - 1).append(" CVE(s) conhecido(s)");
+            text.append(" -- and ").append(scored.size() - 1).append(" more known CVE(s)");
         }
         return new RiskReason(CODE, text.toString(), points);
     }
