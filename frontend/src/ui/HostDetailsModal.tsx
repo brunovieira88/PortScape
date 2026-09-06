@@ -17,7 +17,7 @@ const MAX_ACTIONS_SHOWN = 4;
 /**
  * O que se pode focar com o Tab, por ordem, dentro de um contentor.
  *
- * <p>Le-se o DOM a cada Tab em vez de guardar a lista: metade do conteudo do dialogo e
+ * Le-se o DOM a cada Tab em vez de guardar a lista: metade do conteudo do dialogo e
  * condicional -- o botao de teleporte so existe para hosts que ainda estao na cidade,
  * as portas e as razoes de risco variam com o host -- e uma lista guardada uma vez
  * ficava a apontar para botoes que ja la nao estao.
@@ -43,7 +43,7 @@ export function HostDetailsModal({ host, onClose, onTeleport, cveLookupDegraded 
   /**
    * O foco entra ao abrir e volta ao sitio de onde veio ao fechar.
    *
-   * <p>Sem dependencias, e isso e o ponto: o {@code onClose} que o App passa e uma
+   * Sem dependencias, e isso e o ponto: o `onClose` que o App passa e uma
    * arrow function nova a cada render, e com ele nas dependencias este efeito
    * desmontava e remontava a cada render do pai. Onde o foco estava <i>antes</i> de o
    * dialogo abrir e uma coisa que se sabe uma vez, a montagem; re-captura-la a cada
@@ -61,7 +61,7 @@ export function HostDetailsModal({ host, onClose, onTeleport, cveLookupDegraded 
   /**
    * Um dialogo tem de prender o foco enquanto esta aberto.
    *
-   * <p>Sem isto o Tab continuava a passear pela pagina por baixo -- que esta tapada
+   * Sem isto o Tab continuava a passear pela pagina por baixo -- que esta tapada
    * mas nao desaparecida -- e o utilizador de teclado ficava a percorrer uma cidade
    * que nao ve para voltar ao que tinha aberto.
    */

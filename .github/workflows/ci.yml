@@ -70,6 +70,15 @@ jobs:
         working-directory: frontend
         run: npm test
 
+      # O lint nunca correu em lado nenhum: o binding nativo do oxlint nao se instala
+      # em Windows por causa de https://github.com/npm/cli/issues/4828, e nao havia
+      # passo no CI. Nos runners ubuntu instala-se sem problema. Hoje o projecto tem 16
+      # avisos e zero erros, e o oxlint sai com 0 em avisos -- portanto isto nao poe o
+      # CI vermelho agora, mas apanha um erro novo no dia em que aparecer.
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
       # build corre o tsc antes do bundle, portanto cobre tambem os erros de tipos.
       - name: Build
         working-directory: frontend

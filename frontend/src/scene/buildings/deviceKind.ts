@@ -1,15 +1,15 @@
 /**
  * Que tipo de coisa e uma maquina, deduzido do fabricante do seu MAC.
  *
- * <p>O nmap resolve o MAC por ARP e traduz o prefixo (OUI) no nome do fabricante --
+ * O nmap resolve o MAC por ARP e traduz o prefixo (OUI) no nome do fabricante --
  * "Espressif Inc.", "Ubiquiti Networks". E o unico campo que diz <i>o que</i> a maquina
  * e; o IP so diz onde esta e as portas so dizem o que ela expoe.
  *
- * <p>A classificacao vive no frontend, e nao no backend, pela mesma razao que a paleta
+ * A classificacao vive no frontend, e nao no backend, pela mesma razao que a paleta
  * de cores: e uma decisao de apresentacao. Mudar a forma de um router nao tem que
  * obrigar a mexer no dominio.
  *
- * <p><b>O tipo escolhe a forma, nunca a altura.</b> A altura continua a sair do numero
+ * O tipo escolhe a forma, nunca a altura. A altura continua a sair do numero
  * de portas abertas, que e informacao. Um router com dez portas abertas tem de se ver
  * que tem dez portas abertas.
  */

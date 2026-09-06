@@ -12,13 +12,13 @@ const GROUND_Y = 0.09;
 /**
  * A marca de estado de um host: um fio de luz no chao, a volta da base do edificio.
  *
- * <p>Substitui os holofotes que aqui estavam -- uma coluna de laser amarela de 60
+ * Substitui os holofotes que aqui estavam -- uma coluna de laser amarela de 60
  * unidades e uma gaiola de wireframe -- que competiam com os proprios edificios,
  * atravessavam a geometria deles e roubavam a cena a cor do risco, que e a unica cor
  * que aqui carrega informacao.
  *
- * <p>Uma so linguagem para os dois estados, e branca: o <b>novo</b> e um fio inteiro a
- * respirar devagar, o <b>alterado</b> e o mesmo fio interrompido. A distincao e no
+ * Uma so linguagem para os dois estados, e branca: o novo e um fio inteiro a
+ * respirar devagar, o alterado e o mesmo fio interrompido. A distincao e no
  * padrao e nao na cor, para nao haver duas paletas a disputar a mesma cidade.
  */
 export function HostStateMarker({ radius = 9, dashed = false, pulse = false }:

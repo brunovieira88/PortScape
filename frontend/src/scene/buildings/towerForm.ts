@@ -1,13 +1,13 @@
 /**
  * A forma de um edificio: altura, silhueta e pegada no chao.
  *
- * <p>Vive fora do componente que a desenha porque nao e so o desenho que precisa dela.
+ * Vive fora do componente que a desenha porque nao e so o desenho que precisa dela.
  * As colisoes tambem precisam de saber a largura real de cada edificio, e a etiqueta
  * precisa da altura -- e sempre que uma destas contas foi duplicada, divergiu: a
  * etiqueta ja flutuou cinco unidades acima do telhado das casas, e a caixa de colisao
  * ja foi calculada a uma escala diferente da que desenhava a cidade.
  *
- * <p>Logica pura, sem React nem three: testa-se.
+ * Logica pura, sem React nem three: testa-se.
  */
 import type { DeviceKind } from './deviceKind';
 
@@ -36,7 +36,7 @@ export const HOUSE_ROOF_HEIGHT = 3;
  * etiqueta por cima do edificio -- calcula-la a parte fazia-a flutuar cinco unidades
  * acima do telhado das casas e ficar por baixo do das torres.
  *
- * <p>Nao inclui os adereços condicionais (antena, drone), que sao decoracao e podem
+ * Nao inclui os adereços condicionais (antena, drone), que sao decoracao e podem
  * passar acima disto de proposito.
  */
 export function buildingHeight(portCount: number, seed = 0, kind: DeviceKind = 'GENERIC'): number {
@@ -72,11 +72,11 @@ export interface TowerForm {
 /**
  * A forma de uma torre, a partir do IP.
  *
- * <p>Sem isto todas as torres sao a mesma caixa de 10x10 e a cidade le como um asset
+ * Sem isto todas as torres sao a mesma caixa de 10x10 e a cidade le como um asset
  * repetido. Quatro arquetipos com variacao continua dentro de cada um dao skyline:
  * lajes largas e baixas, prismas, torres com recuos, e agulhas finas com antena.
  *
- * <p>A altura total continua a ser {@code andares x FLOOR_HEIGHT} -- e o numero de
+ * A altura total continua a ser `andares x FLOOR_HEIGHT` -- e o numero de
  * portas que a manda, e isso e informacao, nao decoracao. O que a forma varia e a
  * <i>planta</i> e a silhueta, nunca a altura.
  */
@@ -137,7 +137,7 @@ export const HOUSE_WIDTH = 10;
 /**
  * Meia-largura da pegada do edificio, ja com a rotacao aplicada.
  *
- * <p>E a metade do lado da caixa alinhada aos eixos que envolve o patamar de baixo --
+ * E a metade do lado da caixa alinhada aos eixos que envolve o patamar de baixo --
  * que e sempre o mais largo, em qualquer dos arquetipos. E daqui que sai a colisao:
  * uma constante unica para todos os edificios estava errada por construcao, porque uma
  * laje e mais do dobro da largura de uma agulha. Com 6 fixo, 38% dos edificios de um
@@ -163,7 +163,7 @@ export function footprintHalfWidth(portCount: number, seed = 0,
  * Raio de uma circunferencia que envolve a planta do edificio, seja qual for a sua
  * rotacao. E a meia-diagonal do patamar de baixo.
  *
- * <p>E daqui que sai o tamanho dos destaques de host novo/alterado. Estavam em valores
+ * E daqui que sai o tamanho dos destaques de host novo/alterado. Estavam em valores
  * fixos escolhidos quando todos os edificios eram a mesma caixa de 10x10: numa laje de
  * 17 de largura a marca passava por <i>dentro</i> do edificio e so se via nas pontas.
  */
