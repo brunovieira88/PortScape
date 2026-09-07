@@ -1,5 +1,9 @@
 package com.portscape.risk.nvd;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -159,25 +163,58 @@ public class NvdClient {
             if (id == null) {
                 continue;
             }
-            JsonNode cvss = bestCvssData(cve.path("metrics"));
+            JsonNode metric = bestMetric(cve.path("metrics"));
+            JsonNode cvss = metric.path("cvssData");
             cves.add(new Cve(
                     id,
                     cvss.hasNonNull("baseScore") ? cvss.get("baseScore").asDouble() : null,
-                    cvss.path("baseSeverity").asText(null),
+                    severityOf(metric, cvss),
+                    cvss.path("vectorString").asText(null),
+                    publishedAt(cve.path("published")),
                     englishDescription(cve.path("descriptions"))));
         }
         return List.copyOf(cves);
     }
 
     /** O NVD publica varias versoes do CVSS por CVE; fica a mais recente disponivel. */
-    private static JsonNode bestCvssData(JsonNode metrics) {
+    private static JsonNode bestMetric(JsonNode metrics) {
         for (String key : METRIC_KEYS) {
             JsonNode list = metrics.path(key);
             if (list.isArray() && !list.isEmpty()) {
-                return list.get(0).path("cvssData");
+                return list.get(0);
             }
         }
         return MissingNode.getInstance();
+    }
+
+    /**
+     * A severidade muda de sitio entre versoes do CVSS.
+     *
+     * <p>No v3.x e no v4.0 o {@code baseSeverity} vem dentro do {@code cvssData}; no
+     * <b>v2</b> vem ao lado dele, como irmao. Olhar so para dentro custava a
+     * severidade de todos os CVEs antigos -- que sao exatamente os que aparecem em
+     * servicos desactualizados, ou seja, os que mais importam nesta ferramenta.
+     */
+    private static String severityOf(JsonNode metric, JsonNode cvssData) {
+        String inside = cvssData.path("baseSeverity").asText(null);
+        return inside != null ? inside : metric.path("baseSeverity").asText(null);
+    }
+
+    /**
+     * O NVD publica a data sem zona ({@code 2024-07-01T13:15:00.000}) e em UTC. Uma
+     * data ilegivel nao vale um CVE perdido: fica a null e o resto do registo passa.
+     */
+    private static Instant publishedAt(JsonNode published) {
+        String text = published.asText(null);
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(text).toInstant(ZoneOffset.UTC);
+        } catch (DateTimeParseException e) {
+            log.debug("Data de publicacao ilegivel, ignorada: {}", text);
+            return null;
+        }
     }
 
     private static String englishDescription(JsonNode descriptions) {

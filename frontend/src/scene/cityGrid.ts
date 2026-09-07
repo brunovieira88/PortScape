@@ -1,7 +1,7 @@
 /**
  * Traducao do layout que o backend calcula para a grelha de quarteiroes da cena.
  *
- * <p>Vive fora do componente de proposito: e logica pura, e foi exatamente aqui que
+ * Vive fora do componente de proposito: e logica pura, e foi exatamente aqui que
  * um bug passou despercebido durante toda a fase 3 -- o frontend recompactava as
  * coordenadas e desfazia o trabalho do CityLayoutCalculator. Fora do React, testa-se.
  */
@@ -12,7 +12,7 @@ import { footprintHalfWidth, seedOf } from './buildings/towerForm';
 /**
  * Distancia em unidades de mundo entre os centros de dois quarteiroes vizinhos.
  *
- * <p>Vive aqui e e importada por quem precisa dela. Esteve duplicada em tres ficheiros
+ * Vive aqui e e importada por quem precisa dela. Esteve duplicada em tres ficheiros
  * com dois valores diferentes -- a cidade era desenhada a 22 e as colisoes calculadas
  * a 13 -- o que punha as paredes invisiveis a dezenas de unidades dos edificios a que
  * pertenciam.
@@ -22,8 +22,8 @@ export const BLOCK_SCALE = 22;
 /**
  * Folga entre a fachada e a parede invisivel, para nao se ficar preso a raspar.
  *
- * <p>A meia-largura de cada edificio ja nao e uma constante: vem do
- * {@link footprintHalfWidth}, a mesma conta que desenha a planta. Era 6 fixo para
+ * A meia-largura de cada edificio ja nao e uma constante: vem do
+ * `footprintHalfWidth`, a mesma conta que desenha a planta. Era 6 fixo para
  * todos, herdado de quando todos os edificios eram a mesma caixa de 10x10 -- depois
  * dos arquetipos da fase 4 uma laje chega a 17 unidades de largura, e 38% dos
  * edificios de um /24 ficaram mais largos do que a parede que os protegia. Entrava-se
@@ -74,7 +74,7 @@ export interface PlacedDistrict {
  * por ordem de IP e nunca ha dois hosts na mesma celula. Aqui so se converte a
  * coordenada de mundo em indice de quarteirao.
  *
- * <p><b>Nao voltar a compactar aqui.</b> Arredondar para uma grelha mais apertada
+ * Nao voltar a compactar aqui. Arredondar para uma grelha mais apertada
  * colapsa varios hosts na mesma celula e obriga a desempatar por varrimento, o que faz
  * a posicao de um host depender de quais os outros hosts do scan e da ordem por que
  * foram processados -- e ai um edificio que se mexe deixa de querer dizer alguma coisa.
@@ -159,7 +159,7 @@ export function walkableBounds(grid: CityGrid) {
 /**
  * Ha alguma coisa solida em (x, z)? Sair do alcatrao conta como bater.
  *
- * <p>Testa as quatro celulas em redor do ponto porque a caixa de um edificio pode
+ * Testa as quatro celulas em redor do ponto porque a caixa de um edificio pode
  * transbordar da sua propria celula.
  */
 export function collidesAt(grid: CityGrid, x: number, z: number): boolean {
@@ -186,13 +186,13 @@ export function collidesAt(grid: CityGrid, x: number, z: number): boolean {
 /**
  * Onde por a camara a comecar: o sitio livre mais proximo do centro da cidade.
  *
- * <p>O voo de chegada aterrava sempre na origem sem verificar nada. Como a cidade e
+ * O voo de chegada aterrava sempre na origem sem verificar nada. Como a cidade e
  * centrada, quando a largura em quarteiroes e par a origem cai exatamente no centro de
  * uma celula -- e se essa celula tiver edificio, aterra-se <i>dentro</i> dele. Dali nao
- * se sai: o {@link collidesAt} passa a recusar os dois eixos e a camara fica presa para
+ * se sai: o `collidesAt` passa a recusar os dois eixos e a camara fica presa para
  * sempre. Em 17 scans reais isso acontecia em 5.
  *
- * <p>Procura-se em aneis de meio quarteirao a partir da origem, o que poe o ponto de
+ * Procura-se em aneis de meio quarteirao a partir da origem, o que poe o ponto de
  * chegada no meio da rua mais proxima do centro. E deterministico: o mesmo scan da
  * sempre o mesmo sitio, para o utilizador reconhecer onde chegou.
  */

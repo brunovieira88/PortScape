@@ -66,13 +66,15 @@
           "version": "1.24.0",
           "cpes": [
             "cpe:/a:nginx:nginx:1.24.0"
-          ]
+          ],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "COMMON_PORT",
-          "description": "Porta 80/tcp (http) exposta",
+          "code": "OPEN_PORT",
+          "description": "Port 80/tcp (http) open",
           "points": 12
         }
       ],
@@ -82,7 +84,15 @@
       },
       "portCount": 1,
       "isNew": false,
-      "isChanged": false
+      "isChanged": false,
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Close port 80/tcp (http)",
+          "pointsRemoved": 12,
+          "scoreAfter": 0
+        }
+      ]
     },
     {
       "ip": "192.168.1.10",
@@ -104,7 +114,9 @@
           "version": "2017.75",
           "cpes": [
             "cpe:/a:dropbear_ssh_project:dropbear_ssh:2017.75"
-          ]
+          ],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 445,
@@ -113,7 +125,9 @@
           "service": "microsoft-ds",
           "product": "Samba smbd",
           "version": "4.6.2",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 21,
@@ -122,22 +136,24 @@
           "service": "ftp",
           "product": "vsftpd",
           "version": "2.3.4",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
-          "description": "Telnet (23/tcp) expoe credenciais em texto limpo",
+          "code": "OPEN_PORT",
+          "description": "Telnet (23/tcp) expoe credenciais in texto limpo",
           "points": 40
         },
         {
-          "code": "HIGH_RISK_PORT",
-          "description": "SMB (445/tcp) exposto na rede",
+          "code": "OPEN_PORT",
+          "description": "Port 445/tcp (SMB) open",
           "points": 25
         },
         {
-          "code": "VULNERABLE_SERVICE",
+          "code": "KNOWN_CVE",
           "description": "Dropbear 2017.75: CVE-2020-36254",
           "points": 30
         }
@@ -148,7 +164,21 @@
       },
       "portCount": 3,
       "isNew": false,
-      "isChanged": true
+      "isChanged": true,
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Close port 23/tcp (telnet)",
+          "pointsRemoved": 40,
+          "scoreAfter": 55
+        },
+        {
+          "code": "CLOSE_PORT",
+          "action": "Close port 445/tcp (microsoft-ds)",
+          "pointsRemoved": 25,
+          "scoreAfter": 70
+        }
+      ]
     },
     {
       "ip": "192.168.1.42",
@@ -167,7 +197,9 @@
           "service": "ssh",
           "product": "OpenSSH",
           "version": "8.4p1",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 3389,
@@ -176,18 +208,20 @@
           "service": "ms-wbt-server",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "HIGH_RISK_PORT",
-          "description": "RDP (3389/tcp) exposto na rede",
+          "code": "OPEN_PORT",
+          "description": "Port 3389/tcp (RDP) open",
           "points": 35
         },
         {
-          "code": "NOT_IN_BASELINE",
-          "description": "Host novo, nao visto em scans anteriores",
+          "code": "UNKNOWN_HOST",
+          "description": "New device: it was not in the reference scan",
           "points": 25
         }
       ],
@@ -197,7 +231,15 @@
       },
       "portCount": 2,
       "isNew": true,
-      "isChanged": false
+      "isChanged": false,
+      "remediation": [
+        {
+          "code": "CLOSE_PORT",
+          "action": "Close port 3389/tcp (ms-wbt-server)",
+          "pointsRemoved": 35,
+          "scoreAfter": 25
+        }
+      ]
     },
     {
       "ip": "192.168.1.100",
@@ -215,7 +257,9 @@
           "service": "ipp",
           "product": "CUPS",
           "version": "2.3",
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         },
         {
           "number": 9100,
@@ -224,13 +268,15 @@
           "service": "jetdirect",
           "product": null,
           "version": null,
-          "cpes": []
+          "cpes": [],
+          "cves": [],
+          "cveTotal": 0
         }
       ],
       "riskReasons": [
         {
-          "code": "UNWEIGHTED_PORTS",
-          "description": "2 portas comuns expostas (631, 9100)",
+          "code": "OPEN_PORT",
+          "description": "2 ports open with no weight of their own: 631/tcp (ipp: CUPS 2.3), 9100/tcp (jetdirect)",
           "points": 35
         }
       ],
@@ -240,7 +286,8 @@
       },
       "portCount": 2,
       "isNew": false,
-      "isChanged": false
+      "isChanged": false,
+      "remediation": []
     }
   ],
   "ruins": [
@@ -260,7 +307,8 @@
       },
       "portCount": 0,
       "isNew": false,
-      "isChanged": false
+      "isChanged": false,
+      "remediation": []
     }
   ]
 }

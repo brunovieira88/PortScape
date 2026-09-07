@@ -40,6 +40,10 @@ colour is the risk band, and anything that wasn't there last time is marked on t
   - [Live demo — no install](#just-want-to-look-around-no-install)
 - [How it works](#how-it-works)
 - [The risk model](#the-risk-model)
+- [The likely attack path](#the-likely-attack-path)
+- [What to fix first](#what-to-fix-first)
+- [Reading a port](#reading-a-port)
+- [Taking it with you](#taking-it-with-you)
 - [Baseline and change detection](#baseline-and-change-detection)
 - [The inventory panel](#the-inventory-panel)
 - [API](#api) — and the generated [Swagger UI](#api)
@@ -79,13 +83,15 @@ running nmap, it's the two layers on top:
 
 |   | |
 |---|---|
-| **Real CVEs, not guesses** | Cross-references detected service versions against the NVD, resolving the canonical CPE first — because nmap and NIST rarely agree on a product's name. |
+| **Real CVEs, not guesses** | Cross-references detected service versions against the NVD, resolving the canonical CPE first — because nmap and NIST rarely agree on a product's name. Every port carries its own flaws: id, CVSS, severity, description and a link to the NIST record. |
+| **CVSS in plain language** | `AV:N/AC:L/PR:N/UI:N` becomes *reachable from the network · works reliably · no account needed · no user action needed*. The score stops being a number you have to trust. |
+| **Exploited in the wild** | CVEs are checked against the CISA KEV catalog. CVSS says how bad it *would* be; KEV says it *is happening*, and flags the ones used in ransomware campaigns. |
 | **Baseline diffing** | Every scan is compared against a 7-day inventory, or against a snapshot you pin yourself. New and changed devices are marked in the city. |
 | **Honest degradation** | If the NVD is unreachable the scan still completes, flagged `cveLookupDegraded`. "No CVEs found" and "couldn't check" are never shown as the same thing. |
 | **Deterministic architecture** | A building's shape is derived from its IP and its MAC vendor, so the same device looks the same in every scan. A gateway is always a spire. |
 | **Stoppable scans** | A `/24` with version detection takes minutes. Cancelling kills the nmap process itself, not just the job row — a cancel that leaves a scanner running is worse than no button at all, so there's a test that proves the process dies. |
 | **Usable without a mouse** | Every device and scan card is a real button, the details modal is a proper dialog that traps and restores focus, and progress is announced rather than only drawn. Verified in a browser, not just in jsdom. |
-| **360 tests** | 230 unit + 37 integration on the backend (Testcontainers, real PostgreSQL), 93 on the frontend. Every scoring rule, parser and layout calculation is covered. |
+| **442 tests** | 256 unit + 39 integration on the backend (Testcontainers, real PostgreSQL), 147 on the frontend. Every scoring rule, parser and layout calculation is covered. |
 
 ## Prerequisites
 
@@ -173,9 +179,10 @@ flowchart LR
     B --> C[Phase 1: discovery<br/>privileged, -sS -O]
     C --> D[Phase 2: versions<br/>unprivileged, -sT -sV]
     D --> E[ScanResultMerger]
-    E --> F[RiskScorer<br/>+ NVD CVE lookup]
-    F --> G[BaselineResolver<br/>7-day inventory]
-    G --> H[CityLayoutCalculator<br/>districts by risk band]
+    E --> F[NVD CVE lookup<br/>+ CISA KEV catalog]
+    F --> G[RiskScorer<br/>+ per-port CVE attachment]
+    G --> G2[BaselineResolver<br/>7-day inventory]
+    G2 --> H[CityLayoutCalculator<br/>districts by risk band]
     H --> I[(PostgreSQL)]
     I --> J[React Three Fiber<br/>the city]
 ```
@@ -222,6 +229,11 @@ Scores run 0–100 and saturate at the top. Every point has a reason attached.
 All weights live in `application.yml` under `portscape.risk`. They are an editorial
 judgement, not a constant of the universe — and they're meant to be argued with.
 
+**The KEV catalog deliberately scores nothing.** Knowing a flaw is being exploited right
+now belongs on the screen, not in the arithmetic: pulling an external feed into the score
+would make the same scan produce different numbers depending on whether CISA happened to
+be up. It is shown, loudly, and left out of the sum.
+
 <details>
 <summary><b>How CVE lookup actually works</b></summary>
 
@@ -244,9 +256,239 @@ The `empty-cache-ttl` is deliberately shorter than `cache-ttl`: "no CVEs" comes 
 from a genuinely clean product and from a name the NVD didn't recognise, and caching
 the second case for a week would hide the problem for a week.
 
+**At most 25 CVEs are kept per port**, highest CVSS first, and the real total is stored
+alongside them. This is not tidiness — the client doesn't paginate and the NVD returns up
+to 2000 CVEs per page, so a kernel CPE (`cpe:/o:linux:linux_kernel:5.15`) would drag
+thousands into every scan's JSON and into the database. Truncating without saying by how
+much would be lying by omission, so the panel shows *"showing the 25 highest-scoring of
+431 known CVEs"*.
+
+**Three CVSS formats, all of them real.** A service with any history returns all three at
+once, so the translation handles all three: v2 has no prefix and calls authentication
+`Au`, v3.x puts impact in `C`/`I`/`A`, and v4.0 carries thirty-two metrics of which the
+NVD writes twenty-one as `:X` — 174 characters, 63 of them meaning anything.
+
+A flaw in something shared — the OS kernel, typically — is listed under **every** port
+that runs it, while the risk score charges for it **once**. That looks like a bug and
+isn't: the port list answers *what is known to be wrong with what runs here*, the score
+answers *what did this cost you*. Different questions, different answers.
+
 **Privacy:** only software CPE identifiers are sent to the NVD (e.g.
 `cpe:2.3:a:openbsd:openssh:9.6`) — never IP addresses, hostnames or scan results. Turn
 it off entirely with `portscape.nvd.enabled: false`.
+
+</details>
+
+<details>
+<summary><b>The second source: what is actually being exploited</b></summary>
+
+<br>
+
+CVSS measures how bad a flaw *would* be for whoever exploits it. It says nothing about
+whether anyone is. A 7.5 used in ransomware campaigns this week is more urgent than a 9.8
+from 2015 that never had a public exploit, and without a second source the two are
+indistinguishable.
+
+So every CVE is checked against the [CISA Known Exploited Vulnerabilities
+catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) — a single public
+JSON file, no key, no rate limit. A match brings the date CISA added it, the remediation
+they require, and whether it has been seen in ransomware.
+
+The catalog is fetched once a day, not per scan, and enrichment happens **after** the NVD
+cache: that cache lasts seven days and the catalog changes daily, so storing the KEV state
+next to the cached CVE would make today's scan show what was true last week.
+
+When the fetch fails, the previous catalog is kept rather than emptied. The asymmetry is
+the point — an unreachable catalog means *"I couldn't check"*, never *"it isn't being
+exploited"*, and stale information beats silence that reads as safety. Turn it off with
+`portscape.kev.enabled: false`.
+
+</details>
+
+## The likely attack path
+
+The panel holds every piece — the port, the version, the CVE, the KEV listing, what the
+protocol is — and still asks the reader to assemble them. So it assembles them:
+
+```
+LIKELY ATTACK PATH
+  445/tcp (SMB) running Samba smbd 4.6.2 is exposed, on a host reported
+  as Linux 3.2 - 4.9. CVE-2017-7494 (CVSS 9.8, CRITICAL) affects it, and is
+  reachable from the network, without an account. It is on CISA's list of
+  vulnerabilities confirmed as exploited in the wild, including in ransomware
+  campaigns. From here, 22/tcp (SSH) is what the same network would be
+  reached through next.
+
+  [Initial Access]  [Execution]  [Lateral Movement]
+```
+
+Composed from templates filled with data already in the JSON — nothing generated,
+nothing inferred beyond what the CVSS vector states. Most hosts get no path at all, and
+that is the point: inventing one for a phone with no open ports would cost the
+credibility of the hosts where it matters.
+
+It cites ATT&CK **tactics**, never techniques — naming `T1110.001` would be asserting
+*how* the attack would happen. And it says *"reported as"*, never *"is"*: the OS
+fingerprint is a guess, and the narrative inherits that.
+
+## What to fix first
+
+A score you cannot act on is just a number. Every host carries a plan, ordered by what
+each action actually removes:
+
+```
+WHAT TO FIX FIRST
+  Close 445/tcp (microsoft-ds)            −69   score → 73
+  Update Samba smbd 4.6.2 on 445/tcp      −39   still CRITICAL (100)
+```
+
+Simulating a fix is re-running the scorer with that port gone — `RiskScorer.score` is a
+pure function, so **no rule is duplicated** and the answer cannot drift from the real
+number. Subtracting a reason's points would be wrong: unweighted ports share a cap, so
+closing one can remove nothing at all.
+
+<details>
+<summary><b>Why each action carries two numbers</b></summary>
+
+<br>
+
+The score saturates at 100; the reasons behind it do not. A host whose reasons total 142
+shows 100, and removing 39 of them leaves 103 — still 100 on screen. Reporting only the
+visible score would print *"−39, score → 100"* and read like a bug.
+
+So `pointsRemoved` comes from the **unsaturated** total and does the ordering, while
+`scoreAfter` is the saturated number the city uses. When they disagree, that is the
+honest message: this host does not get fixed by one action.
+
+Being new to the network generates no action. A device that appeared without permission
+is not *fixed* by closing a port — it is authorised, and that is an action on the scan
+(`POST /api/baselines`), not on the host.
+
+</details>
+
+## Reading a port
+
+nmap tells you `445/tcp open microsoft-ds`. That is a fact with no consequence attached.
+Click the port and it opens:
+
+```
+445  MICROSOFT-DS · Samba smbd 4.6.2          EXPLOITED   31 CVES  ⌄
+
+     CVE-2017-7494   9.8 CRITICAL   ACTIVELY EXPLOITED · RANSOMWARE
+     [reachable from the network] [works reliably] [no account needed]
+     [no user action needed] [reads everything] [alters everything] [can take it down]
+     Samba since 3.5.0 allows remote authenticated users to upload a shared library
+     to a writable share and cause the server to load and execute it.
+     CISA: Apply updates per vendor instructions.
+
+     Showing the 25 highest-scoring of 31 known CVEs.
+```
+
+Three things are doing work there.
+
+**The version.** Without `4.6.2` there is no CVE to look up — a service name alone
+matches everything and nothing.
+
+**The vector, translated.** `AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` is the anatomy of the
+flaw, and it is what makes a 9.8 mean something instead of asking you to trust it.
+
+**The KEV badge.** Everything above it is a description of what could happen. That badge
+says it is happening.
+
+<p align="center">
+  <img src="docs/screenshot-port-detail.png" alt="An open port expanded: the SMB dossier, what an attacker gains, and how to fix it" width="80%">
+</p>
+
+<details>
+<summary><b>The port that has no CVEs</b></summary>
+
+<br>
+
+All of the above needs a version to hang off. Telnet has none of it — and Telnet is the
+worst thing on most networks it appears on:
+
+```
+23   TELNET                                                          INFO  ⌄
+
+     Telnet
+     Remote terminal sessions with no encryption at all. Everything — the
+     username, the password, every command typed — travels in plain text.
+
+     WHY IT'S HERE — Predates SSH by about fifteen years. Survives in switches,
+     printers, IPMI boards and industrial gear that was never updated.
+
+     WHAT AN ATTACKER GAINS — Anyone able to observe the traffic reads the
+     administrator credentials without an exploit and without breaking
+     anything. There is nothing to crack — the protocol hands them over.
+
+     HOW TO FIX
+       · Turn it off and use SSH instead.
+       · If the device cannot do SSH, restrict it to a management VLAN.
+       · Rotate every credential that has crossed this port.
+
+     SAFE ALTERNATIVE — SSH (22)
+```
+
+No API answers this — the NVD has no entry explaining what Telnet *is*, because that is
+knowledge, not data. So it is written by hand in `frontend/src/knowledge/ports.ts`, for
+every port the risk model penalises. SSH, HTTP and HTTPS get entries too, saying they are
+fine: without those, the tool is an alarm that goes off every time.
+
+The dossier scores nothing — it lives in the frontend because the static demo has no
+backend, and because this is presentation. What keeps the halves honest is a test that
+reads `port-weights` out of the backend's `application.yml` and fails, naming them, if a
+port worth 25 points or more has nothing to say for itself.
+
+</details>
+
+<details>
+<summary><b>Where the line is drawn</b></summary>
+
+<br>
+
+Portscape describes **the mechanism and the consequence**, never the procedure. *"Anyone
+who can observe the traffic reads the administrator credentials"* is what the exposure
+means; how to position yourself to observe that traffic is not here, and will not be. No
+payloads, no exploit commands, no credential testing — the scan identifies service
+versions and looks them up, and never tries anything against them.
+
+Half of that is enforced: `NmapCommandBuilder.buildVersionDetection` hardcodes `-sT -sV`
+and takes no arguments from configuration, so nothing from nmap's `vuln` or `brute`
+categories can reach it. The discovery pass is not — its flags come from
+`portscape.nmap.arguments`, so `-sS -O --open -T4` is a deliberate default rather than a
+guarantee. Anyone editing that list owns what they put in it.
+
+</details>
+
+## Taking it with you
+
+Everything above lives inside a 3D scene, which is fine for exploring and useless for a
+meeting. The inventory panel exports the whole scan two ways:
+
+- **PDF** — the inventory, then one page per host with its attack path, its fix list and
+  its ports. Text stays searchable and selectable.
+- **Markdown** — the same document, for pasting into a ticket or an issue.
+
+No watermark, no footer, no "generated by". A document you can send without editing it
+first.
+
+<details>
+<summary><b>Why the PDF costs nothing</b></summary>
+
+<br>
+
+It is `window.print()`. A print stylesheet hides the application, reveals the document,
+and the browser's own engine produces the file — with real page breaks, repeating table
+headers, and selectable text.
+
+The alternative was a PDF library: `jsPDF` with `html2canvas` is about a megabyte on a
+bundle that already warns at 1.2 MB, and it rasterises — the text stops being text. The
+only thing it buys is one fewer click, because `window.print()` opens the browser's
+dialog rather than downloading directly.
+
+Both outputs read the same `report/model.ts`, which decides what goes in and in what
+order. `markdown.ts` and `ReportDocument.tsx` only know about syntax — two functions
+deciding the same content is how they drift apart.
 
 </details>
 
@@ -312,7 +554,7 @@ curl localhost:8080/api/scans/<id> | jq
 ```
 
 <p align="center">
-  <img src="docs/screenshot-panel.png" alt="The full host detail modal: risk profile, system identity, security audit log and open ports" width="85%">
+  <img src="docs/screenshot-panel.png" alt="The host detail modal: risk score, the ordered fix list, and the likely attack path with its ATT&amp;CK tactics" width="85%">
   <br>
   <sub>The same data the JSON below carries, laid out for a person instead of a parser.</sub>
 </p>
@@ -342,11 +584,23 @@ curl localhost:8080/api/scans/<id> | jq
       ],
       "change": "UNCHANGED", "isNew": false, "isChanged": false,
       "ports": [
-        {"number": 22, "protocol": "tcp", "state": "open",
-         "service": "ssh", "product": "Dropbear sshd", "version": "2017.75",
-         "cpes": ["cpe:/a:matt_johnston:dropbear_ssh_server:2017.75"]},
+        {"number": 445, "protocol": "tcp", "state": "open",
+         "service": "microsoft-ds", "product": "Samba smbd", "version": "4.6.2",
+         "cpes": ["cpe:/a:samba:samba:4.6.2"],
+         "cveTotal": 31,
+         "cves": [
+           {"id": "CVE-2017-7494", "cvssScore": 9.8, "severity": "CRITICAL",
+            "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            "published": "2017-05-30T20:29:00Z",
+            "description": "Samba since 3.5.0 allows remote authenticated users to upload a shared library...",
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2017-7494",
+            "kev": {"dateAdded": "2023-03-30", "knownRansomwareUse": true,
+                    "vulnerabilityName": "Samba Remote Code Execution Vulnerability",
+                    "requiredAction": "Apply updates per vendor instructions."}}
+         ]},
         {"number": 23, "protocol": "tcp", "state": "open",
-         "service": "telnet", "product": "BusyBox telnetd", "version": null, "cpes": []}
+         "service": "telnet", "product": "BusyBox telnetd", "version": null,
+         "cpes": [], "cves": [], "cveTotal": 0}
       ] }
   ]
 }
@@ -377,7 +631,8 @@ Everything lives in `backend/src/main/resources/application.yml`:
 | Prefix | Controls |
 |---|---|
 | `portscape.nmap` | `command`, `default-target`, `arguments`, `timeout`, `host-timeout` |
-| `portscape.nvd` | `enabled`, `base-url`, `api-key`, `timeout`, `min-request-interval`, `cache-ttl`, `empty-cache-ttl` |
+| `portscape.nvd` | `enabled`, `base-url`, `api-key`, `timeout`, `min-request-interval`, `cache-ttl`, `empty-cache-ttl`, `max-cves-per-port` |
+| `portscape.kev` | `enabled`, `feed-url`, `timeout`, `refresh-interval` — the CISA exploited-in-the-wild catalog |
 | `portscape.risk` | `port-weights` and the weight of every scoring rule |
 | `portscape.baseline` | `window` — how far back the inventory reaches (default 7 days) |
 | `portscape.layout` | `spacing`, `grid-width`, `district-gap` for the 3D layout |
@@ -394,11 +649,11 @@ VPN), and keeps the target correct when you move between networks.
 
 ```bash
 cd backend
-mvn test        # 230 unit tests, seconds, no Docker needed
-mvn verify      # + 37 integration tests (Testcontainers, needs Docker)
+mvn test        # 256 unit tests, seconds, no Docker needed
+mvn verify      # + 39 integration tests (Testcontainers, needs Docker)
 
 cd frontend
-npm test        # 93 tests
+npm test        # 147 tests
 npx tsc -b      # type check
 ```
 
@@ -418,6 +673,8 @@ portscape/
 │   ├── api/            REST controllers — thin, logic lives below
 │   ├── scan/           nmap execution and XML parsing
 │   ├── risk/           risk scoring
+│   │   ├── nvd/        NVD lookup, caching, per-port CVE attachment
+│   │   └── kev/        CISA exploited-in-the-wild catalog
 │   ├── baseline/       baseline resolution and diffing
 │   ├── layout/         3D city layout calculation
 │   ├── domain/         JPA entities (Host, Port, Scan, Baseline)
@@ -428,6 +685,8 @@ portscape/
 │   │   ├── buildings/  per-archetype geometry — house, tower, windows
 │   │   └── highlights/ new/changed host markers
 │   ├── ui/             side panels, modals, scan history
+│   ├── knowledge/      port dossiers, CVSS vectors and attack paths in plain language
+│   ├── report/         the scan as a document — PDF via print, and Markdown
 │   ├── api/            REST client, shared API types, the scan-polling hook
 │   └── mock/           offline demo data (no backend needed)
 ├── package.json        root `npm run dev` — orchestration only, no app code

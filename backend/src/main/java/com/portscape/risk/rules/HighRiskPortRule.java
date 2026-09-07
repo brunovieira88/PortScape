@@ -84,11 +84,11 @@ public class HighRiskPortRule implements RiskRule {
         }
         String list = ports.stream().map(HighRiskPortRule::label).collect(Collectors.joining(", "));
         return Optional.of(new RiskReason(CODE,
-                ports.size() + " portas sem peso atribuido abertas: " + list, points));
+                ports.size() + " ports open with no weight of their own: " + list, points));
     }
 
     private static String describe(Port port) {
-        return "Porta " + label(port) + " aberta";
+        return "Port " + label(port) + " open";
     }
 
     /** {@code 23/tcp (telnet: BusyBox telnetd 1.30)} -- o que se sabe da porta. */

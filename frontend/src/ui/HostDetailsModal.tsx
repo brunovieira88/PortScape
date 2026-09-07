@@ -1,11 +1,23 @@
 import { useEffect, useRef } from 'react';
-import type { Host, Port, RiskReason } from '../api/types';
+import type { Host, Port, Remediation, RiskReason } from '../api/types';
 import { bandColor } from '../scene/Building';
+import { attackPathFor } from '../knowledge/narrative';
+import { PortCard } from './PortCard';
+
+/**
+ * Quantas accoes o painel mostra.
+ *
+ * O backend devolve todas as que valem alguma coisa, incluindo as que valem 2 ou 5
+ * pontos. Ao lado de uma que vale 35, essas sao ruido que empurra para baixo o que
+ * interessa -- e a lista existe para dizer por onde COMECAR. O dado completo continua
+ * na API; e a apresentacao que escolhe.
+ */
+const MAX_ACTIONS_SHOWN = 4;
 
 /**
  * O que se pode focar com o Tab, por ordem, dentro de um contentor.
  *
- * <p>Le-se o DOM a cada Tab em vez de guardar a lista: metade do conteudo do dialogo e
+ * Le-se o DOM a cada Tab em vez de guardar a lista: metade do conteudo do dialogo e
  * condicional -- o botao de teleporte so existe para hosts que ainda estao na cidade,
  * as portas e as razoes de risco variam com o host -- e uma lista guardada uma vez
  * ficava a apontar para botoes que ja la nao estao.
@@ -15,13 +27,23 @@ function focusablesIn(container: HTMLElement): HTMLElement[] {
     'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'));
 }
 
-export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, onClose: () => void, onTeleport?: () => void }) {
+export function HostDetailsModal({ host, onClose, onTeleport, cveLookupDegraded }: {
+  host: Host,
+  onClose: () => void,
+  onTeleport?: () => void,
+  /**
+   * A consulta ao NVD ficou incompleta neste scan. O aviso global do App esconde-se
+   * quando um painel abre -- ou seja, desaparece exactamente quando o utilizador vem
+   * ler os CVEs. Por isso repete-se aqui.
+   */
+  cveLookupDegraded?: boolean,
+}) {
   const dialog = useRef<HTMLDivElement>(null);
 
   /**
    * O foco entra ao abrir e volta ao sitio de onde veio ao fechar.
    *
-   * <p>Sem dependencias, e isso e o ponto: o {@code onClose} que o App passa e uma
+   * Sem dependencias, e isso e o ponto: o `onClose` que o App passa e uma
    * arrow function nova a cada render, e com ele nas dependencias este efeito
    * desmontava e remontava a cada render do pai. Onde o foco estava <i>antes</i> de o
    * dialogo abrir e uma coisa que se sabe uma vez, a montagem; re-captura-la a cada
@@ -39,7 +61,7 @@ export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, on
   /**
    * Um dialogo tem de prender o foco enquanto esta aberto.
    *
-   * <p>Sem isto o Tab continuava a passear pela pagina por baixo -- que esta tapada
+   * Sem isto o Tab continuava a passear pela pagina por baixo -- que esta tapada
    * mas nao desaparecida -- e o utilizador de teclado ficava a percorrer uma cidade
    * que nao ve para voltar ao que tinha aberto.
    */
@@ -78,6 +100,8 @@ export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, on
 
   const ports = host.ports || [];
   const riskReasons = host.riskReasons || [];
+  const remediation = host.remediation || [];
+  const attackPath = attackPathFor(host);
 
   return (
     <div className="absolute inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-8">
@@ -159,6 +183,46 @@ export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, on
               </div>
             </div>
 
+            {/* O que fazer, por ordem do que cada accao vale mesmo. Fica colado ao
+                score porque e o numero que estas accoes mudam. */}
+            {remediation.length > 0 && (
+              <div className="bg-black/40 border border-white/5 rounded-lg p-5">
+                <h3 className="text-xs font-bold text-gray-500 tracking-[0.2em] uppercase mb-4">
+                  What to fix first
+                </h3>
+                <ol className="space-y-3">
+                  {remediation.slice(0, MAX_ACTIONS_SHOWN).map((action: Remediation, i: number) => (
+                    <li key={i}>
+                      <div className="text-xs text-gray-200 leading-snug">{action.action}</div>
+                      <div className="flex items-baseline gap-2 mt-1">
+                        <span className="text-sm font-mono font-bold text-[#00f0ff]">
+                          &minus;{action.pointsRemoved}
+                        </span>
+                        {/* Quando o score nao se mexe, e essa a mensagem verdadeira:
+                            este host nao se arranja com uma accao so. */}
+                        {action.scoreAfter === host.riskScore ? (
+                          <span className="text-[11px] font-mono text-gray-400">
+                            still <span style={{ color: bandColor(host.riskBand) }}>
+                              {host.riskBand}
+                            </span> ({action.scoreAfter})
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-mono text-gray-400">
+                            score &rarr; {action.scoreAfter}
+                          </span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+                {remediation.length > MAX_ACTIONS_SHOWN && (
+                  <div className="text-[10px] text-gray-600 mt-3">
+                    {remediation.length - MAX_ACTIONS_SHOWN} smaller action(s) not shown.
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="bg-black/40 border border-white/5 rounded-lg p-5">
               <h3 className="text-xs font-bold text-gray-500 tracking-[0.2em] uppercase mb-4">System Identity</h3>
               <div className="space-y-4">
@@ -191,7 +255,39 @@ export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, on
 
           {/* Right Column (Ports & Vulns) */}
           <div className="w-full md:w-2/3 flex flex-col gap-6">
-            
+
+            {/* A moldura que da sentido ao resto: primeiro o que isto significa, depois
+                de onde vem o numero. Contido de proposito -- e uma explicacao, nao um
+                alarme, e um host tranquilo simplesmente nao a tem. */}
+            {attackPath && (
+              <section aria-labelledby="attack-path-title"
+                       className="bg-black/40 border border-[#ff8a00]/20 rounded-lg p-5">
+                <h3 id="attack-path-title"
+                    className="text-xs font-bold text-[#ff8a00]/80 tracking-[0.2em] uppercase mb-3">
+                  Likely attack path
+                </h3>
+                <p className="text-xs text-gray-300 leading-relaxed">{attackPath.entry}</p>
+                <p className="text-xs text-gray-300 leading-relaxed mt-2">{attackPath.impact}</p>
+                {attackPath.pivot && (
+                  <p className="text-xs text-gray-400 leading-relaxed mt-2">{attackPath.pivot}</p>
+                )}
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {attackPath.tactics.map((tactic) => (
+                    <a
+                      key={tactic.id}
+                      href={tactic.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={`MITRE ATT&CK ${tactic.id}`}
+                      className="text-[11px] px-2 py-0.5 rounded border border-[#ff8a00]/40 text-[#ff8a00] hover:bg-[#ff8a00]/10 transition-colors"
+                    >
+                      {tactic.name}
+                    </a>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Risk Reasons Log */}
             <div className="bg-black/40 border border-white/5 rounded-lg p-5">
               <h3 className="text-xs font-bold text-gray-500 tracking-[0.2em] uppercase mb-4">Security Audit Log ({riskReasons.length})</h3>
@@ -213,26 +309,38 @@ export function HostDetailsModal({ host, onClose, onTeleport }: { host: Host, on
             </div>
 
             {/* Ports List */}
-            <div className="bg-black/40 border border-white/5 rounded-lg p-5">
-              <h3 className="text-xs font-bold text-gray-500 tracking-[0.2em] uppercase mb-4">Open Ports ({ports.length})</h3>
+            <section aria-labelledby="open-ports-title"
+                     className="bg-black/40 border border-white/5 rounded-lg p-5">
+              <h3 id="open-ports-title"
+                  className="text-xs font-bold text-gray-500 tracking-[0.2em] uppercase mb-4">Open Ports ({ports.length})</h3>
+
+              {cveLookupDegraded && (
+                <div className="flex items-start gap-2 mb-3 border border-[#ff8a00]/40 bg-[#ff8a00]/5 rounded px-3 py-2">
+                  <span className="text-[#ff8a00] text-xs">⚠</span>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-[#ff8a00] leading-relaxed">
+                    CVE lookup degraded — this list may be incomplete
+                  </div>
+                </div>
+              )}
+
               {ports.length === 0 ? (
                 <div className="text-sm text-gray-500 italic">No open ports detected.</div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {ports.map((p: Port, i: number) => (
-                    <div key={i} className="flex items-center gap-3 bg-black/60 border border-white/10 p-2 rounded">
-                      <div className="w-12 text-right font-mono text-[#00f0ff] font-bold text-sm">
-                        {p.number}
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-xs text-white uppercase tracking-wider">{p.service || 'UNKNOWN'}</div>
-                        <div className="text-[10px] font-mono text-gray-500">{p.state} • {p.protocol}</div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex flex-col gap-2">
+                  {ports.map((p: Port) => <PortCard key={`${p.number}/${p.protocol}`} port={p} />)}
                 </div>
               )}
-            </div>
+
+              {/* Sem esta nota, ver o mesmo CVE em tres portas e o score a conta-lo uma
+                  vez le-se como um erro. Sao perguntas diferentes: a porta diz o que
+                  se sabe estar mal, o score diz quanto e que isso custou. */}
+              {ports.some((p: Port) => (p.cves || []).length > 0) && (
+                <div className="text-[10px] text-gray-600 leading-relaxed border-t border-white/5 mt-3 pt-3">
+                  A flaw in something shared — the OS kernel, say — is listed under every
+                  port that runs it, but the risk score only charges for it once.
+                </div>
+              )}
+            </section>
 
           </div>
 

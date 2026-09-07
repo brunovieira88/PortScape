@@ -30,13 +30,13 @@ interface BuildingProps {
 /**
  * A paleta das faixas de risco.
  *
- * <p>Os valores estao equilibrados por <b>luminancia percebida</b>, nao escolhidos a
+ * Os valores estao equilibrados por luminancia percebida, nao escolhidos a
  * olho. Um amarelo saturado e cerca de quatro vezes mais luminoso do que um vermelho
  * saturado -- isso e perceptual, nao e afinacao -- e com o bloom a partir de 0.2 o
  * amarelo ultrapassava o limiar em 39 vezes o que o vermelho ultrapassava. O resultado
  * era a hierarquia ao contrario: o MEDIUM dominava a cidade e o CRITICAL desaparecia.
  *
- * <p>O CRITICAL e o HIGH ficam nos tons originais; o MEDIUM e o LOW foram descidos ate
+ * O CRITICAL e o HIGH ficam nos tons originais; o MEDIUM e o LOW foram descidos ate
  * onde ainda se leem como amarelo e ciano. Nao da para os igualar ao vermelho sem os
  * transformar em azeitona e petroleo, por isso o amarelo continua a ser o mais claro --
  * so que por uma margem que ja nao rouba a cena ao vermelho.
@@ -52,7 +52,7 @@ export const BAND_COLORS = {
 /**
  * A cor de uma faixa de risco, com o cinzento do UNKNOWN para o que nao foi avaliado.
  *
- * <p>Vive aqui, ao lado da paleta, porque os paineis precisam exactamente da mesma
+ * Vive aqui, ao lado da paleta, porque os paineis precisam exactamente da mesma
  * conta -- e um host sem `riskBand` (a listagem devolve sumarios sem risco) tem de dar
  * a mesma cor nos dois sitios.
  */
@@ -63,7 +63,7 @@ export function bandColor(band: string | null | undefined): string {
 /**
  * A cor da faixa, afastada um pouco consoante o host.
  *
- * <p>Todos os edificios de uma faixa partilhavam o mesmo hexadecimal exato, o que faz
+ * Todos os edificios de uma faixa partilhavam o mesmo hexadecimal exato, o que faz
  * um bairro ler como uma mancha unica de cor em vez de um conjunto de edificios. O
  * desvio e pequeno de proposito -- tem de continuar a ser obvio a que faixa pertence,
  * porque a cor e informacao. Muda o tom e o brilho, nunca ao ponto de trocar de faixa.

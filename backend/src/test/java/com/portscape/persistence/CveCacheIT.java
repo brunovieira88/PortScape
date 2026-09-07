@@ -25,8 +25,9 @@ class CveCacheIT extends PostgresTestBase {
     private static final Instant NOW = Instant.parse("2026-08-28T10:00:00Z");
     private static final String CPE = "cpe:/a:openbsd:openssh:9.6";
     private static final List<Cve> CVES = List.of(
-            new Cve("CVE-2024-6387", 8.1, "HIGH", "race condition no sshd"),
-            new Cve("CVE-2023-51385", null, null, "command injection"));
+            new Cve("CVE-2024-6387", 8.1, "HIGH", "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+                    Instant.parse("2024-07-01T13:15:00Z"), "race condition no sshd"),
+            new Cve("CVE-2023-51385", null, null, null, null, "command injection"));
 
     @Autowired
     private CveLookupRepository repository;
@@ -42,7 +43,7 @@ class CveCacheIT extends PostgresTestBase {
     private CveCache cacheAt(Instant instant) {
         // TTL de 7 dias para resultados com CVEs, 1 dia para os vazios.
         NvdProperties properties = new NvdProperties(
-                true, null, null, null, Duration.ZERO, Duration.ofDays(7), Duration.ofDays(1));
+                true, null, null, null, Duration.ZERO, Duration.ofDays(7), Duration.ofDays(1), null);
         return new CveCache(repository, objectMapper, properties,
                 Clock.fixed(instant, ZoneOffset.UTC));
     }

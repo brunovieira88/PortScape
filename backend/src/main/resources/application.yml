@@ -66,6 +66,25 @@ portscape:
     # "Sem CVEs" tanto sai de um produto sem vulnerabilidades como de um nome que o
     # NVD nao reconheceu -- por isso expira mais cedo que um resultado com conteudo.
     empty-cache-ttl: 1d
+    # Tecto de CVEs guardados e mostrados por porta. Nao e cosmetico: o cliente nao
+    # pagina e o NVD devolve ate 2000 CVEs por pagina, portanto um CPE de kernel
+    # (cpe:/o:linux:linux_kernel:5.15) arrastaria milhares para dentro do JSON de cada
+    # scan. Passam os de CVSS mais alto; o total real vai a parte, em port.cve_total.
+    max-cves-per-port: 25
+
+  kev:
+    # Catalogo de vulnerabilidades exploradas no mundo real (CISA). O CVSS diz quao
+    # grave SERIA; isto diz que esta a acontecer. Ficheiro publico, sem chave e sem
+    # rate limit -- por isso nao ha aqui cache em BD, so um intervalo de recarga.
+    #
+    # NAO pontua: e informacao, nao peso. Meter uma fonte externa no score fazia o
+    # mesmo scan dar numeros diferentes consoante a CISA estivesse de pe.
+    enabled: true
+    feed-url: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+    # Sao varios MB, nao uma resposta de API -- por isso mais folgado que o do NVD.
+    timeout: 20s
+    # A CISA publica no maximo uma vez por dia.
+    refresh-interval: 1d
 
   risk:
     # Pontos por porta aberta. Aqui esta o juizo editorial do projeto: o que faz um

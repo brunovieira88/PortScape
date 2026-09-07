@@ -54,8 +54,11 @@ public final class ScanEntityMapper {
                 host.ip(), host.mac(), host.vendor(),
                 host.hostname(), host.osGuess(), host.osAccuracy());
         for (Port port : host.ports()) {
-            entity.addPort(new PortEntity(port.number(), port.protocol(), port.state(),
-                    port.service(), port.product(), port.version(), port.cpes()));
+            PortEntity portEntity = new PortEntity(port.number(), port.protocol(), port.state(),
+                    port.service(), port.product(), port.version(), port.cpes());
+            portEntity.setCves(port.cves().stream().map(CveEmbeddable::from).toList(),
+                    port.cveTotal());
+            entity.addPort(portEntity);
         }
         if (host.risk() != null) {
             entity.setRiskScore(host.risk().score());
@@ -63,6 +66,8 @@ public final class ScanEntityMapper {
                 entity.addRiskReason(new RiskReasonEntity(
                         reason.code(), reason.description(), reason.points()));
             }
+            entity.setRemediation(host.risk().remediation().stream()
+                    .map(RemediationEmbeddable::from).toList());
         }
         return entity;
     }
@@ -70,14 +75,18 @@ public final class ScanEntityMapper {
     private static Host toDomain(HostEntity entity) {
         List<Port> ports = entity.getPorts().stream()
                 .map(port -> new Port(port.getNumber(), port.getProtocol(), port.getState(),
-                        port.getService(), port.getProduct(), port.getVersion(), port.getCpes()))
+                        port.getService(), port.getProduct(), port.getVersion(), port.getCpes(),
+                        port.getCves().stream().map(CveEmbeddable::toDomain).toList(),
+                        port.getCveTotal()))
                 .toList();
         RiskScore risk = entity.getRiskScore() == null ? null : new RiskScore(
                 entity.getRiskScore(),
                 entity.getRiskReasons().stream()
                         .map(reason -> new RiskReason(
                                 reason.getCode(), reason.getDescription(), reason.getPoints()))
-                        .toList());
+                        .toList(),
+                entity.getRemediation().stream()
+                        .map(RemediationEmbeddable::toDomain).toList());
         return new Host(entity.getIp(), entity.getMac(), entity.getVendor(),
                 entity.getHostname(), entity.getOsGuess(), entity.getOsAccuracy(), ports, risk);
     }

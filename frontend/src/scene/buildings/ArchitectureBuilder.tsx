@@ -75,7 +75,7 @@ const CORE_EMISSIVE = '#101216';
 /**
  * O material da massa dos edificios -- o unico da cena que responde a luz.
  *
- * <p>Toda a cidade era meshBasicMaterial, que ignora luz por completo: cada face tinha
+ * Toda a cidade era meshBasicMaterial, que ignora luz por completo: cada face tinha
  * exatamente a mesma cor, viesse a luz de onde viesse. Um standard material aqui faz as
  * faces separarem-se umas das outras e e o que da forma aos edificios. As linhas neon
  * continuam basic, porque essas sao emissivas -- nao sao iluminadas, sao a luz.
@@ -87,13 +87,13 @@ function CoreMaterial() {
 /**
  * O interior opaco de um edificio.
  *
- * <p>Sem isto a cidade e wireframe puro e nao oclui nada: ve-se atraves de tudo ao
+ * Sem isto a cidade e wireframe puro e nao oclui nada: ve-se atraves de tudo ao
  * mesmo tempo, e vinte edificios sobrepostos sao sopa de linhas. Um nucleo escuro
  * ligeiramente mais pequeno que a estrutura devolve-lhes silhueta e profundidade sem
  * tirar o neon -- as linhas passam a destacar-se contra massa escura em vez de contra
  * as linhas umas das outras.
  *
- * <p>As ruinas nao levam nucleo, de proposito: passam a ser as unicas coisas
+ * As ruinas nao levam nucleo, de proposito: passam a ser as unicas coisas
  * atravessaveis a vista na cidade, e e isso que as faz ler como fantasmas.
  */
 function SolidCore({ width, height, depth }: { width: number, height: number, depth: number }) {
@@ -108,7 +108,7 @@ function SolidCore({ width, height, depth }: { width: number, height: number, de
 /**
  * Quanta geometria um edificio desenha, consoante a distancia a camara.
  *
- * <p>Uma torre com todos os adereços sao 25 meshes, cada um com o seu draw call. Num
+ * Uma torre com todos os adereços sao 25 meshes, cada um com o seu draw call. Num
  * /24 cheio isso passa dos dois mil objectos, e os adereços -- antenas, tubos, drones a
  * orbitar -- sao invisiveis a essa distancia de qualquer forma. Longe fica a silhueta,
  * que e o que se le de longe; perto fica tudo.
@@ -119,22 +119,22 @@ export type DetailLevel = 0 | 1 | 2;
 /**
  * Janelas acesas de uma torre.
  *
- * <p>A fachada em wireframe desenha uma grelha perfeita e regular, que le como
+ * A fachada em wireframe desenha uma grelha perfeita e regular, que le como
  * esquema tecnico. Umas quantas janelas acesas quebram essa regularidade e sao o que
  * faz uma cidade nocturna parecer habitada -- e dao escala, porque se contam andares.
  *
- * <p>Quais acendem sai do IP, nao de {@code Math.random}: o mesmo host tem sempre as
+ * Quais acendem sai do IP, nao de `Math.random`: o mesmo host tem sempre as
  * mesmas janelas em todos os scans, como tudo o resto neste projecto. Uma cidade que
  * pisca ao recarregar a pagina nao e uma cidade, e ruido.
  */
 /**
  * Uma mancha de luz no chao, por baixo do edificio.
  *
- * <p>Sem isto os edificios parecem colados a um plano preto. O halo da-lhes assento: a
+ * Sem isto os edificios parecem colados a um plano preto. O halo da-lhes assento: a
  * luz que eles proprios emitem tem de cair nalgum lado, e e o que faz a diferenca entre
  * um objecto pousado num sitio e um objecto a flutuar.
  *
- * <p>Justo a pegada de proposito. Aberto de mais deixa de ser luz derramada e passa a
+ * Justo a pegada de proposito. Aberto de mais deixa de ser luz derramada e passa a
  * ser o chao pintado da cor do predio, que e outra coisa e nao fica bem.
  */
 const GLOW_TEXTURE = (() => {
@@ -165,7 +165,7 @@ function GroundGlow({ color, radius }: { color: string, radius: number }) {
 /**
  * Baliza de topo, como as luzes de obstaculo de um predio alto.
  *
- * <p>E quase a unica coisa que se mexe na cidade quando se esta parado. Um plano
+ * E quase a unica coisa que se mexe na cidade quando se esta parado. Um plano
  * completamente estatico le como maquete; um pisca lento le como sitio habitado.
  */
 function Beacon({ y, color, phase }: { y: number, color: string, phase: number }) {
@@ -187,12 +187,12 @@ function Beacon({ y, color, phase }: { y: number, color: string, phase: number }
 /**
  * A fachada de um patamar.
  *
- * <p>As janelas sao instanciadas -- uma so chamada de desenho por patamar, seja qual
+ * As janelas sao instanciadas -- uma so chamada de desenho por patamar, seja qual
  * for o numero delas -- e o brilho de cada uma vai na cor da instancia, o que da a
  * irregularidade de "umas acesas, outras nao" sem custar nada.
  *
- * <p>Duas linguagens: <b>faixas</b> horizontais correndo o andar quase todo, que e o
- * vocabulario da laje moderna, e <b>frisos</b> verticais estreitos e altos, que e o do
+ * Duas linguagens: faixas horizontais correndo o andar quase todo, que e o
+ * vocabulario da laje moderna, e frisos verticais estreitos e altos, que e o do
  * arranha-ceus. Quadrados a meio da fachada nao sao nem uma coisa nem outra.
  */
 interface WindowSlot {

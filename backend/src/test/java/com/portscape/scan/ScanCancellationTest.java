@@ -22,7 +22,14 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import com.portscape.baseline.BaselineResolver;
 import com.portscape.config.NmapProperties;
 import com.portscape.domain.ScanStatus;
+import org.springframework.web.client.RestClient;
+
+import com.portscape.config.KevProperties;
+import com.portscape.config.NvdProperties;
+import com.portscape.risk.RemediationPlanner;
 import com.portscape.risk.RiskScorer;
+import com.portscape.risk.kev.KevCatalog;
+import com.portscape.risk.nvd.PortCveEnricher;
 import com.portscape.risk.nvd.CveLookupService;
 
 /**
@@ -126,7 +133,10 @@ class ScanCancellationTest {
                 properties,
                 detector,
                 cveLookup,
+                disabledKev(),
+                defaultEnricher(),
                 new RiskScorer(List.of()),
+                new RemediationPlanner(new RiskScorer(List.of())),
                 baselineResolver,
                 pool,
                 Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC));
@@ -142,5 +152,20 @@ class ScanCancellationTest {
             Thread.sleep(100);
         }
         throw new AssertionError("Passaram 15s sem " + what);
+    }
+
+    /**
+     * O catalogo desligado: nao sai para a rede e devolve os CVEs como vieram. O que
+     * o KEV faz e testado no KevCatalogTest -- aqui so nao pode estorvar.
+     */
+    private static KevCatalog disabledKev() {
+        return new KevCatalog(RestClient.create(),
+                new KevProperties(false, null, null, null), Clock.systemUTC());
+    }
+
+    /** O enricher com os defaults da configuracao -- o tecto de CVEs e testado a parte. */
+    private static PortCveEnricher defaultEnricher() {
+        return new PortCveEnricher(
+                new NvdProperties(true, null, null, null, null, null, null, null));
     }
 }

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Host } from '../api/types';
@@ -27,7 +27,7 @@ describe('HostDetailsModal', () => {
         { number: 445, protocol: 'tcp', state: 'open', service: 'microsoft-ds' },
       ],
       riskReasons: [
-        { code: 'HIGH_RISK_PORT', description: 'Telnet exposed (23)', points: 40 },
+        { code: 'OPEN_PORT', description: 'Telnet exposed (23)', points: 40 },
       ],
     })} onClose={vi.fn()} />);
 
@@ -38,6 +38,228 @@ describe('HostDetailsModal', () => {
     expect(screen.getByText('Telnet exposed (23)')).toBeDefined();
     // O sufixo da rede local so faz ruido numa lista onde todos o tem.
     expect(screen.getByText('nas')).toBeDefined();
+  });
+
+
+  it('conta o caminho provavel e liga as tacticas ao MITRE', () => {
+    render(<HostDetailsModal host={hostOf({
+      osGuess: 'Linux 3.2 - 4.9',
+      portCount: 2,
+      ports: [
+        { number: 445, protocol: 'tcp', state: 'open', service: 'microsoft-ds',
+          product: 'Samba smbd', version: '4.6.2', cveTotal: 1,
+          cves: [{ id: 'CVE-2017-7494', cvssScore: 9.8, severity: 'CRITICAL',
+                   vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H',
+                   kev: { dateAdded: '2023-03-30', knownRansomwareUse: true } }] },
+        { number: 22, protocol: 'tcp', state: 'open', service: 'ssh' },
+      ],
+    })} onClose={vi.fn()} />);
+
+    expect(screen.getByText('Likely attack path')).toBeDefined();
+    expect(screen.getByText(/445\/tcp \(SMB\) running Samba smbd 4.6.2/)).toBeDefined();
+    expect(screen.getByText(/exploited in the wild/)).toBeDefined();
+    expect(screen.getByText(/From here, 22\/tcp \(SSH\)/)).toBeDefined();
+
+    const lateral = screen.getByRole('link', { name: 'Lateral Movement' });
+    expect(lateral.getAttribute('href')).toBe('https://attack.mitre.org/tactics/TA0008/');
+  });
+
+  it('um host tranquilo nao ganha um caminho de ataque inventado', () => {
+    render(<HostDetailsModal host={hostOf({
+      portCount: 1,
+      ports: [{ number: 443, protocol: 'tcp', state: 'open', service: 'https' }],
+    })} onClose={vi.fn()} />);
+
+    expect(screen.queryByText('Likely attack path')).toBeNull();
+  });
+
+  it('diz por onde comecar, e quanto e que cada accao vale', () => {
+    render(<HostDetailsModal host={hostOf({
+      riskScore: 73, riskBand: 'HIGH',
+      remediation: [
+        { code: 'CLOSE_PORT', action: 'Fechar a porta 445/tcp (microsoft-ds)',
+          pointsRemoved: 69, scoreAfter: 4 },
+        { code: 'UPDATE_SERVICE', action: 'Actualizar Samba smbd 4.6.2 na porta 445/tcp',
+          pointsRemoved: 39, scoreAfter: 34 },
+      ],
+    })} onClose={vi.fn()} />);
+
+    expect(screen.getByText('What to fix first')).toBeDefined();
+    expect(screen.getByText('Fechar a porta 445/tcp (microsoft-ds)')).toBeDefined();
+    expect(screen.getByText('−69')).toBeDefined();
+    // Exacto, e nao um regex: 'score -> 4' e 'score -> 34' estao os dois no ecra.
+    expect(screen.getByText('score → 4')).toBeDefined();
+    expect(screen.getByText('score → 34')).toBeDefined();
+  });
+
+  it('num host saturado diz que o score nao se mexe -- e essa a mensagem verdadeira', () => {
+    // Razoes a somar 142, score 100. Tirar 39 leva a 103, que continua a mostrar 100.
+    // Sem isto o painel dizia "-39, score -> 100" e parecia que a accao nao valia nada.
+    render(<HostDetailsModal host={hostOf({
+      riskScore: 100, riskBand: 'CRITICAL',
+      remediation: [
+        { code: 'UPDATE_SERVICE', action: 'Actualizar Samba smbd 4.6.2 na porta 445/tcp',
+          pointsRemoved: 39, scoreAfter: 100 },
+      ],
+    })} onClose={vi.fn()} />);
+
+    expect(screen.getByText('−39')).toBeDefined();
+    expect(screen.getByText(/still/)).toBeDefined();
+    expect(screen.getByText('CRITICAL')).toBeDefined();
+  });
+
+  it('mostra so as accoes que interessam, e diz quantas ficaram de fora', () => {
+    const many = [80, 39, 25, 12, 5, 2].map((points, i) => ({
+      code: 'CLOSE_PORT', action: `Accao ${i}`, pointsRemoved: points, scoreAfter: 100 - points,
+    }));
+    render(<HostDetailsModal host={hostOf({ riskScore: 100, riskBand: 'CRITICAL', remediation: many })}
+                             onClose={vi.fn()} />);
+
+    // Uma accao de 2 pontos ao lado de uma de 80 e ruido; a lista existe para dizer
+    // por onde COMECAR. Mas o que fica de fora tem de ser dito.
+    expect(screen.getByText('Accao 3')).toBeDefined();
+    expect(screen.queryByText('Accao 4')).toBeNull();
+    expect(screen.getByText(/2 smaller action\(s\) not shown/)).toBeDefined();
+  });
+
+  it('um host sem nada a corrigir nao mostra a seccao vazia', () => {
+    render(<HostDetailsModal host={hostOf({ riskScore: 0, riskBand: 'LOW' })} onClose={vi.fn()} />);
+
+    expect(screen.queryByText('What to fix first')).toBeNull();
+  });
+
+  it('cada porta diz o que la corre -- sem versao nao ha CVE que se interprete', () => {
+    render(<HostDetailsModal host={hostOf({
+      portCount: 1,
+      ports: [{ number: 22, protocol: 'tcp', state: 'open', service: 'ssh',
+                product: 'OpenSSH', version: '9.3' }],
+    })} onClose={vi.fn()} />);
+
+    expect(screen.getByText(/OpenSSH 9.3/)).toBeDefined();
+  });
+
+  it('a porta abre para as falhas conhecidas, com o vector traduzido e o link para o NVD', async () => {
+    const user = userEvent.setup();
+    render(<HostDetailsModal host={hostOf({
+      portCount: 1,
+      ports: [{
+        number: 445, protocol: 'tcp', state: 'open', service: 'microsoft-ds',
+        product: 'Samba smbd', version: '4.6.2', cveTotal: 12,
+        cves: [{
+          id: 'CVE-2017-7494', cvssScore: 9.8, severity: 'CRITICAL',
+          vector: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H',
+          description: 'Samba allows remote code execution, aka SambaCry.',
+          url: 'https://nvd.nist.gov/vuln/detail/CVE-2017-7494',
+          kev: { dateAdded: '2023-03-30', knownRansomwareUse: true,
+                 vulnerabilityName: 'Samba Remote Code Execution Vulnerability',
+                 requiredAction: 'Apply updates per vendor instructions.' },
+        }],
+      }],
+    })} onClose={vi.fn()} />);
+
+    // Fechada, a porta anuncia quantas falhas tem sem as listar.
+    expect(screen.getByText('12 CVES')).toBeDefined();
+    expect(screen.queryByText('CVE-2017-7494')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: /microsoft-ds/i }));
+
+    const link = screen.getByRole('link', { name: 'CVE-2017-7494' });
+    expect(link.getAttribute('href')).toBe('https://nvd.nist.gov/vuln/detail/CVE-2017-7494');
+    expect(screen.getByText('9.8 CRITICAL')).toBeDefined();
+    // O vector deixa de ser jargao e passa a dizer porque e que 9.8 e 9.8.
+    expect(screen.getByText('reachable from the network')).toBeDefined();
+    expect(screen.getByText('no account needed')).toBeDefined();
+    // Truncado: mostrar 1 sem dizer que eram 12 seria mentir por omissao.
+    expect(screen.getByText(/Showing the 1 highest-scoring of 12 known CVEs/)).toBeDefined();
+  });
+
+  it('um CVE em exploracao activa diz-se, e diz-se que e ransomware', async () => {
+    const user = userEvent.setup();
+    render(<HostDetailsModal host={hostOf({
+      portCount: 1,
+      ports: [{
+        number: 3389, protocol: 'tcp', state: 'open', service: 'ms-wbt-server',
+        cveTotal: 1,
+        cves: [{
+          id: 'CVE-2019-0708', cvssScore: 9.8, severity: 'CRITICAL',
+          kev: { dateAdded: '2021-11-03', knownRansomwareUse: true,
+                 vulnerabilityName: 'BlueKeep', requiredAction: 'Apply updates per vendor instructions.' },
+        }],
+      }],
+    })} onClose={vi.fn()} />);
+
+    // O aviso tem de ser legivel com a porta fechada: e o sinal mais forte que ha.
+    expect(screen.getByText('Exploited')).toBeDefined();
+
+    await user.click(screen.getByRole('button', { name: /ms-wbt-server/i }));
+
+    // A narrativa tambem fala de ransomware; aqui interessa o badge da linha do CVE.
+    const ports = within(screen.getByRole('region', { name: /open ports/i }));
+    expect(ports.getByText(/Actively exploited/).textContent).toContain('ransomware');
+    // A CISA nao diz so que esta a ser explorado -- diz o que fazer a seguir.
+    expect(ports.getByText(/Apply updates per vendor instructions/)).toBeDefined();
+  });
+
+  it('uma porta sem CVEs abre na mesma quando ha dossie -- o Telnet nao tem falha, e a falha', async () => {
+    const user = userEvent.setup();
+    render(<HostDetailsModal host={hostOf({
+      portCount: 1,
+      ports: [{ number: 23, protocol: 'tcp', state: 'open', service: 'telnet' }],
+    })} onClose={vi.fn()} />);
+
+    // Sem CVEs o rotulo e neutro: nem tudo o que se explica e um problema.
+    expect(screen.getByText('Info')).toBeDefined();
+
+    await user.click(screen.getByRole('button', { name: /telnet/i }));
+
+    // A narrativa repete a consequencia que o dossie da por extenso -- e a frase certa
+    // nos dois sitios, por isso a consulta diz de qual fala.
+    const ports = within(screen.getByRole('region', { name: /open ports/i }));
+    expect(ports.getByText('Telnet')).toBeDefined();
+    expect(ports.getByText(/travels the network in plain text/)).toBeDefined();
+    expect(ports.getByText(/reads the administrator credentials/)).toBeDefined();
+    expect(ports.getByText(/Turn it off and use SSH instead/)).toBeDefined();
+    expect(ports.getByText('SSH (22)')).toBeDefined();
+  });
+
+  it('o dossie vem antes dos CVEs -- primeiro o que isto e, depois o que esta mal', async () => {
+    const user = userEvent.setup();
+    render(<HostDetailsModal host={hostOf({
+      portCount: 1,
+      ports: [{
+        number: 445, protocol: 'tcp', state: 'open', service: 'microsoft-ds',
+        product: 'Samba smbd', version: '4.6.2', cveTotal: 1,
+        cves: [{ id: 'CVE-2017-7494', cvssScore: 9.8, severity: 'CRITICAL' }],
+      }],
+    })} onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: /microsoft-ds/i }));
+
+    const dossier = screen.getByText('SMB');
+    const cve = screen.getByText('CVE-2017-7494');
+    // compareDocumentPosition: 4 = o segundo no vem DEPOIS do primeiro no documento.
+    expect(dossier.compareDocumentPosition(cve) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Com as duas coisas no mesmo painel, os CVEs precisam de um cabecalho proprio.
+    expect(screen.getByText(/Known flaws in this version/i)).toBeDefined();
+  });
+
+  it('uma porta sem CVEs e sem dossie continua a nao ser botao', () => {
+    // O 8443 nao tem peso proprio no application.yml, logo nao tem dossie: nao ha
+    // gaveta nenhuma para abrir, e um botao que abre o vazio e pior do que nada.
+    render(<HostDetailsModal host={hostOf({
+      portCount: 1,
+      ports: [{ number: 8443, protocol: 'tcp', state: 'open', service: 'https-alt' }],
+    })} onClose={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: /https-alt/i })).toBeNull();
+  });
+
+  it('avisa dentro do dialogo quando a consulta de CVEs ficou incompleta', () => {
+    // O aviso global do App esconde-se com um painel aberto, ou seja, desaparece
+    // exactamente quando o utilizador vem ler os CVEs.
+    render(<HostDetailsModal host={hostOf()} onClose={vi.fn()} cveLookupDegraded />);
+
+    expect(screen.getByText(/this list may be incomplete/i)).toBeDefined();
   });
 
   it('um host sem risco nem portas diz que nao ha, em vez de duas caixas vazias', () => {

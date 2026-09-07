@@ -1,0 +1,173 @@
+/*
+ * O relatório impresso.
+ *
+ * Só existe em `@media print`: fora da impressão o documento está escondido, e a
+ * aplicação continua a ser a cidade 3D. O `window.print()` do browser é que produz o
+ * PDF — texto pesquisável e selecionável, sem nenhuma biblioteca no bundle, e com o
+ * mesmo motor de layout que já lá está.
+ */
+
+.report-document {
+  display: none;
+}
+
+@media print {
+  /* O ecrã da aplicação desaparece; fica só o documento, que é seu irmão e não seu
+     filho — ver o comentário no App.tsx. */
+  .app-shell {
+    display: none !important;
+  }
+
+  .report-document {
+    display: block;
+    position: static;
+    font: 10.5pt/1.55 "Segoe UI", -apple-system, system-ui, sans-serif;
+    color: #1a1d21;
+    background: #fff;
+  }
+
+  @page {
+    size: A4;
+    margin: 18mm 16mm;
+  }
+
+  /* O fundo preto da aplicação não vai para o papel. */
+  html, body {
+    background: #fff !important;
+    color: #1a1d21;
+    margin: 0;
+  }
+
+  .report-document h1 {
+    font-size: 21pt;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 4pt;
+  }
+
+  .report-document .report-facts {
+    color: #5b6470;
+    font-size: 10pt;
+    margin: 0 0 18pt;
+  }
+
+  .report-document h2 {
+    font-size: 14pt;
+    font-weight: 600;
+    margin: 26pt 0 8pt;
+    padding-bottom: 4pt;
+    border-bottom: 1px solid #dde1e6;
+    /* Um título não fica órfão no fim de uma página. */
+    break-after: avoid;
+    break-inside: avoid;
+  }
+
+  /* Cada host começa em página nova; o sumário e o inventário ficam onde estão. */
+  .report-document .report-host {
+    break-before: page;
+  }
+
+  .report-document h3 {
+    font-size: 10pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #5b6470;
+    margin: 16pt 0 6pt;
+    break-after: avoid;
+  }
+
+  .report-document h4 {
+    font-size: 10.5pt;
+    font-weight: 600;
+    margin: 12pt 0 4pt;
+    break-after: avoid;
+  }
+
+  .report-document p {
+    margin: 0 0 8pt;
+    orphans: 3;
+    widows: 3;
+  }
+
+  .report-document table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 9pt;
+    margin: 8pt 0 14pt;
+  }
+
+  .report-document th {
+    text-align: left;
+    font-weight: 600;
+    color: #5b6470;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1.5px solid #c9ced5;
+    padding: 5pt 8pt 5pt 0;
+  }
+
+  .report-document td {
+    padding: 5pt 8pt 5pt 0;
+    border-bottom: 1px solid #eef0f3;
+    vertical-align: top;
+  }
+
+  .report-document .num {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* O cabeçalho da tabela repete-se em cada página que ela ocupe. */
+  .report-document thead {
+    display: table-header-group;
+  }
+
+  .report-document code {
+    font: 9pt/1.4 "Cascadia Mono", Consolas, monospace;
+    background: #f4f6f8;
+    padding: 1pt 4pt;
+    border-radius: 3px;
+    color: #24292f;
+  }
+
+  .report-document a {
+    color: #0a5ad6;
+    text-decoration: none;
+  }
+
+  .report-document ul,
+  .report-document ol {
+    margin: 0 0 10pt;
+    padding-left: 18pt;
+  }
+
+  .report-document li {
+    margin: 0 0 4pt;
+  }
+
+  .report-document .report-tactics {
+    color: #5b6470;
+    font-style: italic;
+    margin: 0 0 8pt;
+  }
+
+  .report-document .report-warning {
+    margin: 10pt 0;
+    padding: 8pt 12pt;
+    border-left: 3px solid #d97706;
+    background: #fffbeb;
+    color: #78350f;
+    font-size: 9.5pt;
+    /* Sem isto o aviso sai sem fundo na maioria dos browsers, e um aviso sem destaque
+       deixa de ser um aviso. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Uma porta não se parte a meio entre páginas. */
+  .report-document .report-port {
+    break-inside: avoid;
+  }
+}

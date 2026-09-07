@@ -69,7 +69,7 @@ class VulnerableServiceRuleTest {
     @DisplayName("um CVE sem CVSS publicado nao pontua -- nao ha base para lhe dar peso")
     void ignoresCvesWithoutAPublishedScore() {
         CveLookupResult onlyUnscored = new CveLookupResult(
-                Map.of(SSH_CPE, List.of(new Cve("CVE-2023-51385", null, null, "sem metricas"))), false);
+                Map.of(SSH_CPE, List.of(new Cve("CVE-2023-51385", null, null, null, null, "sem metricas"))), false);
 
         assertThat(rule.evaluate(input(sshHost(), onlyUnscored))).isEmpty();
     }
